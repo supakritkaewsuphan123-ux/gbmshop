@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แดชบอร์ด | GB MoneyShop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .dash-sidebar {
+            background: var(--bg-surface);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            height: fit-content;
+        }
+        .dash-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .dash-menu-item {
+            padding: 0.8rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        .dash-menu-item:hover, .dash-menu-item.active {
+            background: var(--primary);
+            color: #fff;
+        }
+        .dash-content {
+            background: var(--bg-surface);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        th { color: var(--text-muted); font-weight: 500; }
+        .hidden { display: none; }
+        @media (max-width: 768px) {
+            .dashboard-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo">GB<span>money</span></a>
+    </div>
+    <div class="nav-center">
+        <a href="index.html" class="nav-link">หน้าแรก</a>
+        <a href="products.html" class="nav-link">ตลาดสินค้า</a>
+        <a href="contact.html" class="nav-link">ติดต่อเรา</a>
+    </div>
+    <div class="nav-right" id="nav-auth-container">
+        <!-- Injected via JS -->
+    </div>
+</nav>
+
+    <main class="container">
+        <div class="dashboard-container">
+            <aside class="dash-sidebar">
+                <div style="display:flex; align-items:center; gap: 1rem; margin-bottom: 2rem;">
+                    <img id="userAvatar" src="https://via.placeholder.com/50" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
+                    <div>
+                        <div id="usernameDisplay" style="font-weight: 600;">ผู้ใช้</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted)">สมาชิก</div>
+                    </div>
+                </div>
+                <div class="dash-menu">
+                    <div class="dash-menu-item active" onclick="switchTab('myProducts')">🏷️ สินค้าของฉัน</div>
+                    <div class="dash-menu-item" onclick="window.location.href='my-orders.html'">📦 การสั่งซื้อของฉัน</div>
+                    <div class="dash-menu-item" onclick="switchTab('myWallet')">💳 กระเป๋าเงิน</div>
+                </div>
+            </aside>
+
+            <section class="dash-content">
+                <!-- My Products Tab -->
+                <div id="tab-myProducts">
+                    <h2>สินค้าของฉัน</h2>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>สินค้า</th>
+                                    <th>ราคา</th>
+                                    <th>สภาพ</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="myProductsTable">
+                                <tr><td colspan="4" class="text-center">กำลังโหลด...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Add Product Tab Removed -->
+
+                <!-- My Orders Tab -->
+                <div id="tab-myOrders" class="hidden">
+                    <h2>การสั่งซื้อของฉัน</h2>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>สินค้า</th>
+                                    <th>ราคา</th>
+                                    <th>สถานะ</th>
+                                    <th>วันที่</th>
+                                </tr>
+                            </thead>
+                            <tbody id="myOrdersTable">
+                                <tr><td colspan="4" class="text-center">กำลังโหลด...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- My Wallet Tab -->
+                <div id="tab-myWallet" class="hidden">
+                    <h2>💳 GB Wallet</h2>
+                    <div style="background: rgba(255,255,255,0.05); padding: 2rem; border-radius: var(--radius-md); border: 1px dashed var(--primary); text-align: center; margin-bottom: 2rem;">
+                        <div style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 0.5rem;">ยอดคงเหลือ</div>
+                        <div id="walletBalance" style="font-size: 3rem; font-weight: 800; color: var(--primary);">฿0</div>
+                        <button class="btn btn-primary" style="margin-top: 1.5rem; padding: 0.8rem 2rem;" onclick="openTopupModal()">+ เติมเงิน</button>
+                    </div>
+
+                    <h3>ประวัติการเติมเงิน</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>รหัสอ้างอิง</th>
+                                    <th>จำนวนเงิน</th>
+                                    <th>สถานะ</th>
+                                    <th>วันที่ขอ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="myTopupsTable">
+                                <tr><td colspan="4" class="text-center">กำลังโหลด...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+    </main>
+
+    <!-- Meetup Details Modal -->
+    <div class="modal-overlay" id="meetupModal">
+        <div class="modal-content" id="meetupModalContent" style="max-width: 500px; text-align:center;">
+            <h3 style="margin-bottom: 1.5rem; color:var(--primary);">📍 ข้อมูลนัดรับสินค้า</h3>
+            <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius:10px; margin-bottom:1.5rem;">
+                <p style="color:var(--text-muted); margin-bottom:0.5rem; font-size:0.9rem;">ที่อยู่ / สถานที่:</p>
+                <div style="font-weight:bold; font-size:1.1rem; line-height:1.5; margin-bottom:1.5rem;" id="meetupLocationText">
+                    กำลังโหลด...
+                </div>
+                
+                <p style="color:var(--text-muted); margin-bottom:0.5rem; font-size:0.9rem;">ช่องทางติดต่อ (Line / FB / โทร):</p>
+                <a href="#" target="_blank" class="btn btn-outline" id="meetupContactBtn" style="display:inline-block; border-color:var(--primary); color:var(--primary);">
+                    ติดต่อผู้ขาย
+                </a>
+            </div>
+            <button class="btn" style="padding:0.8rem 2rem; background:transparent; border:1px solid var(--border-color); color:var(--text-muted);" onclick="closeMeetupModal()">ปิด</button>
+        </div>
+    </div>
+
+    <!-- Slip Upload Modal -->
+    <div class="modal-overlay" id="slipModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="margin-bottom: 1rem;">อัปโหลดสลิปชำระเงิน</h3>
+            <p style="color:var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">กรุณาแนบภาพหน้าจอยืนยันการโอนเงิน<br><strong style="color:var(--primary);">*รับเฉพาะไฟล์ .jpg และ .png ขนาดไม่เกิน 2MB</strong></p>
+            <form id="slipForm" onsubmit="submitSlip(event)">
+                <input type="hidden" id="slipOrderId">
+                <input type="file" id="slipImage" accept="image/jpeg, image/png" class="form-control" required style="margin-bottom: 1.5rem;">
+                <div style="display:flex; gap:1rem;">
+                    <button type="submit" class="btn btn-primary" id="btnSubmitSlip" style="flex:1;">อัปโหลด</button>
+                    <button type="button" class="btn btn-outline" onclick="closeSlipModal()" style="flex:1;">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Top-up Modal -->
+    <div class="modal-overlay" id="topupModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="margin-bottom: 1rem;">เติมเงิน GB Wallet</h3>
+            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem;">
+                <p style="color:var(--primary); font-weight:bold; margin-bottom:0.5rem;">ช่องทางโอนเงินแอดมิน:</p>
+                <div id="adminTransferInfo">กำลังโหลดข้อมูล...</div>
+            </div>
+            <p style="color:var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">ระบุจำนวนเงินที่โอน และแนบรูปสลิปเพื่อขอรับเครดิตเข้ากระเป๋า<br><strong style="color:var(--primary);">*รับเฉพาะไฟล์ .jpg และ .png ขนาดไม่เกิน 2MB</strong></p>
+            <form id="topupForm" onsubmit="submitTopup(event)">
+                <div class="form-group">
+                    <label>ยอดเงินที่โอน (บาท)</label>
+                    <input type="number" id="topupAmount" min="1" class="form-control" required placeholder="เช่น 500" oninput="generateTopupQr(this.value)">
+                </div>
+                <div id="dynamicTopupQrContainer" style="text-align:center; display:none; margin-bottom:1rem;">
+                    <p id="dynamicTopupQrText" style="color:var(--primary); font-size:0.9rem; margin-bottom:0.5rem;">สแกน QR โค้ดเพื่อโอนยอดนี้:</p>
+                    <img id="dynamicTopupQrImg" src="" style="width:200px; height:auto; border-radius:10px; background:#fff; padding:10px; border:2px solid var(--primary);" onerror="this.onerror=null; fallbackTopupQr();">
+                </div>
+                <div class="form-group">
+                    <label>แนบสลิปการโอน</label>
+                    <input type="file" id="topupImage" accept="image/jpeg, image/png" class="form-control" required>
+                </div>
+                <div style="display:flex; gap:1rem; margin-top:1.5rem;">
+                    <button type="submit" class="btn btn-primary" id="btnSubmitTopup" style="flex:1;">ส่งคำขอเติมเงิน</button>
+                    <button type="button" class="btn btn-outline" onclick="closeTopupModal()" style="flex:1;">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!localStorage.getItem('token')) {
+                window.location.href = 'login.html';
+                return;
+            }
+            loadProfile();
+            loadOrders();
+            loadTopups();
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.dash-menu-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            document.querySelectorAll('.dash-content > div').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+        }
+
+        async function loadProfile() {
+            try {
+                const data = await apiFetch('/users/profile');
+                const u = data.user;
+                document.getElementById('usernameDisplay').innerText = u.username;
+                document.getElementById('walletBalance').innerText = '฿' + (u.balance || 0).toLocaleString();
+                
+                window.currentUserBalance = u.balance || 0; // global cache for quick checks
+
+                const av = u.profile_image;
+                document.getElementById('userAvatar').src = av === 'default_avatar.png' ? 'https://via.placeholder.com/50' : `/uploads/${av}`;
+
+                // Populate products
+                const tbody = document.getElementById('myProductsTable');
+                tbody.innerHTML = '';
+                if (data.products.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center" style="color:var(--text-muted)">คุณยังไม่มีสินค้าลงขาย</td></tr>';
+                } else {
+                    data.products.forEach(p => {
+                        const img = p.image.startsWith('http') ? p.image : `/uploads/${p.image}`;
+                        tbody.innerHTML += `
+                            <tr>
+                                <td style="display:flex; align-items:center; gap:10px;">
+                                    <img src="${img}" style="width:40px; height:40px; border-radius:5px; object-fit:cover; background: #fff;">
+                                    ${p.name}
+                                </td>
+                                <td style="color:var(--primary); font-weight:bold;">฿${p.price.toLocaleString()}</td>
+                                <td>${p.condition_percent}%</td>
+                                <td>
+                                    <button onclick="deleteProduct(${p.id})" class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size:0.8rem; border-color:red; color:red;">ลบ</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadOrders() {
+            try {
+                const orders = await apiFetch('/orders/my-orders');
+                const tbody = document.getElementById('myOrdersTable');
+                tbody.innerHTML = '';
+                if (orders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center" style="color:var(--text-muted)">ยังไม่มีรายการสั่งซื้อ</td></tr>';
+                } else {
+                    orders.forEach(o => {
+                        let actionHtml = '';
+                        if (o.method === 'meetup') {
+                            actionHtml += `<button onclick="openMeetupModal()" class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; margin-top:5px;">ดูข้อมูลนัดรับ</button><br>`;
+                        } else {
+                            actionHtml += `<span style="font-size:0.8rem; color:var(--text-muted)">วิธี: ${o.method ? o.method.toUpperCase() : 'QR'}</span><br>`;
+                        }
+
+                        if (o.status === 'pending' && o.method !== 'meetup' && o.method !== 'angpao') {
+                            if (!o.slip_image) {
+                                actionHtml += `<button onclick="openSlipModal(${o.id})" class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; margin-top:5px; background:var(--primary);">แนบสลิป</button>`;
+                            } else {
+                                actionHtml += `<span style="font-size:0.8rem; color:#00aeff; margin-top:5px; display:inline-block;">อัปโหลดสลิปแล้ว (รอตรวจสอบ)</span>`;
+                            }
+                        }
+                        
+                        const statusTH = {
+                            'completed': 'สำเร็จ',
+                            'rejected': 'ถูกปฏิเสธ',
+                            'pending': 'รอดำเนินการ',
+                            'paid': 'ชำระแล้ว'
+                        };
+                        
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${o.product_name}</td>
+                                <td>฿${o.price.toLocaleString()}</td>
+                                <td>
+                                    <span style="color:${o.status==='completed'?'#00ff88':(o.status==='rejected'?'#ff003c':'#ffb700')}; font-weight:bold;">${(statusTH[o.status] || o.status).toUpperCase()}</span><br>
+                                    ${actionHtml}
+                                </td>
+                                <td style="color:var(--text-muted); font-size:0.9rem;">${new Date(o.created_at).toLocaleDateString('th-TH')}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error('ข้อผิดพลาดโหลดออเดอร์', err);
+            }
+        }
+
+        // Add Product Event Listener Removed
+
+        async function deleteProduct(id) {
+            if(!confirm('ยืนยันการลบสินค้าชิ้นนี้?')) return;
+            try {
+                await apiFetch(`/products/${id}`, { method: 'DELETE' });
+                showToast('ลบสินค้าเรียบร้อย', 'success');
+                loadProfile();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        // Meetup Modal Functions
+        async function openMeetupModal() {
+            document.getElementById('meetupModal').classList.add('active');
+            try {
+                const config = await apiFetch('/settings/public');
+                document.getElementById('meetupLocationText').innerText = config.meetup_address || 'แอดมินยังไม่ได้ตั้งค่าสถานที่';
+                
+                const contactBtn = document.getElementById('meetupContactBtn');
+                if (config.meetup_contact) {
+                    contactBtn.href = config.meetup_contact.startsWith('http') ? config.meetup_contact : `tel:${config.meetup_contact}`;
+                    contactBtn.style.display = 'inline-block';
+                } else {
+                    contactBtn.style.display = 'none';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        function closeMeetupModal() {
+            document.getElementById('meetupModal').classList.remove('active');
+        }
+
+        // Slip Modal Functions
+        function openSlipModal(orderId) {
+            document.getElementById('slipOrderId').value = orderId;
+            document.getElementById('slipForm').reset();
+            document.getElementById('slipModal').classList.add('active');
+        }
+
+        function closeSlipModal() {
+            document.getElementById('slipModal').classList.remove('active');
+        }
+
+        async function submitSlip(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitSlip');
+            btn.disabled = true;
+            btn.innerText = 'กำลังอัปโหลด...';
+
+            const orderId = document.getElementById('slipOrderId').value;
+            const file = document.getElementById('slipImage').files[0];
+
+            const formData = new FormData();
+            formData.append('slip_image', file);
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/orders/${orderId}/slip`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if(!response.ok) throw new Error(data.error || 'อัปโหลดไม่สำเร็จ');
+
+                showToast('อัปโหลดสลิปสำเร็จ!', 'success');
+                closeSlipModal();
+                loadOrders(); // refresh
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'อัปโหลด';
+            }
+        }
+
+        function generateTopupQr(amount) {
+            const qrContainer = document.getElementById('dynamicTopupQrContainer');
+            const qrImg = document.getElementById('dynamicTopupQrImg');
+            
+            if (amount && amount > 0) {
+                qrImg.style.display = 'inline-block';
+                document.getElementById('dynamicTopupQrText').innerText = 'สแกน QR โค้ดเพื่อโอนยอดนี้:';
+                qrImg.src = `${API_URL}/settings/qr?amount=${amount}`;
+                qrContainer.style.display = 'block';
+            } else {
+                qrContainer.style.display = 'none';
+            }
+        }
+
+        async function fallbackTopupQr() {
+            try {
+                const config = await apiFetch('/settings/public');
+                const pText = document.getElementById('dynamicTopupQrText');
+                if (config.promptpay_qr) {
+                    document.getElementById('dynamicTopupQrImg').src = `/uploads/${config.promptpay_qr}`;
+                    document.getElementById('dynamicTopupQrImg').style.display = 'inline-block';
+                    pText.innerText = 'สแกน QR จากร้านค้า:';
+                } else {
+                    document.getElementById('dynamicTopupQrImg').style.display = 'none';
+                    pText.innerText = '(แอดมินยังไม่ได้ตั้งค่าพร้อมเพย์)';
+                }
+            } catch (err) {
+                 document.getElementById('dynamicTopupQrContainer').style.display = 'none';
+            }
+        }
+
+        // Topup Modal Functions
+        async function openTopupModal() {
+            document.getElementById('topupForm').reset();
+            document.getElementById('topupModal').classList.add('active');
+            
+            // Fetch admin details
+            try {
+                const config = await apiFetch('/settings/public');
+                let infoHtml = '';
+                if (config.promptpay_qr) {
+                    infoHtml += `<div style="text-align:center; padding: 1rem 0;"><img src="/uploads/${config.promptpay_qr}" style="max-height:250px; border-radius:8px;"></div>`;
+                }
+                if (config.promptpay_number) infoHtml += `<div>📱 พร้อมเพย์: <strong>${config.promptpay_number}</strong></div>`;
+                if (config.wallet_number) infoHtml += `<div>🔶 TrueMoney: <strong>${config.wallet_number}</strong></div>`;
+                
+                document.getElementById('adminTransferInfo').innerHTML = infoHtml || 'แอดมินยังไม่ได้ตั้งค่าช่องทางการชำระเงิน';
+            } catch(e) {
+               console.error(e); 
+            }
+        }
+        function closeTopupModal() {
+            document.getElementById('topupModal').classList.remove('active');
+        }
+
+        async function submitTopup(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitTopup');
+            btn.disabled = true;
+            btn.innerText = 'กำลังส่งคำขอ...';
+
+            const amount = document.getElementById('topupAmount').value;
+            const file = document.getElementById('topupImage').files[0];
+
+            const formData = new FormData();
+            formData.append('amount', amount);
+            formData.append('slip_image', file);
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/users/topup`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if(!response.ok) throw new Error(data.error || 'คำขอเติมเงินไม่สำเร็จ');
+
+                showToast('ส่งคำขอเติมเงินแล้ว รอแอดมินอนุมัติ', 'success');
+                closeTopupModal();
+                loadTopups(); // refresh
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'ส่งคำขอเติมเงิน';
+            }
+        }
+
+        async function loadTopups() {
+            try {
+                const topups = await apiFetch('/users/my-topups');
+                const tbody = document.getElementById('myTopupsTable');
+                tbody.innerHTML = '';
+                if (topups.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center" style="color:var(--text-muted)">ไม่มีประวัติการเติมเงิน</td></tr>';
+                } else {
+                    const statusTH = { 'completed': 'สำเร็จ', 'rejected': 'ถูกปฏิเสธ', 'pending': 'รอดำเนินการ' };
+                    topups.forEach(t => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td style="color:var(--text-muted)">#${t.id}</td>
+                                <td>฿${t.amount.toLocaleString()}</td>
+                                <td><span style="color:${t.status==='completed'?'#00ff88':(t.status==='rejected'?'#ff003c':'#ffb700')}; font-weight:bold;">${(statusTH[t.status] || t.status).toUpperCase()}</span></td>
+                                <td style="color:var(--text-muted); font-size:0.9rem;">${new Date(t.created_at).toLocaleDateString('th-TH')}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error('ข้อผิดพลาดโหลดประวัติเติมเงิน', err);
+            }
+        }
+    </script>
+</body>
+</html>

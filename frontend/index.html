@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ตลาดซื้อขายสินค้ามือสองคุณภาพสูง GB MoneyShop">
+    <title>GB MONEYSHOP | ตลาดสินค้ามือสองพรีเมียม</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .hero {
+            background: linear-gradient(rgba(10, 10, 12, 0.8), rgba(10, 10, 12, 0.9)), url('https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=1920') center/cover;
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            text-align: center;
+        }
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .hero h1 {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 20px rgba(255, 0, 60, 0.3);
+        }
+        .hero h1 span {
+            color: var(--primary);
+        }
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo">GB<span>money</span></a>
+    </div>
+    <div class="nav-center">
+        <a href="index.html" class="nav-link">หน้าแรก</a>
+        <a href="products.html" class="nav-link">ตลาดสินค้า</a>
+        <a href="contact.html" class="nav-link">ติดต่อเรา</a>
+    </div>
+    <div class="nav-right" id="nav-auth-container">
+        <!-- Injected via JS -->
+    </div>
+</nav>
+
+    <main>
+        <section class="hero">
+            <div class="container hero-content">
+                <h1>GB <span>MONEY</span></h1>
+                <p>ตลาดซื้อขายสินค้าอิเล็กทรอนิกส์มือสองพรีเมียม ของทรัพย์หลุด และของมือสองมากหมายให้เลือก</p>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <a href="products.html" class="btn btn-primary">เลือกซื้อสินค้า</a>
+                    <a href="register.html" class="btn btn-outline">เริ่มต้นขาย</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="container mt-2 mb-2">
+            <div class="text-center">
+                <h2>สินค้าแนะนำ</h2>
+                <p style="color: var(--text-muted);">สินค้ามือสองคุณภาพดีที่ลงขายล่าสุด</p>
+            </div>
+            
+            <div class="products-grid" id="featured-products">
+                <!-- Products injected via JS -->
+                <div style="text-align:center; grid-column: 1/-1; color: var(--text-muted)">กำลังโหลดสินค้า...</div>
+            </div>
+            
+            <div class="text-center mt-2">
+                <a href="products.html" class="btn btn-outline">ดูสินค้าทั้งหมด</a>
+            </div>
+        </section>
+    </main>
+
+    <footer style="background: var(--bg-surface); padding: 3rem 0; border-top: 1px solid var(--border-color); text-align: center;">
+        <div class="container">
+            <h2 class="nav-logo" style="justify-content: center; margin-bottom: 1rem;">GB<span>money</span></h2>
+            <p style="color: var(--text-muted);">© 2026 GB MoneyShop ตลาดสินค้ามือสอง สงวนลิขสิทธิ์ทั้งหมด</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const products = await apiFetch('/products');
+                const container = document.getElementById('featured-products');
+                container.innerHTML = '';
+                
+                // Show max 4
+                const featured = products.slice(0, 4);
+                
+                if (featured.length === 0) {
+                    container.innerHTML = '<p style="text-align:center; grid-column: 1/-1; color: var(--text-muted)">ยังไม่มีสินค้า เป็นคนแรกที่ลงขาย!</p>';
+                    return;
+                }
+
+                featured.forEach(p => {
+                    const imageUrl = p.image.startsWith('http') ? p.image : `/uploads/${p.image}`;
+                    container.innerHTML += `
+                        <div class="product-card">
+                            <div class="product-badge">สภาพ ${p.condition_percent}%</div>
+                            <div class="product-image-wrapper">
+                                <img src="${imageUrl}" alt="${p.name}" class="product-image" onerror="this.src='https://via.placeholder.com/300x250?text=No+Image'">
+                            </div>
+                            <div class="product-info">
+                                <h3 class="product-title">${p.name}</h3>
+                                <div class="product-meta">
+                                    <span>โดย ${p.seller_name}</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-top: auto;">
+                                    <div class="product-price">฿${p.price.toLocaleString()}</div>
+                                    <a href="product-detail.html?id=${p.id}" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.8rem;">ดูสินค้า</a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Management (Custom)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+            background: #f4f4f9;
+        }
+
+        .order-box {
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .order-box p {
+            margin: 0.5rem 0;
+            color: #333;
+        }
+
+        .meetup-info {
+            background: #fff3e0;
+            padding: 1rem;
+            border-left: 4px solid #ff9800;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Order Management (Custom JSON View)</h1>
+    <div id="orders">กำลังโหลดข้อมูล...</div>
+
+    <script>
+        // Fetch ดึงข้อมูลตามที่โจทย์ต้องการ
+        fetch('/admin/orders')
+            .then(res => res.json())
+            .then(data => {
+                console.log("Data loaded from /admin/orders:", data);
+                const container = document.getElementById('orders');
+
+                if (data.length === 0) {
+                    container.innerHTML = '<p>ไม่มีออเดอร์ในระบบ</p>';
+                    return;
+                }
+
+                container.innerHTML = data.map(order => `
+                    <div class="order-box">
+                        <p><strong>ID:</strong> ${order.order_id}</p>
+                        <p><strong>ราคา:</strong> ฿${order.total_price.toLocaleString()}</p>
+                        <p><strong>สถานะ:</strong> <span style="color: blue">${order.status}</span></p>
+
+                        ${order.meet_date ? `
+                            <div class="meetup-info">
+                                <p><strong>🗓️ นัดรับ:</strong> ${order.meet_date} ${order.meet_time || ''}</p>
+                                <p><strong>📍 สถานที่:</strong> ${order.meet_location}</p>
+                                <p><strong>📝 หมายเหตุ:</strong> ${order.meet_note}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('orders').innerHTML = '<p style="color:red;">Failed to fetch API</p>';
+            });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ติดต่อเรา | GB MoneyShop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo">GB<span>money</span></a>
+    </div>
+    <div class="nav-center">
+        <a href="index.html" class="nav-link">หน้าแรก</a>
+        <a href="products.html" class="nav-link">ตลาดสินค้า</a>
+        <a href="contact.html" class="nav-link">ติดต่อเรา</a>
+    </div>
+    <div class="nav-right" id="nav-auth-container">
+        <!-- Injected via JS -->
+    </div>
+</nav>
+
+    <main class="container">
+        <div style="max-width: 600px; margin: 4rem auto; background: var(--bg-surface); padding: 3rem; border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+            <h1 class="text-center">ติดต่อเรา</h1>
+            <p class="text-center" style="color:var(--text-muted); margin-bottom: 2rem;">มีปัญหาด้านธุรกรรมหรือต้องการความช่วยเหลือ? ส่งข้อความมาหาเราได้เลย</p>
+
+            <form onsubmit="event.preventDefault(); showToast('ส่งข้อความเรียบร้อย! เราจะติดต่อกลับโดยเร็ว', 'success'); this.reset();">
+                <div class="form-group">
+                    <label>ชื่อ</label>
+                    <input type="text" class="form-control" required placeholder="ชื่อ-นามสกุล">
+                </div>
+                <div class="form-group">
+                    <label>อีเมล</label>
+                    <input type="email" class="form-control" required placeholder="example@email.com">
+                </div>
+                <div class="form-group">
+                    <label>ข้อความ</label>
+                    <textarea class="form-control" rows="5" required placeholder="เราจะช่วยคุณได้อย่างไร?"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%">ส่งข้อความ</button>
+            </form>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

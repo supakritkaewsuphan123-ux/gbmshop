@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตะกร้าสินค้า | GB MoneyShop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .cart-container {
+            background: var(--bg-surface);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            margin-top: 2rem;
+        }
+        .cart-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .cart-item img {
+            width: 80px;
+            height: 80px;
+            border-radius: var(--radius-md);
+            object-fit: cover;
+        }
+        .cart-item-info {
+            flex: 1;
+            margin-left: 1.5rem;
+        }
+        .cart-summary {
+            margin-top: 2rem;
+            text-align: right;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo">GB<span>money</span></a>
+    </div>
+    <div class="nav-center">
+        <a href="index.html" class="nav-link">หน้าแรก</a>
+        <a href="products.html" class="nav-link">ตลาดสินค้า</a>
+        <a href="contact.html" class="nav-link">ติดต่อเรา</a>
+    </div>
+    <div class="nav-right" id="nav-auth-container">
+        <!-- Injected via JS -->
+    </div>
+</nav>
+
+    <main class="container">
+        <h1>ตะกร้าสินค้าของคุณ</h1>
+        <div class="cart-container">
+            <div id="cart-items-container">
+                <!-- Injected via JS -->
+            </div>
+            
+            <div class="cart-summary">
+                <h2>ยอดรวม: <span id="cart-total" style="color:var(--primary)">฿0</span></h2>
+                <button class="btn btn-primary" onclick="openCheckoutModal()" id="btn-checkout" style="margin-top: 1rem; padding: 1rem 2rem; font-size: 1.2rem;" disabled>ดำเนินการชำระเงิน</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Payment Choice Modal -->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal-content" id="paymentModalContent">
+            <!-- Modal Content Injected via JS -->
+            <h3 class="text-center" style="margin-bottom: 2rem;">เลือกวิธีจัดส่ง / ชำระเงิน</h3>
+            <div style="display:flex; flex-direction:column; gap:1rem;">
+                <button class="btn btn-outline" id="btnMeetup" onclick="placeOrder('meetup')" style="padding:1rem;">🤝 นัดรับสินค้า (Meetup)</button>
+                <button class="btn btn-primary" id="btnPayNow" onclick="showQR()" style="padding:1rem;">📱 โอนผ่าน QR Code</button>
+                <button class="btn" style="padding:1rem; border:none; background:transparent; color:var(--text-muted);" onclick="closeModal()">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCart();
+        });
+
+        function renderCart() {
+            const cart = getCart();
+            const container = document.getElementById('cart-items-container');
+            const totalEl = document.getElementById('cart-total');
+            const checkoutBtn = document.getElementById('btn-checkout');
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p class="text-center" style="color:var(--text-muted); padding:2rem;">ตะกร้าสินค้าของคุณว่างเปล่า</p>';
+                totalEl.innerText = '฿0';
+                checkoutBtn.disabled = true;
+                return;
+            }
+
+            checkoutBtn.disabled = false;
+            let total = 0;
+            container.innerHTML = '';
+
+            cart.forEach(item => {
+                const img = item.image.startsWith('http') ? item.image : `/uploads/${item.image}`;
+                total += item.price;
+                container.innerHTML += `
+                    <div class="cart-item">
+                        <img src="${img}" alt="${item.name}">
+                        <div class="cart-item-info">
+                            <h3>${item.name}</h3>
+                            <div style="color:var(--primary); font-weight:bold; font-size:1.2rem;">฿${item.price.toLocaleString()}</div>
+                        </div>
+                        <button class="btn btn-outline" style="border-color:red; color:red; padding: 0.5rem;" onclick="removeItem(${item.id})">ลบออก</button>
+                    </div>
+                `;
+            });
+
+            totalEl.innerText = `฿${total.toLocaleString()}`;
+        }
+
+        function removeItem(id) {
+            removeFromCart(id);
+            renderCart();
+        }
+
+        const modal = document.getElementById('paymentModal');
+        function closeModal() {
+            modal.classList.remove('active');
+            document.getElementById('paymentModalContent').innerHTML = `
+                <h3 class="text-center" style="margin-bottom: 2rem;">เลือกวิธีจัดส่ง / ชำระเงิน</h3>
+                <div style="display:flex; flex-direction:column; gap:1rem;">
+                    <button class="btn btn-outline" onclick="showMeetupForm()" style="padding:1rem;">🤝 นัดรับสินค้า (ชำระปลายทาง)</button>
+                    <button class="btn btn-outline" onclick="showCODForm()" style="padding:1rem;">🚚 เก็บเงินปลายทาง (COD)</button>
+                    <button class="btn btn-primary" style="padding:1rem; background: var(--primary); color: #fff;" onclick="showWallet()">💳 ชำระด้วย GB Wallet</button>
+                    <button class="btn" style="padding:1rem; border:none; background:transparent; color:var(--text-muted);" onclick="closeModal()">ยกเลิก</button>
+                </div>
+            `;
+        }
+        window.closeModal = closeModal;
+
+        window.showMeetupForm = () => {
+            document.getElementById('paymentModalContent').innerHTML = `
+                <h3 class="text-center" style="margin-bottom: 1rem;">🤝 นัดรับสินค้า</h3>
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label>วันที่นัดรับ</label>
+                    <input type="date" id="meetDate" class="form-control" required>
+                </div>
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label>เวลา</label>
+                    <input type="time" id="meetTime" class="form-control" required>
+                </div>
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label>สถานที่</label>
+                    <input type="text" id="meetLocation" class="form-control" placeholder="เช่น BTS สยาม" required>
+                </div>
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label>ข้อมูลติดต่อ (เบอร์โทร/Line/Facebook)</label>
+                    <input type="text" id="meetContact" class="form-control" placeholder="08x-xxx-xxxx หรือ Line ID..." required>
+                </div>
+                <div class="form-group" style="margin-bottom:1.5rem;">
+                    <label>รายละเอียดเพิ่มเติม</label>
+                    <textarea id="meetNote" class="form-control" rows="2" placeholder="ใส่เสื้อสีอะไร รอตรงไหน เป็นต้น..."></textarea>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:1rem;">
+                    <button class="btn btn-primary" onclick="placeOrder('meetup')" style="padding:1rem;">ยืนยันการนัดรับ</button>
+                    <button class="btn btn-outline" style="padding:1rem;" onclick="closeModal()">กลับ</button>
+                </div>
+            `;
+        };
+
+        window.showCODForm = () => {
+            document.getElementById('paymentModalContent').innerHTML = `
+                <h3 class="text-center" style="margin-bottom: 1rem;">🚚 เก็บเงินปลายทาง (COD)</h3>
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label>ชื่อ-นามสกุลผู้รับ</label>
+                    <input type="text" id="codName" class="form-control" placeholder="ชื่อสกุลผู้รับ" required>
+                </div>
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label>เบอร์โทรศัพท์</label>
+                    <input type="text" id="codPhone" class="form-control" placeholder="08x-xxx-xxxx" required>
+                </div>
+                <div class="form-group" style="margin-bottom:1.5rem;">
+                    <label>ที่อยู่จัดส่ง</label>
+                    <textarea id="codAddress" class="form-control" rows="3" placeholder="บ้านเลขที่ หมู่ ซอย ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์" required></textarea>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:1rem;">
+                    <button class="btn btn-primary" onclick="placeOrder('cod')" style="padding:1rem;">ยืนยันออเดอร์ COD</button>
+                    <button class="btn btn-outline" style="padding:1rem;" onclick="closeModal()">กลับ</button>
+                </div>
+            `;
+        };
+
+        function openCheckoutModal() {
+            if (!currentUser) {
+                showToast('กรุณาเข้าสู่ระบบก่อนชำระเงิน', 'error');
+                setTimeout(() => window.location.href = 'login.html', 1500);
+                return;
+            }
+            modal.classList.add('active');
+            closeModal(); // Generate menu structure
+            modal.classList.add('active'); // Re-show active modal
+        }
+
+        window.showWallet = async () => {
+            const cart = getCart();
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            try {
+                const data = await apiFetch('/users/profile');
+                const balance = data.user.balance || 0;
+
+                const hasEnough = balance >= total;
+                let msgHtml = hasEnough 
+                    ? `<p style="color:#00ff88;">✅ ยอดเงินเพียงพอ (ยอดรวม: ฿${total.toLocaleString()})</p>`
+                    : `<p style="color:#ff003c;">❌ ยอดเงินไม่เพียงพอ ต้องการเพิ่มอีก ฿${(total - balance).toLocaleString()}</p>`;
+
+                document.getElementById('paymentModalContent').innerHTML = `
+                    <h3 class="text-center" style="margin-bottom: 1rem;">💳 GB Wallet</h3>
+                    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; text-align:center; border-radius:10px; margin-bottom:1.5rem;">
+                        <p style="color:var(--text-muted); margin-bottom:0.5rem;">ยอดคงเหลือปัจจุบัน</p>
+                        <h2 style="color:var(--primary); font-size:2.5rem; font-weight:800; margin-bottom:1rem;">฿${balance.toLocaleString()}</h2>
+                        ${msgHtml}
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:1rem;">
+                        <button class="btn btn-primary" onclick="placeOrder('wallet')" style="padding:1rem;" ${!hasEnough ? 'disabled' : ''}>ยืนยันการชำระเงิน</button>
+                        <button class="btn btn-outline" style="padding:1rem;" onclick="closeModal()">ยกเลิก / กลับ</button>
+                    </div>
+                `;
+            } catch (err) {
+                showToast('โหลดข้อมูลวอลเล็ตไม่สำเร็จ', 'error');
+            }
+        };
+
+        window.placeOrder = async (method) => {
+            const cart = getCart();
+            const btns = document.querySelectorAll('#paymentModalContent button');
+            btns.forEach(b => b.disabled = true);
+
+            const items = cart.map(p => p.id);
+            let payload = { items, method };
+
+            if (method === 'meetup') {
+                const dateInput = document.getElementById('meetDate');
+                const timeInput = document.getElementById('meetTime');
+                const locInput = document.getElementById('meetLocation');
+                const contactInput = document.getElementById('meetContact');
+                const noteInput = document.getElementById('meetNote');
+                
+                if (!dateInput.value || !timeInput.value || !locInput.value || !contactInput.value) {
+                    showToast('กรุณากรอกข้อมูลนัดรับให้ครบถ้วน', 'error');
+                    btns.forEach(b => b.disabled = false);
+                    return;
+                }
+                payload.meet_date = dateInput.value;
+                payload.meet_time = timeInput.value;
+                payload.meet_location = locInput.value;
+                payload.meet_note = `ติดต่อ: ${contactInput.value}` + (noteInput.value ? `\nรายละเอียด: ${noteInput.value}` : '');
+            } else if (method === 'cod') {
+                const nameInput = document.getElementById('codName');
+                const phoneInput = document.getElementById('codPhone');
+                const addressInput = document.getElementById('codAddress');
+                if (!nameInput.value || !phoneInput.value || !addressInput.value) {
+                    showToast('กรุณากรอกข้อมูลจัดส่งให้ครบถ้วน', 'error');
+                    btns.forEach(b => b.disabled = false);
+                    return;
+                }
+                payload.shipping_name = nameInput.value;
+                payload.shipping_phone = phoneInput.value;
+                payload.shipping_address = addressInput.value;
+            }
+
+            try {
+                await apiFetch('/invoices', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                let redirectMsg = 'ชำระเงินสำเร็จ! กำลังเปลี่ยนหน้า...';
+                if (method === 'meetup') redirectMsg = 'นัดรับสินค้าเรียบร้อย!';
+                else if (method === 'qr') redirectMsg = 'สร้างออเดอร์แล้ว กรุณาอัปโหลดสลิป';
+                else if (method === 'cod') redirectMsg = 'สั่งซื้อแบบ COD เรียบร้อย';
+                
+                showToast(redirectMsg, 'success');
+                clearCart();
+                
+                setTimeout(() => { window.location.href = 'my-orders.html'; }, 1500);
+            } catch(e) {
+                showToast(e.message || 'ชำระเงินไม่สำเร็จ', 'error');
+                btns.forEach(b => b.disabled = false);
+            }
+        };
+
+    </script>
+</body>
+</html>

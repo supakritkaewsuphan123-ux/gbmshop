@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แผงควบคุมแอดมิน | GB MoneyShop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-header {
+            background: var(--primary);
+            color: #fff;
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            margin-top: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-content {
+            background: var(--bg-surface);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            margin-top: 2rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .admin-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+
+        .admin-tab {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            transition: all var(--transition-fast);
+        }
+
+        .admin-tab:hover,
+        .admin-tab.active {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .page.active {
+            display: block;
+        }
+        .nav-btn.active {
+            color: var(--primary) !important;
+            border-bottom: 2px solid var(--primary) !important;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo">GB<span>money</span></a>
+    </div>
+    <div class="nav-center">
+        <a href="index.html" class="nav-link">หน้าแรก</a>
+        <a href="products.html" class="nav-link">ตลาดสินค้า</a>
+        <a href="contact.html" class="nav-link">ติดต่อเรา</a>
+    </div>
+    <div class="nav-right" id="nav-auth-container">
+        <!-- Injected via JS -->
+    </div>
+</nav>
+
+    <main class="container">
+        <div class="admin-header">
+            <div>
+                <h1 style="margin:0; font-size:2rem;">🛡️ ศูนย์ควบคุมแอดมิน</h1>
+                <p style="margin:0; opacity:0.8;">จัดการระบบตลาดซื้อขาย GB MoneyShop</p>
+            </div>
+        </div>
+
+        <div class="admin-content">
+            <div class="admin-content">
+                <nav class="admin-nav" style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; flex-wrap: wrap;">
+                    <button class="nav-btn active" data-page="listings" style="background:transparent; border:none; color:var(--text-muted); font-size:1rem; font-weight:600; cursor:pointer; padding:0.5rem 1rem; font-family: 'Prompt', sans-serif;">📦 สินค้าที่ลงขาย</button>
+                    <button class="nav-btn" data-page="orders" style="background:transparent; border:none; color:var(--text-muted); font-size:1rem; font-weight:600; cursor:pointer; padding:0.5rem 1rem; font-family: 'Prompt', sans-serif;">🛒 จัดการออเดอร์</button>
+                    <button class="nav-btn" data-page="topups" style="background:transparent; border:none; color:var(--text-muted); font-size:1rem; font-weight:600; cursor:pointer; padding:0.5rem 1rem; font-family: 'Prompt', sans-serif;">💰 อนุมัติการเติมเงิน</button>
+                    <button class="nav-btn" data-page="finance" style="background:transparent; border:none; color:var(--text-muted); font-size:1rem; font-weight:600; cursor:pointer; padding:0.5rem 1rem; font-family: 'Prompt', sans-serif;">📊 รายงานการเงิน</button>
+                    <button class="nav-btn" data-page="settings" style="background:transparent; border:none; color:var(--text-muted); font-size:1rem; font-weight:600; cursor:pointer; padding:0.5rem 1rem; font-family: 'Prompt', sans-serif;">⚙️ ตั้งค่าระบบ</button>
+                </nav>
+
+                <!-- TAB: LISTINGS -->
+                <div id="listings" class="page active">
+                    <h2 style="margin-bottom: 1.5rem; display:flex; justify-content:space-between; align-items:center;">
+                        สินค้าที่ลงขายทั้งหมด
+                        <button class="btn btn-primary" onclick="toggleAddProductForm()">+ เพิ่มสินค้าใหม่</button>
+                    </h2>
+
+                    <!-- Add Product Form (Hidden by default) -->
+                    <div id="addProductForm"
+                        style="display: none; background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 2rem; border: 1px dashed var(--primary);">
+                        <h3 id="formTitle" style="margin-bottom: 1rem; color: var(--primary);">ลงขายสินค้าใหม่ (แอดมินเท่านั้น)</h3>
+                        <form onsubmit="submitNewProduct(event)">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label style="display:block; margin-bottom:0.5rem; color:var(--text-muted);">ชื่อสินค้า</label>
+                                    <input type="text" id="addName" required
+                                        style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); color:#fff; border-radius:5px; font-family: 'Prompt', sans-serif;">
+                                </div>
+                                <div>
+                                    <label style="display:block; margin-bottom:0.5rem; color:var(--text-muted);">ราคา (฿)</label>
+                                    <input type="number" id="addPrice" required
+                                        style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); color:#fff; border-radius:5px;">
+                                </div>
+                            </div>
+                            <div
+                                style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label
+                                        style="display:block; margin-bottom:0.5rem; color:var(--text-muted);">สภาพสินค้า (%)</label>
+                                    <input type="number" id="addCondition" min="1" max="100" required
+                                        style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); color:#fff; border-radius:5px;">
+                                </div>
+                                <div>
+                                    <label style="display:block; margin-bottom:0.5rem; color:var(--text-muted);">จำนวน (ชิ้น)</label>
+                                    <input type="number" id="addStock" min="1" value="1" required
+                                        style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); color:#fff; border-radius:5px;">
+                                </div>
+                                <div>
+                                    <label style="display:block; margin-bottom:0.5rem; color:var(--text-muted);">รูปภาพสินค้า</label>
+                                    <input type="file" id="addImage" accept="image/*"
+                                        style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); color:#fff; border-radius:5px;">
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 1.5rem;">
+                                <label
+                                    style="display:block; margin-bottom:0.5rem; color:var(--text-muted);">คำอธิบายสินค้า</label>
+                                <textarea id="addDescription" rows="3"
+                                    style="width:100%; padding:0.8rem; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); color:#fff; border-radius:5px; resize:vertical; font-family: 'Prompt', sans-serif;"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="btnSubmitListing"
+                                style="padding: 1rem 2rem;">ลงประกาศสินค้า</button>
+                            <button type="button" class="btn btn-outline" onclick="toggleAddProductForm()"
+                                style="padding: 1rem 2rem; margin-left: 1rem;">ยกเลิก</button>
+                        </form>
+                    </div>
+
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>รหัส</th>
+                                    <th>ชื่อสินค้า</th>
+                                    <th>ผู้ขาย</th>
+                                    <th>ราคา</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminProductsTable">
+                                <tr>
+                                    <td colspan="5">กำลังโหลด...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                    <!-- TAB: ORDERS -->
+            <div id="orders" class="page">
+                <h2 style="margin-bottom: 1.5rem;">จัดการออเดอร์</h2>
+                        <div style="overflow-x:auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>รหัสออเดอร์</th>
+                                        <th>สินค้า</th>
+                                        <th>ผู้ซื้อ</th>
+                                        <th>วิธีชำระ / ข้อมูล</th>
+                                        <th>สถานะ</th>
+                                        <th>จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminOrdersTable">
+                                    <tr>
+                                        <td colspan="6">กำลังโหลด...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB: TOPUPS -->
+            <div id="topups" class="page">
+                <h2 style="margin-bottom: 1.5rem;">อนุมัติการเติมเงิน Wallet</h2>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>รหัสอ้างอิง</th>
+                                        <th>ผู้ใช้</th>
+                                        <th>ยอดที่ขอ</th>
+                                        <th>หลักฐาน / สลิป</th>
+                                        <th>สถานะ</th>
+                                        <th>จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="topupsTableBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center">กำลังโหลด...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB: FINANCE -->
+            <div id="finance" class="page">
+                <h2 style="margin-bottom: 1.5rem;">สถิติการเงิน</h2>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                            <div
+                                style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                                <div style="color:var(--text-muted); font-size:0.9rem;">รายได้รวม</div>
+                                <div id="statRevenue" style="font-size:2rem; font-weight:800; color:var(--primary);">฿0
+                                </div>
+                            </div>
+                            <div
+                                style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                                <div style="color:var(--text-muted); font-size:0.9rem;">ออเดอร์ทั้งหมด</div>
+                                <div id="statOrders" style="font-size:2rem; font-weight:800;">0</div>
+                            </div>
+                            <div
+                                style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                                <div style="color:var(--text-muted); font-size:0.9rem;">สำเร็จแล้ว</div>
+                                <div id="statCompleted" style="font-size:2rem; font-weight:800; color:#00ff88;">0</div>
+                            </div>
+                            <div
+                                style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                                <div style="color:var(--text-muted); font-size:0.9rem;">รอตรวจสอบสลิป</div>
+                                <div id="statPending" style="font-size:2rem; font-weight:800; color:#ffb700;">0</div>
+                            </div>
+                        </div>
+
+                        <div
+                            style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); height: 400px;">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- TAB: SETTINGS -->
+            <div id="settings" class="page">
+                <h2 style="margin-bottom: 1.5rem;">ตั้งค่าระบบ</h2>
+
+                        <div
+                            style="background: rgba(255,255,255,0.05); padding: 2rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+                            <h3 style="margin-bottom: 1rem; color:var(--primary);">ข้อมูลการชำระเงิน</h3>
+                            <div class="form-group">
+                                <label>หมายเลขพร้อมเพย์ (สำหรับสร้าง QR ชำระเงิน)</label>
+                                <input type="text" id="setPromptpay" class="form-control"
+                                    placeholder="เช่น 0812345678 หรือ 1234567890123">
+                            </div>
+                            <div class="form-group">
+                                <label>หมายเลข TrueMoney Wallet</label>
+                                <input type="text" id="setWallet" class="form-control" placeholder="เช่น 0812345678">
+                            </div>
+
+                            <div class="form-group"
+                                style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                                <label>อัปโหลด QR Code (สำหรับให้ลูกค้าสแกนโอนเงิน)</label>
+                                <div id="qrDisplayContainer" style="margin-bottom: 1rem; display:none;">
+                                    <img id="currentQrImg" src=""
+                                        style="max-height: 200px; border-radius: 8px; border: 1px dashed var(--primary); padding: 5px;">
+                                </div>
+                                <input type="file" id="setQrUpload" accept="image/jpeg, image/png" class="form-control">
+                                <button class="btn btn-outline" style="margin-top: 0.5rem; padding: 0.5rem 1rem;"
+                                    onclick="uploadAdminQr()">อัปโหลด QR Code</button>
+                            </div>
+                        </div>
+
+                        <div
+                            style="background: rgba(255,255,255,0.05); padding: 2rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+                            <h3 style="margin-bottom: 1rem; color:var(--primary);">ข้อมูลนัดรับสินค้า (Meetup)</h3>
+                            <div class="form-group">
+                                <label>ที่อยู่ / สถานที่นัดรับ</label>
+                                <textarea id="setMeetupAddress" class="form-control"
+                                    placeholder="เช่น BTS สยาม / เซ็นทรัลเวิลด์" rows="2" style="font-family: 'Prompt', sans-serif;"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>ช่องทางติดต่อ (Line / Facebook / เบอร์โทร)</label>
+                                <input type="text" id="setMeetupContact" class="form-control"
+                                    placeholder="เช่น https://line.me/ti/p/yourid หรือ เบอร์โทร">
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="saveSettings()">💾 บันทึกการตั้งค่า</button>
+                    </div>
+
+                </div>
+        </div>
+    </main>
+
+    <!-- Admin Slip View Modal -->
+    <div class="modal-overlay" id="slipViewModal">
+        <div class="modal-content" style="max-width: 500px; text-align:center;">
+            <h3 style="margin-bottom: 1rem;">หลักฐานการชำระเงิน</h3>
+            <img id="slipViewImage" src="" alt="สลิปการชำระเงิน"
+                style="width:100%; max-height:400px; object-fit:contain; border-radius:10px; margin-bottom:1.5rem; background:#fff;">
+            <button class="btn btn-outline" style="padding:0.8rem 2rem;" onclick="closeSlipView()">ปิด</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'login.html';
+                return;
+            }
+            const user = JSON.parse(userStr);
+            if (user.role !== 'admin') {
+                document.body.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background-color: var(--bg-main);">
+                    <div style="font-size: 5rem; animation: bounceLock 1s infinite alternate;">🔒</div>
+                    <h2 style="color:red; margin-top:1rem;">ไม่มีสิทธิ์เข้าถึง</h2>
+                    <p style="color:var(--text-muted);">คุณไม่มีสิทธิ์ของผู้ดูแลระบบ</p>
+                    <a href="index.html" class="btn btn-primary" style="margin-top:2rem;">กลับหน้าแรก</a>
+                </div>
+                <style>
+                    @keyframes bounceLock {
+                        0% { transform: translateY(0) scale(1); }
+                        50% { transform: translateY(-20px) scale(1.1); }
+                        100% { transform: translateY(0) scale(1); }
+                    }
+                </style>`;
+                return;
+            }
+
+            loadAdminData();
+            loadSettingsData();
+            loadOrdersData();
+            loadFinanceData();
+            loadTopupsData();
+
+            // Event Listener Navigation Logic
+            const buttons = document.querySelectorAll('.nav-btn');
+            const pages = document.querySelectorAll('.page');
+
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+
+                    // เปลี่ยน active menu
+                    buttons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    // ซ่อนทุกหน้า
+                    pages.forEach(p => p.classList.remove('active'));
+
+                    // แสดงหน้าที่เลือก
+                    const pageId = btn.dataset.page;
+                    const selectedPage = document.getElementById(pageId);
+                    if (selectedPage) {
+                        selectedPage.classList.add('active');
+                    }
+
+                    // โหลด data เพิ่มเติมตามแท็บ
+                    if(pageId === 'finance') {
+                        loadFinanceData();
+                    } else if (pageId === 'topups') {
+                        loadTopupsData();
+                    }
+                });
+            });
+            
+            // Real-time sales graph every 5 seconds
+            setInterval(() => {
+                if (document.getElementById('finance').classList.contains('active')) {
+                    loadFinanceData();
+                }
+            }, 5000);
+        });
+
+        async function loadSettingsData() {
+            try {
+                const config = await apiFetch('/settings');
+                if (config.promptpay_number) document.getElementById('setPromptpay').value = config.promptpay_number;
+                if (config.wallet_number) document.getElementById('setWallet').value = config.wallet_number;
+                if (config.meetup_address) document.getElementById('setMeetupAddress').value = config.meetup_address;
+                if (config.meetup_contact) document.getElementById('setMeetupContact').value = config.meetup_contact;
+
+                if (config.promptpay_qr) {
+                    document.getElementById('qrDisplayContainer').style.display = 'block';
+                    document.getElementById('currentQrImg').src = `/uploads/${config.promptpay_qr}`;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function saveSettings() {
+            try {
+                await apiFetch('/settings', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        promptpay_number: document.getElementById('setPromptpay').value,
+                        wallet_number: document.getElementById('setWallet').value,
+                        meetup_address: document.getElementById('setMeetupAddress').value,
+                        meetup_contact: document.getElementById('setMeetupContact').value
+                    })
+                });
+                showToast('บันทึกการตั้งค่าเรียบร้อย', 'success');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function uploadAdminQr() {
+            const file = document.getElementById('setQrUpload').files[0];
+            if (!file) return showToast('กรุณาเลือกรูปภาพ', 'error');
+            const formData = new FormData();
+            formData.append('qr_image', file);
+            const btn = document.querySelector('button[onclick="uploadAdminQr()"]');
+            try {
+                const token = localStorage.getItem('token');
+                if (btn) { btn.disabled = true; btn.innerText = 'กำลังอัปโหลด...'; }
+
+                const res = await fetch(`${API_URL}/settings/qr`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'อัปโหลดไม่สำเร็จ');
+                showToast('อัปโหลด QR Code สำเร็จ', 'success');
+                loadSettingsData();
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerText = 'อัปโหลด QR Code'; }
+            }
+        }
+
+        async function loadOrdersData() {
+            try {
+                const invoices = await apiFetch('/invoices/all');
+                const tbody = document.getElementById('adminOrdersTable');
+                tbody.innerHTML = '';
+                if (invoices.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center">ยังไม่มีออเดอร์</td></tr>';
+                    return;
+                }
+
+                invoices.forEach(o => {
+                    let itemsNames = o.items.map(i => i.name).join(', ');
+                    let refHtml = o.method.toUpperCase();
+
+                    if (o.method === 'meetup' || o.meet_date) {
+                        refHtml = `<div style="font-size:0.8rem; line-height:1.4;">
+                            <strong style="color:var(--primary);">🗓️ นัดรับสินค้า</strong><br>
+                            วันที่: ${o.meet_date || '-'} ${o.meet_time || '-'}<br>
+                            สถานที่: ${o.meet_location || '-'}<br>
+                            <span style="color:#aaa;">${o.meet_note ? o.meet_note.replace(/\n/g, '<br>') : '-'}</span>
+                        </div>`;
+                    } else if (o.method === 'cod') {
+                        refHtml = `<div style="font-size:0.8rem; line-height:1.4;">
+                            <strong style="color:var(--primary);">🚚 เก็บเงินปลายทาง (COD)</strong><br>
+                            ชื่อผู้รับ: ${o.shipping_name || '-'}<br>
+                            เบอร์โทร: ${o.shipping_phone || '-'}<br>
+                            ที่อยู่: ${o.shipping_address || '-'}
+                        </div>`;
+                    } else if (o.slip_image) {
+                        refHtml += `<br><button class="btn btn-outline" style="padding:0.2rem 0.5rem; font-size:0.7rem; margin-top:5px; border-color:#00aeff; color:#00aeff;" onclick="viewSlip('${o.slip_image}')">👁️ ดูสลิป</button>`;
+                    }
+
+                    const statusTH = {
+                        'waiting_approval': 'รอการอนุมัติ',
+                        'meeting_scheduled': 'นัดรับแล้ว',
+                        'pending_delivery': 'รอจัดส่ง',
+                        'paid': 'สำเร็จ',
+                        'rejected': 'ถูกปฏิเสธ'
+                    };
+
+                    let actHtml = '';
+                    if (o.status === 'waiting_approval' || o.status === 'meeting_scheduled' || o.status === 'pending_delivery') {
+                        actHtml = `<button class="btn" style="background:#00ff88; color:#000; padding:0.3rem 0.6rem; font-size:0.8rem; font-family:'Prompt',sans-serif;" onclick="updateInvoiceStatus(${o.id}, 'approve')">✅ อนุมัติ</button>
+                                   <button class="btn btn-outline" style="padding:0.3rem 0.6rem; font-size:0.8rem; border-color:#ff003c; color:#ff003c; margin-left:5px; font-family:'Prompt',sans-serif;" onclick="updateInvoiceStatus(${o.id}, 'reject')">❌ ปฏิเสธ</button>`;
+                    } else if (o.status === 'paid') {
+                        actHtml = '<span style="color:#00ff88">✅ สำเร็จ</span>';
+                    } else if (o.status === 'rejected') {
+                        actHtml = '<span style="color:#ff003c">❌ ถูกปฏิเสธ</span>';
+                    } else {
+                        actHtml = `<span style="color:#ffb700">⏳ รอผู้ใช้ดำเนินการ</span>`;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="color:var(--text-muted)">#${o.id}</td>
+                            <td>${itemsNames} <br><span style="color:var(--primary); font-weight:bold;">฿${o.total_price.toLocaleString()}</span></td>
+                            <td>${o.buyer_name}</td>
+                            <td>${refHtml}</td>
+                            <td><span style="color:${o.status === 'paid' ? '#00ff88' : (o.status === 'rejected' ? '#ff003c' : '#ffb700')}">${(statusTH[o.status] || o.status).toUpperCase()}</span></td>
+                            <td>${actHtml}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function viewSlip(imageName) {
+            document.getElementById('slipViewImage').src = `/uploads/${imageName}`;
+            document.getElementById('slipViewModal').classList.add('active');
+        }
+        function closeSlipView() {
+            document.getElementById('slipViewModal').classList.remove('active');
+        }
+
+        let chartInstance = null;
+        async function loadFinanceData() {
+            try {
+                // Fetch stats (still from orders/stats for general counters)
+                const stats = await apiFetch('/orders/stats');
+                document.getElementById('statRevenue').innerText = '฿' + stats.total_revenue.toLocaleString();
+                document.getElementById('statOrders').innerText = stats.total_orders;
+                document.getElementById('statCompleted').innerText = stats.completed_orders || 0;
+                document.getElementById('statPending').innerText = stats.pending_orders || 0;
+
+                // Fetch new Real-time Sales Graph
+                const sales = await apiFetch('/sales');
+                if (sales.labels && sales.data) {
+                    const ctx = document.getElementById('revenueChart').getContext('2d');
+
+                    const labels = sales.labels;
+                    const data = sales.data;
+
+                    // If chart already exists, just update data instead of destroy/recreate for a true real-time feel
+                    if (chartInstance) {
+                        chartInstance.data.labels = labels;
+                        chartInstance.data.datasets[0].data = data;
+                        chartInstance.update();
+                    } else {
+                        Chart.defaults.color = '#888';
+                        chartInstance = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'รายได้รายวัน (฿)',
+                                    data: data,
+                                    backgroundColor: 'rgba(255, 0, 60, 0.1)',
+                                    borderColor: '#ff003c',
+                                    borderWidth: 2,
+                                    pointBackgroundColor: '#ff003c',
+                                    tension: 0.3,
+                                    fill: true
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                animation: {
+                                    duration: 0 // disables animation for real-time smoothness
+                                },
+                                plugins: {
+                                    legend: { labels: { color: '#fff', font: { family: 'Prompt' } } }
+                                },
+                                scales: {
+                                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true },
+                                    x: { grid: { color: 'rgba(255,255,255,0.05)' } }
+                                }
+                            }
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('ข้อผิดพลาดโหลดข้อมูลการเงิน', err);
+            }
+        }
+
+        async function updateInvoiceStatus(id, action) {
+            if (!confirm(`${action === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'}ออเดอร์ #${id}?`)) return;
+            try {
+                await apiFetch(`/invoices/${id}/${action}`, {
+                    method: 'POST'
+                });
+                showToast(`ออเดอร์ ${action === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'}เรียบร้อย`, 'success');
+                loadOrdersData();
+                loadFinanceData();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function loadTopupsData() {
+            try {
+                const topups = await apiFetch('/users/topups/all');
+                const tbody = document.getElementById('topupsTableBody');
+                tbody.innerHTML = '';
+
+                if (topups.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="color:var(--text-muted)">ยังไม่มีคำขอเติมเงิน</td></tr>';
+                    return;
+                }
+
+                topups.forEach(t => {
+                    let refHtml = `<button class="btn btn-outline" style="padding:0.2rem 0.5rem; font-size:0.7rem; border-color:#00aeff; color:#00aeff;" onclick="viewSlip('${t.slip_image}')">👁️ ดูสลิป</button>`;
+
+                    const statusTH = { 'completed': 'สำเร็จ', 'rejected': 'ถูกปฏิเสธ', 'pending': 'รอดำเนินการ' };
+
+                    let actHtml = '';
+                    if (t.status === 'pending') {
+                        actHtml = `<button class="btn" style="background:#00ff88; color:#000; padding:0.3rem 0.6rem; font-size:0.8rem; font-family:'Prompt',sans-serif;" onclick="updateTopupStatus(${t.id}, 'completed')">✅ อนุมัติ</button>
+                                   <button class="btn btn-outline" style="padding:0.3rem 0.6rem; font-size:0.8rem; border-color:#ff003c; color:#ff003c; margin-left:5px; font-family:'Prompt',sans-serif;" onclick="updateTopupStatus(${t.id}, 'rejected')">❌ ปฏิเสธ</button>`;
+                    } else if (t.status === 'completed') {
+                        actHtml = '<span style="color:#00ff88">✅ สำเร็จแล้ว</span>';
+                    } else {
+                        actHtml = '<span style="color:#ff003c">❌ ถูกปฏิเสธ</span>';
+                    }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="color:var(--text-muted)">#${t.id}</td>
+                            <td>${t.username}</td>
+                            <td style="color:var(--primary); font-weight:bold;">฿${t.amount.toLocaleString()}</td>
+                            <td>${refHtml}</td>
+                            <td><span style="color:${t.status === 'completed' ? '#00ff88' : (t.status === 'rejected' ? '#ff003c' : '#ffb700')}">${(statusTH[t.status] || t.status).toUpperCase()}</span></td>
+                            <td>${actHtml}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function updateTopupStatus(id, status) {
+            const statusText = status === 'completed' ? 'อนุมัติ' : 'ปฏิเสธ';
+            if (!confirm(`${statusText}คำขอเติมเงิน #${id}? ${status === 'completed' ? 'ยอดจะถูกเพิ่มเข้า Wallet ผู้ใช้' : 'คำขอจะถูกปฏิเสธ'}`)) return;
+            try {
+                await apiFetch(`/users/topups/${id}/status`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ status })
+                });
+                showToast(`คำขอเติมเงิน${statusText}เรียบร้อย`, 'success');
+                loadTopupsData();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function loadAdminData() {
+            try {
+                // To keep it simple, we reuse the public /products endpoint 
+                // and allow admin to delete any using the token.
+                const products = await apiFetch('/products');
+                window.adminProductsList = products; // Save for editing
+                const tbody = document.getElementById('adminProductsTable');
+                tbody.innerHTML = '';
+
+                if (products.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="color:var(--text-muted)">ยังไม่มีสินค้า</td></tr>';
+                    return;
+                }
+
+                products.forEach(p => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="color:var(--text-muted)">#${p.id}</td>
+                            <td>${p.name} <span style="font-size:0.8rem; color:var(--text-muted);">(สต็อก: ${p.stock || 1})</span></td>
+                            <td>${p.seller_name}</td>
+                            <td>฿${p.price.toLocaleString()}</td>
+                            <td>
+                                <button onclick="adminEditProduct(${p.id})" class="btn" style="background:var(--primary); color:white; padding:0.3rem 0.8rem; font-size:0.8rem; font-family:'Prompt',sans-serif;">✏️ แก้ไข</button>
+                                <button onclick="adminDeleteProduct(${p.id})" class="btn btn-outline" style="border-color:#ff003c; color:#ff003c; padding:0.3rem 0.8rem; font-size:0.8rem; margin-left:5px; font-family:'Prompt',sans-serif;">🗑️ ลบ</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function adminDeleteProduct(id) {
+            if (!confirm('ยืนยันการลบสินค้าชิ้นนี้ออกจากระบบ?')) return;
+            try {
+                await apiFetch(`/products/${id}`, { method: 'DELETE' });
+                showToast('ลบสินค้าเรียบร้อย', 'success');
+                loadAdminData();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        let editingProductId = null;
+
+        function toggleAddProductForm() {
+            const form = document.getElementById('addProductForm');
+            if (form.style.display === 'none') {
+                form.style.display = 'block';
+                editingProductId = null;
+                document.getElementById('formTitle').innerText = 'ลงขายสินค้าใหม่ (แอดมินเท่านั้น)';
+                document.getElementById('btnSubmitListing').innerText = 'ลงประกาศสินค้า';
+                document.querySelector('#addProductForm form').reset();
+                document.getElementById('addImage').required = true;
+            } else {
+                form.style.display = 'none';
+            }
+        }
+
+        function adminEditProduct(id) {
+            const product = window.adminProductsList.find(p => p.id === id);
+            if (!product) return;
+
+            const form = document.getElementById('addProductForm');
+            form.style.display = 'block';
+            editingProductId = id;
+
+            document.getElementById('formTitle').innerText = `แก้ไขสินค้า #${id}`;
+            document.getElementById('btnSubmitListing').innerText = 'บันทึกการแก้ไข';
+
+            document.getElementById('addName').value = product.name;
+            document.getElementById('addPrice').value = product.price;
+            document.getElementById('addCondition').value = product.condition_percent;
+            document.getElementById('addStock').value = product.stock || 1;
+            document.getElementById('addDescription').value = product.description || '';
+            document.getElementById('addImage').required = false; // don't require image on edit
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function submitNewProduct(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitListing');
+            btn.disabled = true;
+            btn.innerText = 'กำลังบันทึก...';
+
+            const formData = new FormData();
+            formData.append('name', document.getElementById('addName').value);
+            formData.append('price', document.getElementById('addPrice').value);
+            formData.append('condition_percent', document.getElementById('addCondition').value);
+            formData.append('stock', document.getElementById('addStock').value);
+            formData.append('description', document.getElementById('addDescription').value);
+
+            const file = document.getElementById('addImage').files[0];
+            if (file) formData.append('image', file);
+
+            try {
+                const token = localStorage.getItem('token');
+
+                let endpoint = '/products';
+                let method = 'POST';
+
+                if (editingProductId) {
+                    endpoint = `/products/${editingProductId}`;
+                    method = 'PUT';
+                }
+
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    method: method,
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'บันทึกสินค้าไม่สำเร็จ');
+
+                showToast(editingProductId ? 'แก้ไขสินค้าเรียบร้อย!' : 'ลงประกาศสินค้าเรียบร้อย!', 'success');
+
+                const form = document.getElementById('addProductForm');
+                form.style.display = 'none';
+                e.target.reset();
+                loadAdminData(); // refresh table
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = editingProductId ? 'บันทึกการแก้ไข' : 'ลงประกาศสินค้า';
+            }
+        }
+
+        function viewSlip(img) {
+            document.getElementById('slipViewImage').src = `/uploads/${img}`;
+            document.getElementById('slipViewModal').classList.add('active');
+        }
+    </script>
+</body>
+
+</html>

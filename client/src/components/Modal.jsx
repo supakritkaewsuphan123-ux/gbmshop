@@ -1,0 +1,68 @@
+import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
+import { useEffect } from 'react';
+
+export default function Modal({ isOpen, onClose, children, title, maxWidth = 'max-w-md' }) {
+  // Close on Escape
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    if (isOpen) window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose]);
+
+  // Prevent body scroll
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={(e) => e.target === e.currentTarget && onClose()}
+        >
+          <motion.div
+            initial={{ scale: 0.85, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.85, opacity: 0, y: 20 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+            className={`bg-surface border border-border rounded-2xl shadow-card w-full ${maxWidth} max-h-[90vh] overflow-y-auto`}
+          >
+            {/* Header */}
+            {title && (
+              <div className="flex items-center justify-between p-5 border-b border-border">
+                <h3 className="text-lg font-semibold text-white">{title}</h3>
+                <button
+                  onClick={onClose}
+                  className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 hover:scale-110"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            )}
+
+            {/* Body */}
+            <div className="p-5">
+              {!title && (
+                <button
+                  onClick={onClose}
+                  className="absolute top-4 right-4 p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+                >
+                  <X size={20} />
+                </button>
+              )}
+              {children}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

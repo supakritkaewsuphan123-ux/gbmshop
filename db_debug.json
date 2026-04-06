@@ -1,0 +1,57 @@
+{
+  "invoices": [
+    {
+      "status": "paid",
+      "count": 2
+    },
+    {
+      "status": "rejected",
+      "count": 9
+    }
+  ],
+  "orders": [
+    {
+      "status": "completed",
+      "count": 2
+    },
+    {
+      "status": "pending",
+      "count": 11
+    },
+    {
+      "status": "rejected",
+      "count": 9
+    }
+  ],
+  "firstInvoice": {
+    "id": 1,
+    "user_id": 5,
+    "total_price": 5000,
+    "method": "qr",
+    "status": "rejected",
+    "slip_image": "slip_image-1775309037122-415747992.jpg",
+    "meet_date": null,
+    "meet_time": null,
+    "meet_location": null,
+    "meet_note": null,
+    "created_at": "2026-04-04 13:23:49",
+    "shipping_name": null,
+    "shipping_phone": null,
+    "shipping_address": null
+  },
+  "firstOrder": {
+    "id": 2,
+    "product_id": 5,
+    "buyer_id": 6,
+    "status": "pending",
+    "created_at": "2026-04-04 08:24:58",
+    "method": "qr",
+    "payment_ref": null,
+    "slip_image": null,
+    "invoice_id": null,
+    "meet_date": null,
+    "meet_time": null,
+    "meet_location": null,
+    "meet_note": null
+  }
+}

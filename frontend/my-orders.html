@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายการสั่งซื้อ | GB MoneyShop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .invoice-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .status-pending_payment { background: #ff980020; color: #ff9800; }
+        .status-waiting_approval { background: #2196f320; color: #2196f3; }
+        .status-meeting_scheduled { background: #9c27b020; color: #9c27b0; }
+        .status-paid { background: #4caf5020; color: #4caf50; }
+        .status-rejected { background: #f4433620; color: #f44336; }
+        .status-pending_delivery { background: #e91e6320; color: #e91e63; }
+
+        .invoice-items { margin-bottom: 1rem; }
+        .item-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+        .upload-section {
+            background: rgba(255, 0, 60, 0.05);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-top: 1rem;
+            border: 1px dashed var(--primary);
+        }
+        .contact-box {
+            background: var(--bg-surface);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            margin-top: 2rem;
+            text-align: center;
+            border: 1px solid var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo">GB<span>money</span></a>
+    </div>
+    <div class="nav-center">
+        <a href="index.html" class="nav-link">หน้าแรก</a>
+        <a href="products.html" class="nav-link">ตลาดสินค้า</a>
+        <a href="contact.html" class="nav-link">ติดต่อเรา</a>
+    </div>
+    <div class="nav-right" id="nav-auth-container">
+        <!-- Injected via JS -->
+    </div>
+</nav>
+
+    <main class="container">
+        <h1 style="margin-bottom: 1rem;">รายการสั่งซื้อของฉัน</h1>
+        
+        <div id="invoicesContainer" style="margin-top: 2rem;">
+            <p class="text-center" style="color:var(--text-muted);">กำลังโหลดรายการสั่งซื้อ...</p>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+            loadInvoices();
+        });
+
+
+
+        async function loadInvoices() {
+            try {
+                const invoices = await apiFetch('/invoices/my');
+                const container = document.getElementById('invoicesContainer');
+                
+                if (invoices.length === 0) {
+                    container.innerHTML = '<p class="text-center" style="color:var(--text-muted);">คุณยังไม่มีรายการสั่งซื้อ</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                invoices.forEach(inv => {
+                    const statusLabels = {
+                        'pending_payment': 'รอชำระเงิน',
+                        'waiting_approval': 'รอการอนุมัติ',
+                        'meeting_scheduled': 'นัดรับสินค้าแล้ว',
+                        'paid': 'ชำระเงินสำเร็จ',
+                        'rejected': 'ถูกปฏิเสธ',
+                        'pending_delivery': 'รอจัดส่ง (COD)'
+                    };
+
+                    let itemsHtml = inv.items.map(i => `
+                        <div class="item-row">
+                            <span>📦 ${i.name}</span>
+                            <span style="color:var(--primary);">฿${i.price.toLocaleString()}</span>
+                        </div>
+                    `).join('');
+
+                    let extraHtml = '';
+                    if (inv.method === 'meetup') {
+                        extraHtml = `
+                            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.9rem;">
+                                <strong>🤝 รายละเอียดการนัดรับ:</strong><br>
+                                สถานที่: ${inv.meet_location} <br>
+                                วันที่: ${inv.meet_date} เวลา: ${inv.meet_time} <br>
+                                หมายเหตุ: ${inv.meet_note || '-'}
+                            </div>
+                        `;
+                    } else if (inv.method === 'cod') {
+                        extraHtml = `
+                            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.9rem;">
+                                <strong style="color:var(--primary);">🚚 เก็บเงินปลายทาง (COD)</strong><br>
+                                ชื่อผู้รับ: ${inv.shipping_name} <br>
+                                เบอร์โทร: ${inv.shipping_phone} <br>
+                                ที่อยู่: ${inv.shipping_address}
+                            </div>
+                        `;
+                    } else if (inv.status === 'pending_payment' && inv.method === 'qr') {
+                        extraHtml = `
+                            <div class="upload-section">
+                                <p style="margin-bottom:0.5rem; font-weight:bold;">อัปโหลดสลิปชำระเงิน</p>
+                                <form onsubmit="uploadSlip(event, ${inv.id})">
+                                    <input type="file" id="slip-${inv.id}" accept="image/jpeg, image/png" required style="margin-bottom: 0.5rem; width:100%;">
+                                    <button type="submit" class="btn btn-primary text-center" style="width:100%;">อัปโหลดสลิป</button>
+                                </form>
+                            </div>
+                        `;
+                    }
+
+                    container.innerHTML += `
+                        <div class="invoice-card">
+                            <div class="invoice-header">
+                                <div>
+                                    <h3 style="margin:0;">ออเดอร์ #${inv.id}</h3>
+                                    <small style="color:var(--text-muted);">${new Date(inv.created_at).toLocaleString('th-TH')}</small>
+                                </div>
+                                <div class="status-badge status-${inv.status}">${statusLabels[inv.status] || inv.status}</div>
+                            </div>
+                            <div class="invoice-items">
+                                ${itemsHtml}
+                            </div>
+                            <div style="text-align:right; font-size:1.2rem; font-weight:bold; margin-top:1rem; border-top:1px solid var(--border-color); padding-top:1rem;">
+                                ยอดรวม: ฿${inv.total_price.toLocaleString()}
+                            </div>
+                            ${extraHtml}
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                document.getElementById('invoicesContainer').innerHTML = '<p class="text-center" style="color:red;">โหลดรายการสั่งซื้อไม่สำเร็จ</p>';
+            }
+        }
+
+        async function uploadSlip(e, invoiceId) {
+            e.preventDefault();
+            const fileInput = document.getElementById(`slip-${invoiceId}`);
+            if (!fileInput.files[0]) return;
+
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = 'กำลังอัปโหลด...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('slip_image', fileInput.files[0]);
+
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/invoices/${invoiceId}/slip`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'อัปโหลดไม่สำเร็จ');
+
+                showToast('อัปโหลดสลิปสำเร็จ!', 'success');
+                loadInvoices(); // reload
+            } catch (err) {
+                showToast(err.message, 'error');
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

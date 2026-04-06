@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตลาดสินค้า | GB MoneyShop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .catalog-container {
+            display: flex;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .sidebar {
+            width: 250px;
+            flex-shrink: 0;
+            background: var(--bg-surface);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            height: fit-content;
+        }
+        .catalog-main {
+            flex: 1;
+        }
+        @media (max-width: 768px) {
+            .catalog-container { flex-direction: column; }
+            .sidebar { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo">GB<span>money</span></a>
+    </div>
+    <div class="nav-center">
+        <a href="index.html" class="nav-link">หน้าแรก</a>
+        <a href="products.html" class="nav-link">ตลาดสินค้า</a>
+        <a href="contact.html" class="nav-link">ติดต่อเรา</a>
+    </div>
+    <div class="nav-right" id="nav-auth-container">
+        <!-- Injected via JS -->
+    </div>
+</nav>
+
+    <main class="container">
+        <div class="catalog-container mb-2">
+            <aside class="sidebar">
+                <h3>ค้นหาสินค้า</h3>
+                <div class="form-group">
+                    <label>ค้นหา</label>
+                    <input type="text" id="searchInput" class="form-control" placeholder="ค้นหาสินค้า...">
+                </div>
+                <!-- Extend with Category/Price filters if needed later -->
+            </aside>
+            
+            <section class="catalog-main">
+                <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 1rem;">
+                    <h2 style="margin:0">สินค้าทั้งหมด</h2>
+                    <span id="productCount" style="color: var(--text-muted)">0 รายการ</span>
+                </div>
+                <div class="products-grid" id="products-container" style="margin-top:0;">
+                    <div style="color: var(--text-muted)">กำลังโหลด...</div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        let allProducts = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                allProducts = await apiFetch('/products');
+                renderProducts(allProducts);
+            } catch (err) {
+                document.getElementById('products-container').innerHTML = '<p style="color:red">โหลดสินค้าไม่สำเร็จ</p>';
+            }
+
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = allProducts.filter(p => p.name.toLowerCase().includes(term) || p.description.toLowerCase().includes(term));
+                renderProducts(filtered);
+            });
+        });
+
+        function renderProducts(products) {
+            const container = document.getElementById('products-container');
+            document.getElementById('productCount').innerText = `${products.length} รายการ`;
+            container.innerHTML = '';
+
+            if (products.length === 0) {
+                container.innerHTML = '<p style="grid-column:1/-1; color:var(--text-muted)">ไม่พบสินค้า</p>';
+                return;
+            }
+
+            products.forEach(p => {
+                const imageUrl = p.image.startsWith('http') ? p.image : `/uploads/${p.image}`;
+                container.innerHTML += `
+                    <div class="product-card" style="${p.stock <= 0 ? 'opacity: 0.6;' : ''}">
+                        <div class="product-badge">สภาพ ${p.condition_percent}%</div>
+                        <div class="product-image-wrapper">
+                            <img src="${imageUrl}" alt="${p.name}" class="product-image" onerror="this.src='https://via.placeholder.com/300x250?text=No+Image'">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-title">${p.name}</h3>
+                            <div class="product-meta">
+                                <span>โดย ${p.seller_name}</span>
+                                <span style="font-size:0.8rem; color:${p.stock <= 0 ? 'red' : 'green'}; float:right;">
+                                    ${p.stock <= 0 ? 'หมดสต็อก' : `สต็อก: ${p.stock}`}
+                                </span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top: auto;">
+                                <div class="product-price">฿${p.price.toLocaleString()}</div>
+                                <a href="product-detail.html?id=${p.id}" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.8rem;">ดูสินค้า</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
