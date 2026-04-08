@@ -104,17 +104,60 @@ app.get('/admin/orders', authMiddleware, adminMiddleware, async (req, res) => {
     }
 });
 
-// Catch-all: serve React SPA for any non-API routes
+// Catch-all: serve React SPA or Diagnostic Page
 app.get('*', (req, res) => {
+    // 1. Ignore API calls
     if (req.path.startsWith('/api')) return res.status(404).json({ error: "API Route not found" });
     
-    const indexPath = path.join(__dirname, 'client', 'dist', 'index.html');
+    const clientDistPath = path.join(__dirname, 'client', 'dist', 'index.html');
+    const legacyPath = path.join(__dirname, 'frontend', 'index.html');
     const fs = require('fs');
-    if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-    } else {
-        res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+
+    // 2. Try to serve modern React build
+    if (fs.existsSync(clientDistPath)) {
+        console.log(`[SPA] Serving modern React build: ${req.url}`);
+        return res.sendFile(clientDistPath);
+    } 
+    
+    // 3. Try to serve legacy frontend
+    if (fs.existsSync(legacyPath)) {
+        console.warn(`[SPA] Modern build NOT FOUND. Falling back to legacy: ${req.url}`);
+        return res.sendFile(legacyPath);
     }
+
+    // 4. CRITICAL: Show Diagnostic Page if nothing found
+    console.error(`[SPA] ❌ ERROR: No index.html found at all! Path: ${req.url}`);
+    res.status(500).send(`
+        <!DOCTYPE html>
+        <html lang="th">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body { background: #0a0a0c; color: white; font-family: 'Prompt', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; text-align: center; }
+                .card { background: #151518; border: 1px solid #2a2a2e; padding: 40px; border-radius: 20px; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+                h1 { color: #ff003c; margin-bottom: 10px; }
+                p { color: #94a3b8; line-height: 1.6; }
+                .box { background: #1e1e22; padding: 15px; border-radius: 10px; border-left: 4px solid #ff003c; text-align: left; margin: 20px 0; font-size: 14px; }
+                code { color: #ff003c; font-family: monospace; }
+                .btn { background: #ff003c; color: white; padding: 12px 30px; border-radius: 10px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 10px; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h1>⚠️ หน้าเว็บยังไม่พร้อมใช้งาน</h1>
+                <p>เซิฟเวอร์เชื่อมต่อสำเร็จ แต่หาไฟล์ HTML ของหน้าเว็บไม่เจอค่ะ</p>
+                <div class="box">
+                    <strong>ต้องแก้ที่ Render Dashboard:</strong><br><br>
+                    1. ไปที่ <b>Settings</b> -> <b>Build & Deploy</b><br>
+                    2. ตั้งค่า <b>Build Command</b> เป็น:<br>
+                    <code>npm install && cd client && npm install && npm run build</code><br><br>
+                    3. ตรวจสอบให้แน่ใจว่าได้กด <b>Save Changes</b> แล้วค่ะ
+                </div>
+                <a href="/" class="btn">ลองโหลดหน้าใหม่อีกครั้ง</a>
+            </div>
+        </body>
+        </html>
+    `);
 });
 
 // ✅ GLOBAL 404 FALLBACK (DEFINITIVE DEBUGGING)
