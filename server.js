@@ -41,6 +41,17 @@ app.use((req, res, next) => {
 
 // ✅ MIDDLEWARES
 app.use(cors());
+const APP_VERSION = '1.0.2-force-rebuild';
+
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        version: APP_VERSION,
+        time: new Date().toISOString(),
+        engine: 'better-sqlite3-wrapper'
+    });
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
