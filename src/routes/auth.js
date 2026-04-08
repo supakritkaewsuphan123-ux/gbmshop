@@ -4,6 +4,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { getDb } = require("../db/database");
 const { forgotPasswordLimiter, resetPasswordLimiter } = require("../middleware/rateLimit");
+const upload = require("../middleware/upload");
 
 const router = express.Router();
 
@@ -160,6 +161,39 @@ router.route("/reset-password")
     .all((req, res) => {
         res.status(405).json({ error: "Method Not Allowed" });
     });
+
+// ──────────────────────────────────────────────────────────────────────────────
+// REGISTER
+// ──────────────────────────────────────────────────────────────────────────────
+router.post("/register", upload.single('profile_image'), async (req, res) => {
+    const { username, email, password } = req.body;
+    try {
+        if (!username || !password || !email) {
+            return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบถ้วน" });
+        }
+
+        const db = await getDb();
+
+        // Check if user or email already exists
+        const existingUser = await db.get("SELECT id FROM users WHERE username = ? OR email = ?", [username, email.toLowerCase()]);
+        if (existingUser) {
+            return res.status(400).json({ error: "ชื่อผู้ใช้หรืออีเมลนี้มีอยู่ในระบบแล้ว" });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const profileImage = req.file ? req.file.filename : 'default_avatar.png';
+
+        await db.run(
+            "INSERT INTO users (username, email, password, profile_image) VALUES (?, ?, ?, ?)",
+            [username, email.toLowerCase(), hashedPassword, profileImage]
+        );
+
+        res.status(201).json({ message: "สมัครสมาชิกสำเร็จ" });
+    } catch (error) {
+        console.error("❌ Registration Error:", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
 
 // ──────────────────────────────────────────────────────────────────────────────
 // LOGIN (Standard)
