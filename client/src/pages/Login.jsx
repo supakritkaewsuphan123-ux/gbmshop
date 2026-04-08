@@ -21,7 +21,7 @@ export default function Login() {
     try {
       const user = await login(form.username, form.password);
       showToast('เข้าสู่ระบบสำเร็จ! 🎉', 'success');
-      navigate(user.role === 'admin' ? '/admin' : from, { replace: true });
+      navigate(user?.role === 'admin' ? '/admin' : from, { replace: true });
     } catch (err) {
       showToast(err.message, 'error');
     } finally { setLoading(false); }
