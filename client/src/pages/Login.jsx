@@ -21,7 +21,10 @@ export default function Login() {
     try {
       const user = await login(form.username, form.password);
       showToast('เข้าสู่ระบบสำเร็จ! 🎉', 'success');
-      navigate(user?.role === 'admin' ? '/admin' : from, { replace: true });
+      
+      // Use window.location.href to force a full reload and ensure state sync
+      const targetPath = user?.role === 'admin' ? '/admin' : (from || '/dashboard');
+      window.location.href = targetPath;
     } catch (err) {
       showToast(err.message, 'error');
     } finally { setLoading(false); }
