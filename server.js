@@ -132,7 +132,7 @@ app.use((err, req, res, next) => {
 // ==============================================================================
 // 🛡️ FINAL CATCH-ALL: SERVE REACT SPA OR DIAGNOSTIC PAGE
 // ==============================================================================
-app.get('*', (req, res) => {
+app.get('(.*)', (req, res) => {
     // 1. Ignore API calls (already handled above, but as a safety net)
     if (req.path.startsWith('/api')) return res.status(404).json({ error: "API Route not found" });
     
