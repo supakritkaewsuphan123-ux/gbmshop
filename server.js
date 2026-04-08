@@ -105,7 +105,7 @@ app.get('/admin/orders', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 // Catch-all: serve React SPA for any non-API routes
-app.get('/*splat', (req, res) => {
+app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) return res.status(404).json({ error: "API Route not found" });
     
     const indexPath = path.join(__dirname, 'client', 'dist', 'index.html');
