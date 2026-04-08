@@ -27,12 +27,9 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (formData) => {
     // formData is FormData for file upload
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      body: formData,
+    const data = await api.post('/auth/register', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'สมัครสมาชิกไม่สำเร็จ');
     return data;
   }, []);
 
