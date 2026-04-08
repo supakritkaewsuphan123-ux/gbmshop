@@ -70,8 +70,11 @@ async function initDb() {
     const adminUser = await db.get('SELECT * FROM users WHERE username = ?', ['admingb']);
     if (!adminUser) {
         const hashedPassword = await bcrypt.hash('admingbmoney4972', 10);
-        await db.run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', ['admingb', hashedPassword, 'admin']);
-        console.log('Admin user created: admingb');
+        await db.run(
+            'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)', 
+            ['admingb', 'admin@gb-marketplace.com', hashedPassword, 'admin']
+        );
+        console.log('Admin user created: admingb (Email: admin@gb-marketplace.com)');
     }
 
     // Migration: Add method column to orders if it doesn't exist
@@ -221,6 +224,30 @@ async function initDb() {
     await runMigration('Create email index', `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
     await runMigration('Add reset_token column', `ALTER TABLE users ADD COLUMN reset_token TEXT`);
     await runMigration('Add reset_expires column', `ALTER TABLE users ADD COLUMN reset_expires DATETIME`);
+    await runMigration('Add token_version column', `ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0`);
+
+    // Create Audit Logs table
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT,
+            action TEXT NOT NULL,
+            severity TEXT DEFAULT 'info',
+            ip_address TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Create Blocked IPs table
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS blocked_ips (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip_address TEXT UNIQUE NOT NULL,
+            reason TEXT,
+            expires_at DATETIME NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
 }
 
 module.exports = {

@@ -4,8 +4,9 @@ const { getDb } = require('../db/database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
-// Create order
+// Create order (LEGACY - Preferred to use /api/invoices)
 router.post('/', authMiddleware, async (req, res) => {
+    console.warn(`[API] Deprecated POST /api/orders called by User ID: ${req.user.id}. Please use /api/invoices.`);
     try {
         const { product_id, method } = req.body;
         if (!product_id) return res.status(400).json({ error: 'Product ID is required' });

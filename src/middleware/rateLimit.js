@@ -27,13 +27,24 @@ const apiLimiter = rateLimit({
 
 // ─── Forgot Password Limiter ──────────────────────────────────────────────────
 const forgotPasswordLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: isDev ? 10000 : 5,    // 10,000 requests in dev, 5 in prod
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: isDev ? 1000 : 5,    // 5 requests in prod
     message: {
-        error: 'คุณขอการรีเซ็ตรหัสผ่านมากเกินไป กรุณารอ 1 ชั่วโมงแล้วลองใหม่'
+        error: 'คุณขอการรีเซ็ตรหัสผ่านมากเกินไป กรุณารอ 15 นาทีแล้วลองใหม่'
     },
     standardHeaders: true,
     legacyHeaders: false,
 });
 
-module.exports = { loginLimiter, apiLimiter, forgotPasswordLimiter };
+// ─── Reset Password Limiter ──────────────────────────────────────────────────
+const resetPasswordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: isDev ? 1000 : 10,   // 10 requests in prod
+    message: {
+        error: 'คุณพยายามรีเซ็ตรหัสผ่านมากเกินไป กรุณารอ 15 นาทีแล้วลองใหม่'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+module.exports = { loginLimiter, apiLimiter, forgotPasswordLimiter, resetPasswordLimiter };

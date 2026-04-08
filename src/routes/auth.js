@@ -1,45 +1,168 @@
 const express = require("express");
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
-const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 const { getDb } = require("../db/database");
-const { forgotPasswordLimiter } = require("../middleware/rateLimit");
+const { forgotPasswordLimiter, resetPasswordLimiter } = require("../middleware/rateLimit");
 
 const router = express.Router();
-const upload = require("../middleware/upload");
 
-// ENV ──────────────────────────────────────────────────────────────────────────
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-const NODE_ENV = process.env.NODE_ENV || "development";
-const JWT_SECRET = process.env.JWT_SECRET || "secret_key";
-const isProd = NODE_ENV === 'production';
-
-// Nodemailer Setup ──────────────────────────────────────────────────────────────
-let transporter;
-if (isProd) {
-    transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT),
-        secure: process.env.SMTP_SECURE === 'true', // true for 465, false for others
-        auth: { 
-            user: process.env.SMTP_USER, 
-            pass: process.env.SMTP_PASS 
-        }
-    });
-
-    // Verification step for Production SMTP - Non-blocking
-    transporter.verify((error) => {
-        if (error) {
-            console.error('❌ SMTP Verification Failed:', error.message);
-        } else {
-            console.log('✅ SMTP Server is ready to take our messages');
-        }
-    });
-}
+// ✅ HEALTH CHECK (TESTING ONLY)
+router.get("/ping", (req, res) => {
+    console.log(`[${req.id}] HANDLER: ping`);
+    res.json({ message: "pong" });
+});
 
 // ──────────────────────────────────────────────────────────────────────────────
-// LOGIN
+// FORGOT PASSWORD
+// ──────────────────────────────────────────────────────────────────────────────
+router.route("/forgot-password")
+    .post(forgotPasswordLimiter, async (req, res) => {
+        console.log(`[${req.id}] โดนเรียก forgot-password แล้ว`);
+        let { email } = req.body || {};
+        const genericMessage = "หากอีเมลนี้อยู่ในระบบ ลิงก์สำหรับรีเซ็ตรหัสผ่านได้ถูกส่งไปแล้วค่ะ";
+
+        try {
+            if (!email || typeof email !== 'string') {
+                return res.status(400).json({ error: "กรุณาระบุอีเมลที่ถูกต้อง" });
+            }
+
+            // Normalization
+            email = email.trim().toLowerCase();
+            console.log(`[${req.id}] HANDLER: forgot-password for ${email}`);
+
+            const db = await getDb();
+            const user = await db.get("SELECT id, username FROM users WHERE email = ?", [email]);
+
+            if (user) {
+                // Generate 32-byte RAW token
+                const rawToken = crypto.randomBytes(32).toString("hex"); // 64 hex chars
+                // Hash with SHA-256 for DB storage
+                const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+                const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // ✅ Extended to 1 Hour
+
+                await db.run(
+                    "UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?",
+                    [hashedToken, expires, user.id]
+                );
+
+                // ✅ CRITICAL DEBUG: Print full link clearly
+                // ✅ CRITICAL FIX: Use Production URL when available
+                const baseUrl = process.env.NODE_ENV === 'production' 
+                    ? (process.env.PRODUCTION_URL || 'https://gb-marketplace-test-ka.netlify.app')
+                    : 'http://localhost:5173';
+                const resetLink = `${baseUrl}/reset-password?token=${rawToken}`;
+                console.log("\n" + "=".repeat(60));
+                console.log(`[${req.id}] 🔑 NEW RESET LINK GENERATED:`);
+                console.log(`[${req.id}] Email: ${email}`);
+                console.log(`[${req.id}] URL: ${resetLink}`);
+                console.log("=".repeat(60) + "\n");
+            } else {
+                console.warn(`[${req.id}] [WARN] User not found for email: ${email}`);
+            }
+
+            res.json({ message: genericMessage });
+        } catch (error) {
+            console.error(`[${req.id}] ❌ Forgot Password Error:`, error.message);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    })
+    .all((req, res) => {
+        console.log(`[${req.id}] ❌ 405 METHOD NOT ALLOWED: ${req.method} /forgot-password`);
+        res.status(405).json({ error: "Method Not Allowed. Use POST." });
+    });
+
+// ──────────────────────────────────────────────────────────────────────────────
+// RESET PASSWORD
+// ──────────────────────────────────────────────────────────────────────────────
+router.route("/reset-password")
+    .post(resetPasswordLimiter, async (req, res) => {
+        console.log(`[${req.id}] โดนเรียก reset-password แล้ว`);
+        let { token, newPassword } = req.body || {};
+        const uniformError = "ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุแล้ว";
+
+        try {
+            // 1. DATA CLEANUP & LOGGING
+            if (!token || typeof token !== "string") {
+                console.warn(`[${req.id}] [WARN] No token provided in request body`);
+                return res.status(400).json({ error: uniformError });
+            }
+
+            token = token.trim(); // ✅ Clean up stray spaces
+            console.log(`[${req.id}] DEBUG: Received Token Length: ${token.length}`);
+
+            if (token.length !== 64 || !/^[0-9a-f]{64}$/i.test(token)) {
+                console.warn(`[${req.id}] [WARN] Invalid Token Format. Length=${token.length}, Value="${token}"`);
+                return res.status(400).json({ error: uniformError });
+            }
+
+            if (!newPassword || newPassword.length < 6) {
+                return res.status(400).json({ error: "รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร" });
+            }
+
+            console.log(`[${req.id}] HANDLER: Validating token against DB...`);
+
+            // Hash incoming token with SHA-256 for comparison
+            const hashedIncoming = crypto.createHash("sha256").update(token.toLowerCase()).digest("hex");
+            
+            const db = await getDb();
+            // ✅ FIX: Find the SPECIFIC user associated with this hashed token
+            const user = await db.get(
+                `SELECT id, password, reset_token, reset_expires FROM users 
+                 WHERE reset_token = ? AND reset_expires > CURRENT_TIMESTAMP`, 
+                [hashedIncoming]
+            );
+
+            if (!user) {
+                console.warn(`[${req.id}] [WARN] Token mismatch or expired. HashedIncoming: ${hashedIncoming}`);
+                return res.status(400).json({ error: uniformError });
+            }
+
+            // Security Step: TIMING SAFE EQUAL
+            const buf1 = Buffer.from(hashedIncoming, "hex");
+            const buf2 = Buffer.from(user.reset_token, "hex");
+
+            if (buf1.length !== buf2.length || !crypto.timingSafeEqual(buf1, buf2)) {
+                console.warn(`[${req.id}] [WARN] Token comparison failed (TimingSafeEqual Mismatch)`);
+                return res.status(400).json({ error: uniformError });
+            }
+
+            // 2. PREVENT PASSWORD REUSE
+            const sameAsOld = await bcrypt.compare(newPassword, user.password);
+            if (sameAsOld) {
+                return res.status(400).json({ error: "ไม่สามารถใช้รหัสผ่านเดิมได้" });
+            }
+
+            // 3. UPDATE
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            await db.run(
+                `UPDATE users SET 
+                    password = ?, 
+                    token_version = token_version + 1, 
+                    reset_token = NULL, 
+                    reset_expires = NULL 
+                 WHERE id = ?`,
+                [hashedPassword, user.id]
+            );
+
+            console.log(`[${req.id}] ✅ Password reset success for UserID: ${user.id}`);
+            res.json({ message: "รีเซ็ตรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่" });
+
+        } catch (error) {
+            console.error(`[${req.id}] ❌ Reset Password Error:`, error.message);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    })
+    .get((req, res) => {
+        console.log(`[${req.id}] ❌ 405 METHOD NOT ALLOWED: GET /reset-password`);
+        res.status(405).json({ error: "Method Not Allowed. Use POST." });
+    })
+    .all((req, res) => {
+        res.status(405).json({ error: "Method Not Allowed" });
+    });
+
+// ──────────────────────────────────────────────────────────────────────────────
+// LOGIN (Standard)
 // ──────────────────────────────────────────────────────────────────────────────
 router.post("/login", async (req, res) => {
     const { username, password } = req.body;
@@ -53,8 +176,8 @@ router.post("/login", async (req, res) => {
         if (!match) return res.status(401).json({ error: "Invalid credentials" });
 
         const token = jwt.sign(
-            { id: user.id, username: user.username, role: user.role },
-            JWT_SECRET,
+            { id: user.id, username: user.username, role: user.role, token_version: user.token_version || 0 },
+            process.env.JWT_SECRET || "secret_key",
             { expiresIn: "1d" }
         );
 
@@ -63,144 +186,7 @@ router.post("/login", async (req, res) => {
             user: { id: user.id, username: user.username, role: user.role, balance: user.balance || 0 }
         });
     } catch (error) {
-        if (!isProd) console.error('Login Error:', error);
         res.status(500).json({ error: "Internal server error" });
-    }
-});
-
-// ──────────────────────────────────────────────────────────────────────────────
-// REGISTER
-// ──────────────────────────────────────────────────────────────────────────────
-router.post("/register", upload.single("profile_image"), async (req, res) => {
-    const timestamp = new Date().toISOString();
-    console.log(`[VER 2.0 - ${timestamp}] Registration Attempt`, { 
-        contentType: req.headers['content-type'],
-        body: req.body,
-        file: req.file ? req.file.filename : 'none'
-    });
-
-    const { username, password, email } = req.body || {};
-    const profileImage = req.file ? req.file.filename : 'default_avatar.png';
-
-    if (!username || !password) {
-        return res.status(400).json({ 
-            error: "Username and password required",
-            debug_info: { ver: "2.0", bodyReceived: !!req.body }
-        });
-    }
-
-    try {
-        const db = await getDb();
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await db.run(
-            "INSERT INTO users (username, password, email, profile_image) VALUES (?, ?, ?, ?)",
-            [username, hashedPassword, email || null, profileImage]
-        );
-        res.status(201).json({ message: "User registered successfully", ver: "2.0" });
-    } catch (error) {
-        if (!isProd) console.error('Register Error:', error);
-        res.status(500).json({ error: "Registration failed", ver: "2.0" });
-    }
-});
-
-// ──────────────────────────────────────────────────────────────────────────────
-// FORGOT PASSWORD (Hardened with Rate Limiting & Private Logging)
-// ──────────────────────────────────────────────────────────────────────────────
-router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
-    const { email } = req.body;
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-        return res.status(400).json({ message: "รูปแบบอีเมลไม่ถูกต้อง" });
-
-    const token = crypto.randomBytes(32).toString("hex"); 
-    const expires = Date.now() + 15 * 60 * 1000; // 15 mins
-
-    try {
-        const db = await getDb();
-        const user = await db.get("SELECT * FROM users WHERE email=?", [email]);
-
-        // Generic response regardless of user existence (Enumeration Protection)
-        const genericMessage = "หากอีเมลถูกต้อง ระบบจะส่งลิงก์ไปให้คุณในกล่องจดหมาย";
-
-        if (user) {
-            await db.run("UPDATE users SET reset_token=?, reset_expires=? WHERE email=?",
-                [token, expires, email]);
-
-            const resetUrl = `${FRONTEND_URL}/reset-password?token=${token}`;
-            const emailHtml = `
-                <div style="background:#0a0a0c;color:#fff;padding:40px;font-family:sans-serif;border-radius:10px;">
-                    <h2 style="color:#ff003c;margin-bottom:20px;">GB MoneyShop Password Reset</h2>
-                    <p style="font-size:16px;">กดที่ปุ่มด้านล่างเพื่อตั้งรหัสผ่านใหม่ของคุณ (ลิงก์มีอายุ 15 นาที):</p>
-                    <div style="margin:30px 0;">
-                        <a href="${resetUrl}" style="background:#ff003c;color:#white;padding:12px 25px;text-decoration:none;border-radius:5px;font-weight:bold;">รีเซ็ตรหัสผ่าน</a>
-                    </div>
-                    <p style="color:#888;font-size:12px;">หากคุณไม่ได้ขอนี้ โปรดเพิกเฉยต่ออีเมลฉบับนี้</p>
-                </div>`;
-
-            if (isProd) {
-                await transporter.sendMail({
-                    from: process.env.SMTP_FROM,
-                    to: email,
-                    subject: "Password Reset - GB MoneyShop",
-                    html: emailHtml
-                });
-            } else {
-                // Sensitive info ONLY logged in Dev mode
-                console.log("\n" + "═".repeat(60));
-                console.log("🚀 [DEV MODE] RECOVERY TOKEN: " + token);
-                console.log(`🔗 RESET LINK: ${resetUrl}`);
-                console.log("═".repeat(60) + "\n");
-            }
-        }
-        res.json({ message: genericMessage });
-    } catch (error) {
-        if (!isProd) console.error('Forgot Password Error:', error);
-        res.status(500).json({ message: "ขออภัย เกิดข้อผิดพลาดที่เซิร์ฟเวอร์" });
-    }
-});
-
-// ──────────────────────────────────────────────────────────────────────────────
-// RESET PASSWORD (Hardened Atomic Invalidation)
-// ──────────────────────────────────────────────────────────────────────────────
-router.post("/reset-password", async (req, res) => {
-    const { token, newPassword } = req.body || {};
-    console.log(`[VER 2.1] Reset Attempt - Token: "${token}"`);
-
-    if (!/^(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z0-9!@#$%^&*]{8,}$/.test(newPassword))
-        return res.status(400).json({ message: "รหัสผ่านไม่ผ่านเกณฑ์ความแข็งแรง" });
-
-    try {
-        const db = await getDb();
-        const user = await db.get("SELECT * FROM users WHERE reset_token = ?", [token]);
-
-        if (!user) {
-             console.log(`[VER 2.1] Token match FAILED. Received: "${token}"`);
-             // Debug: check all tokens in DB
-             const allTokens = await db.all("SELECT reset_token FROM users WHERE reset_token IS NOT NULL");
-             console.log("[VER 2.1] Tokens currently in DB:", allTokens.map(t => `"${t.reset_token}"`));
-             return res.status(400).json({ message: "Token ไม่ถูกต้องหรือหมดอายุแล้ว" });
-        }
-        
-        const now = Date.now();
-        const expiryDate = new Date(user.reset_expires).getTime();
-        
-        console.log(`[VER 2.1] Found user: ${user.username}, Expiry: ${expiryDate}, Now: ${now}`);
-        
-        if (isNaN(expiryDate) || expiryDate < now) {
-            console.log("[VER 2.1] Token EXPIRED");
-            return res.status(400).json({ message: "Token ไม่ถูกต้องหรือหมดอายุแล้ว" });
-        }
-
-        const hashed = await bcrypt.hash(newPassword, 10);
-        
-        // Atomic Update: Password changed and Token nulled in one operation
-        await db.run("UPDATE users SET password=?, reset_token=NULL, reset_expires=NULL WHERE id=?",
-            [hashed, user.id]);
-
-        res.json({ message: "เปลี่ยนรหัสผ่านสำเร็จแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่" });
-    } catch (error) {
-        if (!isProd) console.error('Reset Password Error:', error);
-        res.status(500).json({ message: "เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน" });
     }
 });
 

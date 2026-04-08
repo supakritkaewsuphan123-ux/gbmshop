@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { initDb } = require('./src/db/database');
+const { initDb, getDb } = require('./src/db/database');
 
 const helmet = require('helmet');
 const { apiLimiter } = require('./src/middleware/rateLimit');
@@ -11,7 +11,36 @@ const { authMiddleware, adminMiddleware } = require('./src/middleware/auth');
 const app = express();
 const APP_PORT = process.env.PORT || 3000;
 
-// Essential Body Parsers (Moved to top for reliability)
+// ✅ ADVANCED DEBUG LOGGER & LIFECYCLE TRACKING
+app.use((req, res, next) => {
+    const start = Date.now();
+    req.id = start; // Unique ID for request tracing
+    console.log(`[${req.id}] REQ: ${req.method} ${req.url}`);
+    
+    // Timeout Protection (5 seconds)
+    const timeout = setTimeout(() => {
+        if (!res.headersSent) {
+            console.error(`[${req.id}] ❌ TIMEOUT: Request took too long (>5s)`);
+            res.status(503).json({ error: "Request timeout" });
+        }
+    }, 5000);
+
+    res.on('finish', () => {
+        clearTimeout(timeout);
+        const duration = Date.now() - start;
+        const logMsg = `[${req.id}] RES: ${res.statusCode} (${duration}ms) ${req.method} ${req.url}`;
+        if (duration > 2000) {
+            console.warn(`[SLOW] ${logMsg}`);
+        } else {
+            console.log(logMsg);
+        }
+    });
+
+    next();
+});
+
+// ✅ MIDDLEWARES
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -45,18 +74,15 @@ app.use('/legacy', express.static(path.join(__dirname, 'frontend')));
 const reactDistPath = path.join(__dirname, 'client', 'dist');
 app.use(express.static(reactDistPath));
 
-// Global Catch for Uncaught Exceptions to prevent silent crashes
+// ✅ GLOBAL PROCESS ERROR HANDLERS (NO SILENT CRASHES)
 process.on('uncaughtException', (err) => {
-    if (process.env.NODE_ENV !== 'production') {
-        console.error('CRITICAL UNCAUGHT ERROR:', err.message);
-        console.error(err.stack);
-    }
+    console.error('❌ CRITICAL UNCAUGHT ERROR:', err.message);
+    console.error(err.stack);
+    // In production, you might want to restart the process here
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    if (process.env.NODE_ENV !== 'production') {
-        console.error('UNHANDLED REJECTION AT:', promise, 'REASON:', reason);
-    }
+    console.error('❌ UNHANDLED REJECTION AT:', promise, 'REASON:', reason);
 });
 
 // Routes
@@ -70,22 +96,16 @@ app.use('/api/sales', require('./src/routes/sales'));
 app.use('/api/dashboard', require('./src/routes/dashboard'));
 
 // Custom route requested by user - SECURED
-const { getDb } = require('./src/db/database');
 app.get('/admin/orders', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const db = await getDb();
         const rows = await db.all(`
             SELECT 
-                id AS order_id,
-                total_price,
-                status,
-                created_at,
-                meet_date,
-                meet_time,
-                meet_location,
-                meet_note
-            FROM invoices
-            ORDER BY created_at DESC
+                i.*, 
+                u.username AS buyer_name
+            FROM invoices i
+            JOIN users u ON i.user_id = u.id
+            ORDER BY i.created_at DESC
         `);
         res.json(rows);
     } catch (err) {
@@ -94,41 +114,77 @@ app.get('/admin/orders', authMiddleware, adminMiddleware, async (req, res) => {
     }
 });
 
-// Catch-all: serve React SPA for any non-API routes (Express 5 syntax: '/*splat')
+// Catch-all: serve React SPA for any non-API routes
 app.get('/*splat', (req, res) => {
-    // Prevent API calls from accidentally serving index.html
-    if (req.path.startsWith('/api')) return res.status(404).json({ error: 'API not found' });
+    if (req.path.startsWith('/api')) return res.status(404).json({ error: "API Route not found" });
     
     const indexPath = path.join(__dirname, 'client', 'dist', 'index.html');
     const fs = require('fs');
     if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
     } else {
-        // Fallback to old frontend if React not built
         res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
     }
 });
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-    if (process.env.NODE_ENV !== 'production') console.error(err.stack);
-    const status = err.status || 500;
-    const message = process.env.NODE_ENV === 'production' 
-        ? 'Something went wrong!' 
-        : err.message;
-    
-    res.status(status).json({ error: message });
+// ✅ GLOBAL 404 FALLBACK (DEFINITIVE DEBUGGING)
+app.use((req, res) => {
+    console.log(`[${req.id}] ❌ 404 NOT FOUND: ${req.method} ${req.url}`);
+    res.status(404).json({ 
+        error: "Route not found", 
+        method: req.method, 
+        path: req.url,
+        request_id: req.id 
+    });
 });
+
+// ✅ GLOBAL ERROR HANDLER (NO SILENT FAILURES)
+app.use((err, req, res, next) => {
+    console.error(`[${req.id}] ❌ SERVER ERROR:`, err.message);
+    if (process.env.NODE_ENV !== 'production') console.error(err.stack);
+    
+    const status = err.status || 500;
+    res.status(status).json({ 
+        error: process.env.NODE_ENV === 'production' ? 'Something went wrong!' : err.message,
+        request_id: req.id
+    });
+});
+
+// ✅ ROUTE VISIBILITY DUMP (DEBUG ON STARTUP)
+function printRoutes(stack, prefix = '') {
+    stack.forEach(r => {
+        if (r.route && r.route.path) {
+            const methods = Object.keys(r.route.methods).join(',').toUpperCase();
+            console.log(`   mount: ${methods.padEnd(7)} ${prefix}${r.route.path}`);
+        } else if (r.name === 'router' && r.handle.stack) {
+            printRoutes(r.handle.stack, prefix + (r.regexp.source.replace('\\/?(?=\\/|$)', '').replace('^\\', '').replace('\\/', '/')));
+        }
+    });
+}
 
 // Start server
 app.listen(APP_PORT, async () => {
-    console.log(`Server running on http://localhost:${APP_PORT} 🚀`);
+    console.log(`\n🚀 Server running on http://localhost:${APP_PORT}`);
+    console.log(`[DEV] Development Mode: ${process.env.NODE_ENV !== 'production' ? 'ACTIVE' : 'OFF'}`);
+    
     try {
         await initDb();
-        console.log('Database initialized successfully.');
+        console.log('✅ Database connected and initialized.');
+
+        // ENTERPRISE: background cleanup for blocked IPs every 1 hour
+        setInterval(async () => {
+            try {
+                const db = await getDb();
+                const result = await db.run("DELETE FROM blocked_ips WHERE expires_at < CURRENT_TIMESTAMP");
+                if (result.changes > 0) {
+                    console.log(`[MAINTENANCE] Purged ${result.changes} expired IP blocks.`);
+                }
+            } catch (err) {
+                console.error('[MAINTENANCE] Cleanup failed:', err);
+            }
+        }, 60 * 60 * 1000);
     } catch (error) {
-        if (process.env.NODE_ENV !== 'production') {
-            console.error('Failed to initialize database:', error);
-        }
+        console.error('❌ FATAL: Failed to initialize database:', error.message);
+        process.exit(1);
     }
 });
