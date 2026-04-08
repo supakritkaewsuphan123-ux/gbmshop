@@ -6,6 +6,7 @@ const { getDb } = require("../db/database");
 const { forgotPasswordLimiter, resetPasswordLimiter } = require("../middleware/rateLimit");
 const upload = require("../middleware/upload");
 
+const { sendResetEmail } = require("../services/emailService");
 const router = express.Router();
 
 // ✅ HEALTH CHECK (TESTING ONLY)
@@ -50,13 +51,19 @@ router.route("/forgot-password")
                 // ✅ CRITICAL DEBUG: Print full link clearly
                 // ✅ CRITICAL FIX: Use Production URL when available
                 const baseUrl = process.env.NODE_ENV === 'production' 
-                    ? (process.env.PRODUCTION_URL || 'https://gb-marketplace-test-ka.netlify.app')
+                    ? (process.env.PRODUCTION_URL || 'https://gb-money-shop.onrender.com')
                     : 'http://localhost:5173';
                 const resetLink = `${baseUrl}/reset-password?token=${rawToken}`;
+                
+                // 📧 SEND REAL EMAIL
+                console.log(`[${req.id}] 🔑 Sending reset link via Email to: ${email}`);
+                await sendResetEmail(email, resetLink).catch(e => {
+                    console.error(`[${req.id}] ❌ Failed to send email via Nodemailer:`, e.message);
+                    // We don't throw here to avoid informing user about email failure immediately
+                });
+
                 console.log("\n" + "=".repeat(60));
-                console.log(`[${req.id}] 🔑 NEW RESET LINK GENERATED:`);
-                console.log(`[${req.id}] Email: ${email}`);
-                console.log(`[${req.id}] URL: ${resetLink}`);
+                console.log(`[${req.id}] DEBUG - URL: ${resetLink}`);
                 console.log("=".repeat(60) + "\n");
             } else {
                 console.warn(`[${req.id}] [WARN] User not found for email: ${email}`);

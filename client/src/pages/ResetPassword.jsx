@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { motion } from 'framer-motion';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { KeyRound, Eye, EyeOff, Loader2, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
@@ -17,21 +16,11 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
-  const API_AUTH_BASE = "http://localhost:3000/api/auth";
-  const RESET_URL = `${API_AUTH_BASE}/reset-password`;
-  const PING_URL = `${API_AUTH_BASE}/ping`;
-
   // 1. FAIL-SAFE: Check token on mount
   useEffect(() => {
-    console.log("----------------------------------------");
-    console.log("CHECK: ResetPassword Component Mounted");
     if (!token) {
-      console.error("❌ NO TOKEN FOUND in URL");
       setError('ไม่พบรหัส Token สำหรับการรีเซ็ต กรุณาตรวจสอบลิงก์ในอีเมลอีกครั้งค่ะ');
-    } else {
-      console.log("✅ Token found:", token.substring(0, 8) + "...");
     }
-    console.log("----------------------------------------");
   }, [token]);
 
   const handleSubmit = async (e) => {
@@ -47,36 +36,18 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      // 2. PRE-FLIGHT: Backend Health Verification
-      console.log(`REQ: [Pre-flight] Ping check to ${PING_URL}`);
-      try {
-        await axios.get(PING_URL);
-        console.log("RES: [Pre-flight] Backend is ALIVE (pong)");
-      } catch (pingErr) {
-        console.error("❌ CONNECTION FAILED: Backend is unreachable at", PING_URL);
-        throw new Error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบว่า Backend รันอยู่ (Port 3000)");
-      }
-
-      // 3. ACTUAL REQUEST
-      console.log("----------------------------------------");
-      console.log("REQ: Sending reset-password request");
-      console.log("URL:", RESET_URL);
-      console.log("Payload:", { token, newPassword: "********" });
-      console.log("----------------------------------------");
-
-      const response = await axios.post(RESET_URL, { 
+      // ✅ REFACTORED TO USE GLOBAL API INSTANCE
+      const response = await api.post('/auth/reset-password', { 
         token: token.trim().toLowerCase(), 
         newPassword: form.newPassword 
       });
       
-      console.log("RES: Success", response.data);
-      showToast(response.data.message || 'รีเซ็ตรหัสผ่านสำเร็จ!', 'success');
+      showToast(response.message || 'รีเซ็ตรหัสผ่านสำเร็จ!', 'success');
       setSuccess(true);
       
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
-      const errMsg = err.response?.data?.error || err.message;
-      console.error("RES: Error from backend", err.response?.data || err.message);
+      const errMsg = err.message || 'เกิดข้อผิดพลาด';
       showToast(errMsg, 'error');
       setError(errMsg);
     } finally {

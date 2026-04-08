@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
@@ -11,8 +10,6 @@ export default function ForgotPassword() {
   const [submitted, setSubmitted] = useState(false);
   const { showToast } = useToast();
 
-  const API_URL = "http://localhost:3000/api/auth/forgot-password";
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email) return;
@@ -23,21 +20,13 @@ export default function ForgotPassword() {
         throw new Error('อีเมลยาวเกินไป');
       }
 
-      // ✅ DEBUG LOG (MANDATORY)
-      console.log("----------------------------------------");
-      console.log("REQ: Sending forgot-password request");
-      console.log("URL:", API_URL);
-      console.log("Payload:", { email });
-      console.log("----------------------------------------");
-
-      const response = await axios.post(API_URL, { email });
+      // ✅ REFACTORED TO USE GLOBAL API INSTANCE
+      const response = await api.post('/auth/forgot-password', { email });
       
-      console.log("RES: Success", response.data);
-      showToast(response.data.message || 'ส่งลิงก์รีเซ็ตสำเร็จ', 'success');
+      showToast(response.message || 'ส่งลิงก์รีเซ็ตสำเร็จ', 'success');
       setSubmitted(true);
     } catch (err) {
-      console.error("RES: Error", err.response?.data || err.message);
-      showToast(err.response?.data?.error || err.message, 'error');
+      showToast(err.message || 'เกิดข้อผิดพลาด', 'error');
     } finally {
       setLoading(false);
     }
