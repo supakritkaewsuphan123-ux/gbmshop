@@ -44,19 +44,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS configuration
-const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? [process.env.PRODUCTION_URL, 'https://gb-marketplace-test-ka.netlify.app'] 
-    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'];
-
+// ✅ PERMISSIVE CORS FOR TROUBLESHOOTING
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS (' + origin + ')'));
-        }
-    },
+    origin: true, // Allow all origins
     credentials: true
 }));
 
