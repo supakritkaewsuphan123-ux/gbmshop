@@ -1,15 +1,33 @@
-const sqlite3 = require('sqlite3');
-const { open } = require('sqlite');
+const Database = require('better-sqlite3');
 const path = require('path');
 const bcrypt = require('bcrypt');
 
 const dbPath = path.join(__dirname, '../../database.sqlite');
 
+// Wrapper to maintain compatibility with the async 'sqlite' package usage
+const dbWrapper = (db) => ({
+    get: async (sql, params = []) => db.prepare(sql).get(...params),
+    all: async (sql, params = []) => db.prepare(sql).all(...params),
+    run: async (sql, params = []) => {
+        const result = db.prepare(sql).run(...params);
+        return { lastID: result.lastInsertRowid, changes: result.changes };
+    },
+    exec: async (sql) => {
+        db.exec(sql);
+        return true;
+    },
+    close: async () => db.close()
+});
+
+let dbInstance = null;
+
 async function getDb() {
-    return open({
-        filename: dbPath,
-        driver: sqlite3.Database
-    });
+    if (!dbInstance) {
+        const db = new Database(dbPath);
+        db.pragma('journal_mode = WAL'); // Performance boost
+        dbInstance = dbWrapper(db);
+    }
+    return dbInstance;
 }
 
 async function initDb() {
@@ -77,45 +95,29 @@ async function initDb() {
         console.log('Admin user created: admingb (Email: admin@gb-marketplace.com)');
     }
 
-    // Migration: Add method column to orders if it doesn't exist
-    try {
-        await db.exec(`ALTER TABLE orders ADD COLUMN method TEXT DEFAULT 'qr'`);
-        console.log('Added method column to orders table.');
-    } catch (err) {
-        // Column likely already exists
-    }
+    // Migration: Columns check
+    const runMigration = async (label, sql) => {
+        try {
+            await db.exec(sql);
+            if (process.env.NODE_ENV !== 'production') console.log(`Migration [${label}]: Success`);
+        } catch (err) {
+            // Already exists or column exists
+        }
+    };
 
-    // Migration: Add payment_ref column to orders
-    try {
-        await db.exec(`ALTER TABLE orders ADD COLUMN payment_ref TEXT`);
-        console.log('Added payment_ref column to orders table.');
-    } catch (err) {
-        // Column likely already exists
-    }
-
-    // Migration: Add stock column to products
-    try {
-        await db.exec(`ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 1`);
-        console.log('Added stock column to products table.');
-    } catch (err) {
-        // Column likely already exists
-    }
-
-    // Migration: Add slip_image column to orders
-    try {
-        await db.exec(`ALTER TABLE orders ADD COLUMN slip_image TEXT`);
-        console.log('Added slip_image column to orders table.');
-    } catch (err) {
-        // Column likely already exists
-    }
-
-    // Migration: Add balance column to users
-    try {
-        await db.exec(`ALTER TABLE users ADD COLUMN balance REAL DEFAULT 0`);
-        console.log('Added balance column to users table.');
-    } catch (err) {
-        // Column likely already exists
-    }
+    await runMigration('method', `ALTER TABLE orders ADD COLUMN method TEXT DEFAULT 'qr'`);
+    await runMigration('payment_ref', `ALTER TABLE orders ADD COLUMN payment_ref TEXT`);
+    await runMigration('stock', `ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 1`);
+    await runMigration('slip_image', `ALTER TABLE orders ADD COLUMN slip_image TEXT`);
+    await runMigration('balance', `ALTER TABLE users ADD COLUMN balance REAL DEFAULT 0`);
+    await runMigration('invoice_id', `ALTER TABLE orders ADD COLUMN invoice_id INTEGER`);
+    await runMigration('meet_date', `ALTER TABLE orders ADD COLUMN meet_date TEXT`);
+    await runMigration('meet_time', `ALTER TABLE orders ADD COLUMN meet_time TEXT`);
+    await runMigration('meet_location', `ALTER TABLE orders ADD COLUMN meet_location TEXT`);
+    await runMigration('meet_note', `ALTER TABLE orders ADD COLUMN meet_note TEXT`);
+    await runMigration('images', `ALTER TABLE products ADD COLUMN images TEXT`);
+    await runMigration('video', `ALTER TABLE products ADD COLUMN video TEXT`);
+    await runMigration('videos', `ALTER TABLE products ADD COLUMN videos TEXT`);
 
     // Create Topups table
     await db.exec(`
@@ -151,44 +153,10 @@ async function initDb() {
         )
     `);
 
-    // Migration: Add shipping details for COD to invoices
-    try {
-        await db.exec(`ALTER TABLE invoices ADD COLUMN shipping_name TEXT`);
-        await db.exec(`ALTER TABLE invoices ADD COLUMN shipping_phone TEXT`);
-        await db.exec(`ALTER TABLE invoices ADD COLUMN shipping_address TEXT`);
-        console.log('Added shipping columns to invoices table.');
-    } catch (err) {
-        // Columns likely already exist
-    }
-
-    // Migration: Add invoice_id column to orders
-    try {
-        await db.exec(`ALTER TABLE orders ADD COLUMN invoice_id INTEGER`);
-        console.log('Added invoice_id column to orders table.');
-    } catch (err) {
-        // Column likely already exists
-    }
-
-    // Migration: Add meeting details to orders
-    try {
-        await db.exec(`ALTER TABLE orders ADD COLUMN meet_date TEXT`);
-        await db.exec(`ALTER TABLE orders ADD COLUMN meet_time TEXT`);
-        await db.exec(`ALTER TABLE orders ADD COLUMN meet_location TEXT`);
-        await db.exec(`ALTER TABLE orders ADD COLUMN meet_note TEXT`);
-        console.log('Added meeting columns to orders table.');
-    } catch (err) {}
-
-    // Migration: Add images and videos columns to products
-    try {
-        await db.exec(`ALTER TABLE products ADD COLUMN images TEXT`);
-        await db.exec(`ALTER TABLE products ADD COLUMN video TEXT`);
-        console.log('Added images and video columns to products table.');
-    } catch (err) {}
-
-    try {
-        await db.exec(`ALTER TABLE products ADD COLUMN videos TEXT`);
-        console.log('Added videos column to products table.');
-    } catch (err) {}
+    // Migration: Shipping details
+    await runMigration('shipping_name', `ALTER TABLE invoices ADD COLUMN shipping_name TEXT`);
+    await runMigration('shipping_phone', `ALTER TABLE invoices ADD COLUMN shipping_phone TEXT`);
+    await runMigration('shipping_address', `ALTER TABLE invoices ADD COLUMN shipping_address TEXT`);
 
     // Create Settings table
     await db.exec(`
@@ -208,20 +176,8 @@ async function initDb() {
         ('contact_url', 'https://facebook.com/admin')
     `);
 
-    // Migration: Add email and reset token columns to users (Non-blocking)
-    const runMigration = async (label, sql) => {
-        try {
-            await db.exec(sql);
-            if (process.env.NODE_ENV !== 'production') console.log(`Migration [${label}]: Success`);
-        } catch (err) {
-            if (process.env.NODE_ENV !== 'production') {
-                console.warn(`Migration [${label}]: Skipped/Already exists - ${err.message}`);
-            }
-        }
-    };
-
+    // Additional User Migrations
     await runMigration('Add email column', `ALTER TABLE users ADD COLUMN email TEXT`);
-    await runMigration('Create email index', `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
     await runMigration('Add reset_token column', `ALTER TABLE users ADD COLUMN reset_token TEXT`);
     await runMigration('Add reset_expires column', `ALTER TABLE users ADD COLUMN reset_expires DATETIME`);
     await runMigration('Add token_version column', `ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0`);
