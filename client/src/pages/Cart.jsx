@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -27,6 +27,27 @@ export default function Cart() {
   const [codErrors, setCodErrors] = useState({});
   const [walletInfo, setWalletInfo] = useState(null);
   const [placing, setPlacing] = useState(false);
+
+  // Auto-validate items in cart (Remove stale items after reset)
+  useEffect(() => {
+    if (items.length > 0) {
+      const validateItems = async () => {
+        try {
+          const freshProducts = await api.get('/products');
+          const validIds = new Set(freshProducts.map(p => p.id));
+          items.forEach(item => {
+            if (!validIds.has(item.id)) {
+              console.warn(`Removing stale item from cart: ${item.name} (#${item.id})`);
+              removeFromCart(item.id);
+            }
+          });
+        } catch (e) {
+          console.error('Failed to validate cart items:', e);
+        }
+      };
+      validateItems();
+    }
+  }, []);
 
   const openCheckout = () => {
     if (!user) { showToast('กรุณาเข้าสู่ระบบก่อน', 'error'); navigate('/login'); return; }

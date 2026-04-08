@@ -72,12 +72,28 @@ export default function ProductDetail() {
   const placeOrder = async (method) => {
     setPlacing(true);
     try {
-      let payload = { product_id: id, method };
+      // ✅ Use /api/invoices (The new unified ordering system)
+      let payload = { items: [id], method };
+
       if (method === 'meetup') {
         if (!meetForm.date || !meetForm.time || !meetForm.location || !meetForm.contact) {
           showToast('กรุณากรอกข้อมูลนัดรับให้ครบ', 'error'); setPlacing(false); return;
         }
+        payload.meet_date = meetForm.date;
+        payload.meet_time = meetForm.time;
+        payload.meet_location = meetForm.location;
+        payload.meet_note = `ติดต่อ: ${meetForm.contact}\n${meetForm.note}`;
       }
+
+      if (method === 'cod') {
+        if (!codForm.name || !codForm.phone || !codForm.address) {
+          showToast('กรุณากรอกข้อมูลจัดส่งให้ครบ', 'error'); setPlacing(false); return;
+        }
+        payload.shipping_name = codForm.name;
+        payload.shipping_phone = codForm.phone;
+        payload.shipping_address = codForm.address;
+      }
+
       if (method === 'angpao') {
         const angpaoEl = document.getElementById('angpaoLink');
         if (!angpaoEl?.value?.includes('gift.truemoney.com')) {
@@ -86,12 +102,13 @@ export default function ProductDetail() {
         payload.payment_ref = angpaoEl.value;
       }
 
-      await api.post('/orders', payload);
+      // Consolidate on /api/invoices so it appears in Admin Dashboard immediately
+      await api.post('/invoices', payload);
       showToast(method === 'meetup' ? 'นัดรับสินค้าเรียบร้อย!' : 'สั่งซื้อสำเร็จ!', 'success');
       setModalOpen(false);
       navigate('/dashboard');
     } catch (e) {
-      showToast(e.message, 'error');
+      showToast(e.message || 'เกิดข้อผิดพลาดในการสั่งซื้อ', 'error');
     } finally { setPlacing(false); }
   };
 

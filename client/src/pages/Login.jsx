@@ -72,9 +72,12 @@ export default function Login() {
                   {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <div className="flex justify-end pt-1">
-                <Link to="/forgot-password" size={18} className="text-xs text-gray-500 hover:text-primary transition-colors">ลืมรหัสผ่าน?</Link>
-              </div>
+            </div>
+            
+            <div className="flex justify-end -mt-2">
+              <Link to="/forgot-password" size={14} className="text-primary hover:text-primary-hover text-sm font-medium transition-colors">
+                ลืมรหัสผ่าน?
+              </Link>
             </div>
 
             <motion.button

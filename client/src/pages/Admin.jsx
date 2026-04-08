@@ -324,15 +324,17 @@ export default function Admin() {
                         <td className="px-5 py-4 text-gray-300 text-sm">{o.buyer_name}</td>
                         <td className="px-5 py-4 text-sm">
                           {o.method === 'meetup' || o.meet_date ? (
-                            <div className="text-gray-300 text-xs space-y-0.5">
-                              <p className="text-purple-400 font-semibold">🤝 นัดรับสินค้า</p>
-                              {o.meet_date && <p>📅 {o.meet_date} {o.meet_time}</p>}
-                              {o.meet_location && <p>📍 {o.meet_location}</p>}
+                            <div className="text-gray-300 text-xs space-y-0.5 mt-1">
+                              <p className="text-purple-400 font-semibold mb-1">🤝 นัดรับสินค้า</p>
+                              {o.meet_date && <p><span className="text-gray-500">🗓️</span> {o.meet_date} {o.meet_time}</p>}
+                              {o.meet_location && <p><span className="text-gray-500">📍</span> {o.meet_location}</p>}
+                              {o.meet_note && <div className="text-[10px] text-gray-500 bg-white/5 p-1.5 rounded mt-1 whitespace-pre-wrap">{o.meet_note}</div>}
                             </div>
                           ) : o.method === 'cod' ? (
-                            <div className="text-gray-300 text-xs space-y-0.5">
-                              <p className="text-pink-400 font-semibold">🚚 COD</p>
-                              {o.shipping_name && <p>{o.shipping_name} · {o.shipping_phone}</p>}
+                            <div className="text-gray-300 text-xs space-y-0.5 mt-1">
+                              <p className="text-pink-400 font-semibold mb-1">🚚 เก็บเงินปลายทาง (COD)</p>
+                              {o.shipping_name && <p><span className="text-gray-400 font-medium">{o.shipping_name}</span> · {o.shipping_phone}</p>}
+                              {o.shipping_address && <div className="text-[10px] text-gray-500 bg-white/5 p-1.5 rounded mt-1 whitespace-pre-wrap">🏠 {o.shipping_address}</div>}
                             </div>
                           ) : (
                             <div>

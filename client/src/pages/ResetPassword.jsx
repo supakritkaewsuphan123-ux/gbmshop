@@ -1,62 +1,99 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { motion } from 'framer-motion';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { KeyRound, Eye, EyeOff, Loader2, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [strength, setStrength] = useState({ length: false, number: false, special: false });
   const navigate = useNavigate();
   const { showToast } = useToast();
 
+  const [form, setForm] = useState({ newPassword: '', confirmPassword: '' });
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  const API_AUTH_BASE = "http://localhost:3000/api/auth";
+  const RESET_URL = `${API_AUTH_BASE}/reset-password`;
+  const PING_URL = `${API_AUTH_BASE}/ping`;
+
+  // 1. FAIL-SAFE: Check token on mount
   useEffect(() => {
-    setStrength({
-      length: newPassword.length >= 8,
-      number: /[0-9]/.test(newPassword),
-      special: /[!@#$%^&*]/.test(newPassword)
-    });
-  }, [newPassword]);
+    console.log("----------------------------------------");
+    console.log("CHECK: ResetPassword Component Mounted");
+    if (!token) {
+      console.error("❌ NO TOKEN FOUND in URL");
+      setError('ไม่พบรหัส Token สำหรับการรีเซ็ต กรุณาตรวจสอบลิงก์ในอีเมลอีกครั้งค่ะ');
+    } else {
+      console.log("✅ Token found:", token.substring(0, 8) + "...");
+    }
+    console.log("----------------------------------------");
+  }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!token) return showToast('Token ไม่ถูกต้อง', 'error');
-    if (newPassword !== confirmPassword) return showToast('รหัสผ่านไม่ตรงกัน', 'error');
-    
-    // Strict Strength Check (User Request Regex)
-    const regex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[A-Za-z0-9!@#$%^&*]{8,}$/;
-    if (!regex.test(newPassword)) {
-      return showToast('รหัสผ่านไม่ผ่านเกณฑ์ความแข็งแรง', 'error');
+    if (!token || error) return;
+
+    if (form.newPassword !== form.confirmPassword) {
+      return showToast('รหัสผ่านไม่ตรงกัน', 'error');
+    }
+    if (form.newPassword.length < 6) {
+      return showToast('รหัสผ่านสั้นเกินไป (ขั้นต่ำ 6 ตัว)', 'error');
     }
 
     setLoading(true);
     try {
-      // Using axios as requested
-      const res = await axios.post('/api/auth/reset-password', { token, newPassword });
-      showToast(res.data.message || 'รหัสผ่านถูกเปลี่ยนเรียบร้อย', 'success');
-      setTimeout(() => navigate('/login'), 2000);
+      // 2. PRE-FLIGHT: Backend Health Verification
+      console.log(`REQ: [Pre-flight] Ping check to ${PING_URL}`);
+      try {
+        await axios.get(PING_URL);
+        console.log("RES: [Pre-flight] Backend is ALIVE (pong)");
+      } catch (pingErr) {
+        console.error("❌ CONNECTION FAILED: Backend is unreachable at", PING_URL);
+        throw new Error("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบว่า Backend รันอยู่ (Port 3000)");
+      }
+
+      // 3. ACTUAL REQUEST
+      console.log("----------------------------------------");
+      console.log("REQ: Sending reset-password request");
+      console.log("URL:", RESET_URL);
+      console.log("Payload:", { token, newPassword: "********" });
+      console.log("----------------------------------------");
+
+      const response = await axios.post(RESET_URL, { 
+        token: token.trim().toLowerCase(), 
+        newPassword: form.newPassword 
+      });
+      
+      console.log("RES: Success", response.data);
+      showToast(response.data.message || 'รีเซ็ตรหัสผ่านสำเร็จ!', 'success');
+      setSuccess(true);
+      
+      setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่';
-      showToast(msg, 'error');
+      const errMsg = err.response?.data?.error || err.message;
+      console.error("RES: Error from backend", err.response?.data || err.message);
+      showToast(errMsg, 'error');
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!token) {
+  if (error && !success) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle size={64} className="text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">ลิงก์ไม่ถูกต้อง</h2>
-          <p className="text-gray-400 mb-6">ลิงก์ที่คุณใช้ไม่สามารถขอรีเซ็ตรหัสผ่านได้</p>
-          <button onClick={() => navigate('/login')} className="btn-primary px-8">กลับหน้าแรก</button>
+      <div className="min-h-[80vh] flex items-center justify-center px-4">
+        <div className="bg-surface border border-border rounded-3xl p-10 shadow-2xl text-center max-w-md w-full">
+           <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-6" />
+           <h2 className="text-2xl font-bold text-white mb-4">เกิดข้อผิดพลาด</h2>
+           <p className="text-gray-400 mb-8">{error}</p>
+           <Link to="/forgot-password" size="lg" className="block w-full py-4 bg-primary text-white font-bold rounded-xl">
+             ขอลิงก์ใหม่
+           </Link>
         </div>
       </div>
     );
@@ -67,88 +104,110 @@ export default function ResetPassword() {
       <motion.div
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
         className="w-full max-w-md"
       >
-        <div className="bg-surface border border-border rounded-2xl p-8 shadow-card">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-white">ตั้งรหัสผ่านใหม่</h2>
-            <p className="text-gray-400 text-sm mt-2">กรุณาตั้งรหัสผ่านที่จำง่ายแต่คาดเดาได้ยาก</p>
+        <div className="bg-surface border border-border rounded-3xl p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Header */}
+          <div className="flex flex-col items-center text-center mb-10">
+            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 border border-primary/20">
+              <ShieldCheck className="text-primary w-8 h-8" />
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-3">ตั้งรหัสผ่านใหม่</h2>
+            <p className="text-gray-400 text-base">
+              กรุณากำหนดรหัสผ่านใหม่ของคุณ <br />
+              (Direct Connection Mode: enabled)
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <label className="label">รหัสผ่านใหม่</label>
-                <div className="relative">
+          {!success ? (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* New Password */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-300 ml-1">รหัสผ่านใหม่</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <KeyRound className="h-5 w-5 text-gray-500 group-focus-within:text-primary transition-colors" />
+                  </div>
                   <input
-                    type={showPass ? 'text' : 'password'}
+                    type={showPass ? "text" : "password"}
                     required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="input-field pr-11"
+                    value={form.newPassword}
+                    onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
+                    className="w-full pl-11 pr-12 py-3.5 bg-black/40 border border-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-base"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPass(!showPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500"
                   >
-                    {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
               </div>
 
-              <div>
-                <label className="label">ยืนยันรหัสผ่านใหม่</label>
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="input-field"
-                  placeholder="••••••••"
-                />
-              </div>
-
-              {/* Password Strength Checklist */}
-              <div className="bg-bg/50 rounded-xl p-4 border border-border/30 space-y-2">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">เงื่อนไขความปลอดภัย</p>
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 size={14} className={strength.length ? 'text-green-500' : 'text-gray-600'} />
-                  <span className={strength.length ? 'text-green-400' : 'text-gray-500'}>อย่างน้อย 8 ตัวอักษร</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 size={14} className={strength.number ? 'text-green-500' : 'text-gray-600'} />
-                  <span className={strength.number ? 'text-green-400' : 'text-gray-500'}>มีตัวเลข (0-9)</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 size={14} className={strength.special ? 'text-green-500' : 'text-gray-600'} />
-                  <span className={strength.special ? 'text-green-400' : 'text-gray-500'}>มีอักขระพิเศษ (@, $, !, %)</span>
+              {/* Confirm Password */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-300 ml-1">ยืนยันรหัสผ่านใหม่</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <KeyRound className="h-5 w-5 text-gray-500 group-focus-within:text-primary transition-colors" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    value={form.confirmPassword}
+                    onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                    className="w-full pl-11 pr-4 py-3.5 bg-black/40 border border-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-base"
+                    placeholder="••••••••"
+                  />
                 </div>
               </div>
-            </div>
 
-            <motion.button
-              type="submit"
-              disabled={loading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              className="btn-primary w-full py-3.5 text-base flex items-center justify-center gap-2"
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-4 bg-primary hover:bg-primary-hover disabled:bg-primary/50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-lg active:scale-[0.98]"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>กำลังบันทึกรหัสผ่านใหม่...</span>
+                  </>
+                ) : (
+                  <span>ตกลงและรีเซ็ตรหัสผ่าน</span>
+                )}
+              </button>
+            </form>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center space-y-6"
             >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                  </svg>
-                  กำลังบันทึก...
-                </span>
-              ) : (
-                <><Lock size={18} /> ยืนยันรหัสผ่านใหม่</>
-              )}
-            </motion.button>
-          </form>
+              <div className="flex justify-center">
+                <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center border border-green-500/20">
+                  <CheckCircle2 className="w-10 h-10 text-green-500" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-green-500">สำเร็จ! 🎉</h3>
+                <p className="text-gray-400">
+                  เปลี่ยนรหัสผ่านเรียบร้อยแล้ว<br />
+                  กำลังพาหน้าไปเข้าสู่ระบบ...
+                </p>
+              </div>
+              <Link
+                to="/login"
+                className="block w-full py-4 bg-primary text-white font-bold rounded-xl"
+              >
+                เข้าสู่ระบบทันที
+              </Link>
+            </motion.div>
+          )}
         </div>
       </motion.div>
     </div>
