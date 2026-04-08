@@ -7,8 +7,8 @@ if (!baseURL || baseURL === '/api') {
   const isRender = window.location.hostname.includes('onrender.com');
   
   if (isNetlify || isRender) {
-    // Definitive Backend URL
-    baseURL = 'https://gb-marketplace.onrender.com/api';
+    // Dynamically use the current origin to avoid hardcoded URL mismatches
+    baseURL = window.location.origin + '/api';
   } else {
     baseURL = 'http://localhost:3000/api';
   }
