@@ -9,7 +9,7 @@ import Modal from '../components/Modal';
 import api from '../lib/api';
 import {
   Package, ShoppingCart, Wallet, BarChart2, Settings,
-  PlusCircle, Trash2, Pencil, Eye, Check, X as XIcon, Upload,
+  PlusCircle, Trash2, Pencil, Eye, Check, X as XIcon, Upload, Users,
 } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import FinancialOverview from '../components/Finance/FinancialOverview';
@@ -24,6 +24,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 const TABS = [
   { id: 'listings', label: 'สินค้า', icon: <Package size={16} /> },
   { id: 'orders', label: 'ออเดอร์', icon: <ShoppingCart size={16} /> },
+  { id: 'users', label: 'สมาชิก', icon: <Users size={16} /> },
   { id: 'topups', label: 'เติมเงิน', icon: <Wallet size={16} /> },
   { id: 'finance', label: 'การเงิน', icon: <BarChart2 size={16} /> },
   { id: 'settings', label: 'ตั้งค่า', icon: <Settings size={16} /> },
@@ -36,6 +37,7 @@ export default function Admin() {
   const [tab, setTab] = useState('listings');
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [users, setUsers] = useState([]);
   const [topups, setTopups] = useState([]);
   const [stats, setStats] = useState(null);
   const [salesData, setSalesData] = useState(null);
@@ -61,7 +63,7 @@ export default function Admin() {
   useEffect(() => {
     if (!authLoading && (!user || user.role !== 'admin')) { navigate('/'); return; }
     if (user?.role === 'admin') {
-      Promise.all([loadProducts(), loadOrders(), loadTopups(), loadSettings()]).finally(() => setLoading(false));
+      Promise.all([loadProducts(), loadOrders(), loadTopups(), loadSettings(), loadUsers()]).finally(() => setLoading(false));
     }
   }, [user, authLoading]);
 
@@ -72,6 +74,7 @@ export default function Admin() {
   const loadProducts = () => api.get('/products').then(setProducts).catch(console.error);
   const loadOrders = () => api.get('/invoices/all').then(setOrders).catch(console.error);
   const loadTopups = () => api.get('/users/topups/all').then(setTopups).catch(console.error);
+  const loadUsers = () => api.get('/users/all').then(setUsers).catch(console.error);
   const loadSettings = async () => {
     const cfg = await api.get('/settings').catch(() => ({}));
     setSettings(cfg);
@@ -374,6 +377,49 @@ export default function Admin() {
                       </tr>
                     ))}
                     {orders.length === 0 && <tr><td colSpan={6} className="text-center py-10 text-gray-500">ยังไม่มีออเดอร์</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ===== USERS ===== */}
+        {tab === 'users' && (
+          <motion.div key="users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <h2 className="text-xl font-bold mb-5">รายชื่อสมาชิกทั้งหมด ({users.length})</h2>
+            <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-border">
+                    <tr>{['#', 'ผู้ใช้', 'บทบาท', 'ยอดเงิน', 'วันที่สมัคร'].map(h => <th key={h} className="text-left px-5 py-3 text-sm text-gray-500 font-medium">{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u) => (
+                      <tr key={u.id} className="border-b border-border last:border-0 hover:bg-white/2 transition-colors">
+                        <td className="px-5 py-4 text-gray-500 text-sm">#{u.id}</td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                              {u.username.substring(0, 1).toUpperCase()}
+                            </div>
+                            <span className="text-white text-sm font-medium">{u.username}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                           <span className={`px-2 py-1 rounded-md text-[10px] uppercase font-bold ${u.role === 'admin' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                             {u.role}
+                           </span>
+                        </td>
+                        <td className="px-5 py-4 text-primary font-bold">฿{(u.balance || 0).toLocaleString()}</td>
+                        <td className="px-5 py-4 text-gray-400 text-sm">
+                          {new Date(u.created_at).toLocaleDateString('th-TH', { 
+                            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                    {users.length === 0 && <tr><td colSpan={5} className="text-center py-10 text-gray-500">ยังไม่มีสมาชิก</td></tr>}
                   </tbody>
                 </table>
               </div>

@@ -80,6 +80,22 @@ router.put('/topups/:id/status', authMiddleware, adminMiddleware, async (req, re
     }
 });
 
+// Admin ONLY: Get ALL users
+router.get('/all', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const db = await getDb();
+        const users = await db.all(`
+            SELECT id, username, role, balance, created_at, profile_image
+            FROM users 
+            ORDER BY created_at DESC
+        `);
+        res.json(users);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Get user's topups
 router.get('/my-topups', authMiddleware, async (req, res) => {
     try {

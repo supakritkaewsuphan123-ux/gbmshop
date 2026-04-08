@@ -45,7 +45,7 @@ export default function Contact() {
           </a>
 
           {/* LINE — แก้ลิงก์ไลน์ตรงนี้ */}
-          <a href="https://lin.ee/Z1pMLkJ" target="_blank" rel="noopener noreferrer"
+          <a href="https://line.me/R/ti/p/@809sprxf?oat_content=url&ts=04082205" target="_blank" rel="noopener noreferrer"
             className="flex gap-4 items-center p-6 bg-surface border border-border rounded-2xl hover:border-green-500/40 hover:bg-green-500/5 transition-all group cursor-pointer">
             <div className="w-14 h-14 bg-green-500/10 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <MessageSquare size={26} className="text-green-500" />
