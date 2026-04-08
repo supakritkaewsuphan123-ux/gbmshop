@@ -183,6 +183,12 @@ export default function Admin() {
         wallet_number: settings.wallet_number,
         meetup_address: settings.meetup_address,
         meetup_contact: settings.meetup_contact,
+        contact_name: settings.contact_name,
+        contact_url: settings.contact_url,
+        phone: settings.phone,
+        line_id: settings.line_id,
+        email: settings.email,
+        working_hours: settings.working_hours
       });
       showToast('บันทึกการตั้งค่าแล้ว ✅', 'success');
     } catch (e) { showToast(e.message, 'error'); }
@@ -458,11 +464,29 @@ export default function Admin() {
               </div>
 
               <div className="bg-surface border border-border rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-primary mb-4">ข้อมูลการติดต่อหลัก (หน้า Contact)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><label className="label">เบอร์โทรศัพท์</label>
+                    <input className="input-field" value={settings.phone || ''} onChange={e => setSettings(p => ({ ...p, phone: e.target.value }))} /></div>
+                  <div><label className="label">LINE ID (เช่น @gbmoneyshop)</label>
+                    <input className="input-field" value={settings.line_id || ''} onChange={e => setSettings(p => ({ ...p, line_id: e.target.value }))} /></div>
+                  <div><label className="label">Facebook Page Name</label>
+                    <input className="input-field" value={settings.contact_name || ''} onChange={e => setSettings(p => ({ ...p, contact_name: e.target.value }))} /></div>
+                  <div><label className="label">Facebook URL (ลิงก์เต็ม)</label>
+                    <input className="input-field" value={settings.contact_url || ''} onChange={e => setSettings(p => ({ ...p, contact_url: e.target.value }))} /></div>
+                  <div><label className="label">Email Support</label>
+                    <input className="input-field" value={settings.email || ''} onChange={e => setSettings(p => ({ ...p, email: e.target.value }))} /></div>
+                  <div><label className="label">เวลาทำการ (เช่น ทุกวัน: 09:00 – 23:00 น.)</label>
+                    <input className="input-field" value={settings.working_hours || ''} onChange={e => setSettings(p => ({ ...p, working_hours: e.target.value }))} /></div>
+                </div>
+              </div>
+
+              <div className="bg-surface border border-border rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-primary mb-4">ข้อมูลนัดรับสินค้า (Meetup)</h3>
                 <div className="space-y-4">
                   <div><label className="label">สถานที่นัดรับ</label>
                     <textarea className="input-field resize-none" rows={2} value={settings.meetup_address || ''} onChange={e => setSettings(p => ({ ...p, meetup_address: e.target.value }))} /></div>
-                  <div><label className="label">ช่องทางติดต่อ (Line / Facebook / เบอร์โทร)</label>
+                  <div><label className="label">ช่องทางติดต่อตอนนัดรับ (Line / Facebook / เบอร์โทร)</label>
                     <input className="input-field" value={settings.meetup_contact || ''} onChange={e => setSettings(p => ({ ...p, meetup_contact: e.target.value }))} /></div>
                 </div>
               </div>
