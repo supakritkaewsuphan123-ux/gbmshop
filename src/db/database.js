@@ -84,15 +84,19 @@ async function initDb() {
         )
     `);
 
-    // Insert admin user if it doesn't exist
-    const adminUser = await db.get('SELECT * FROM users WHERE username = ?', ['admingb']);
-    if (!adminUser) {
-        const hashedPassword = await bcrypt.hash('admingbmoney4972', 10);
+    // Force Reset/Create admin user during troubleshooting
+    const hashedPassword = await bcrypt.hash('admin1234', 10);
+    const existingAdmin = await db.get('SELECT id FROM users WHERE username = ?', ['admingb']);
+    
+    if (existingAdmin) {
+        await db.run('UPDATE users SET password = ?, role = ? WHERE username = ?', [hashedPassword, 'admin', 'admingb']);
+        console.log('✅ Admin password FORCED RESET to: admin1234');
+    } else {
         await db.run(
             'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)', 
             ['admingb', 'admin@gb-marketplace.com', hashedPassword, 'admin']
         );
-        console.log('Admin user created: admingb (Email: admin@gb-marketplace.com)');
+        console.log('✅ Admin user CREATED: admingb with password admin1234');
     }
 
     // Migration: Columns check
