@@ -45,13 +45,13 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="label">ชื่อผู้ใช้</label>
+              <label className="label">ชื่อผู้ใช้ หรือ อีเมล</label>
               <input
                 type="text" required
                 value={form.username}
                 onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
                 className="input-field"
-                placeholder="ใส่ชื่อผู้ใช้"
+                placeholder="ใส่ชื่อผู้ใช้ หรือ อีเมล"
               />
             </div>
             <div>

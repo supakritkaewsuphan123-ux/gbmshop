@@ -202,7 +202,8 @@ router.post("/login", async (req, res) => {
     const { username, password } = req.body;
     try {
         const db = await getDb();
-        const user = await db.get("SELECT * FROM users WHERE username = ?", [username]);
+        // Support login by Username OR Email (case-insensitive for email)
+        const user = await db.get("SELECT * FROM users WHERE username = ? OR email = ?", [username, username.toLowerCase()]);
 
         if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
