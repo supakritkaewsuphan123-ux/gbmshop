@@ -117,29 +117,6 @@ app.get('/admin/orders', authMiddleware, adminMiddleware, async (req, res) => {
 
 // Final Catch-all (moved to end later)
 
-// ✅ GLOBAL 404 FALLBACK (DEFINITIVE DEBUGGING)
-app.use((req, res) => {
-    console.log(`[${req.id}] ❌ 404 NOT FOUND: ${req.method} ${req.url}`);
-    res.status(404).json({ 
-        error: "Route not found", 
-        method: req.method, 
-        path: req.url,
-        request_id: req.id 
-    });
-});
-
-// ✅ GLOBAL ERROR HANDLER (NO SILENT FAILURES)
-app.use((err, req, res, next) => {
-    console.error(`[${req.id}] ❌ SERVER ERROR:`, err.message);
-    if (process.env.NODE_ENV !== 'production') console.error(err.stack);
-    
-    const status = err.status || 500;
-    res.status(status).json({ 
-        error: process.env.NODE_ENV === 'production' ? 'Something went wrong!' : err.message,
-        request_id: req.id
-    });
-});
-
 // ==============================================================================
 // 🛡️ FINAL CATCH-ALL: SERVE REACT SPA OR DIAGNOSTIC PAGE
 // ==============================================================================
@@ -190,6 +167,31 @@ app.get('/*splat', (req, res) => {
         </html>
     `);
 });
+
+// ✅ GLOBAL 404 FALLBACK (DEFINITIVE DEBUGGING)
+app.use((req, res) => {
+    console.log(`[${req.id}] ❌ 404 NOT FOUND: ${req.method} ${req.url}`);
+    res.status(404).json({ 
+        error: "Route not found", 
+        method: req.method, 
+        path: req.url,
+        request_id: req.id 
+    });
+});
+
+// ✅ GLOBAL ERROR HANDLER (NO SILENT FAILURES)
+app.use((err, req, res, next) => {
+    console.error(`[${req.id}] ❌ SERVER ERROR:`, err.message);
+    if (process.env.NODE_ENV !== 'production') console.error(err.stack);
+    
+    const status = err.status || 500;
+    res.status(status).json({ 
+        error: process.env.NODE_ENV === 'production' ? 'Something went wrong!' : err.message,
+        request_id: req.id
+    });
+});
+
+// Start server
 
 // Start server
 app.listen(APP_PORT, async () => {
