@@ -243,17 +243,17 @@ export default function Home() {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto"
         >
           {/* โทร — แก้เบอร์โทรที่ href="tel:..." และข้อความด้านล่าง */}
-          <a href="tel:0818662451"
+          <a href="tel:0829879790"
             className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-primary/40 hover:bg-primary/5 transition-all group text-center cursor-pointer block">
             <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
               <Phone size={22} className="text-primary" />
             </div>
             <p className="text-xs text-gray-500 uppercase font-bold mb-1 tracking-widest">Call Center</p>
-            <p className="text-white font-semibold">081-866-2451</p>
+            <p className="text-white font-semibold">082-987-9790</p>
           </a>
 
           {/* LINE — แก้ลิงก์ไลน์ที่ href="..." */}
-          <a href="https://line.me/ti/p/@gbmoneyshop" target="_blank" rel="noopener noreferrer"
+          <a href="https://lin.ee/Z1pMLkJ" target="_blank" rel="noopener noreferrer"
             className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-green-500/40 hover:bg-green-500/5 transition-all group text-center cursor-pointer block">
             <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
               <MessageSquare size={22} className="text-green-500" />
