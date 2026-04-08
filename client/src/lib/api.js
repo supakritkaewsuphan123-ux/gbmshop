@@ -1,6 +1,17 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
+let baseURL = import.meta.env.VITE_API_BASE_URL;
+
+if (!baseURL) {
+  // If on Netlify, fallback to predicted Render URL
+  if (window.location.hostname.includes('netlify.app')) {
+    baseURL = 'https://gb-marketplace.onrender.com/api';
+    console.warn(`[API] No VITE_API_BASE_URL found on Netlify. Falling back to: ${baseURL}`);
+  } else {
+    baseURL = '/api';
+  }
+}
+
 console.log(`[API] Base URL initialized: ${baseURL}`);
 
 const api = axios.create({
