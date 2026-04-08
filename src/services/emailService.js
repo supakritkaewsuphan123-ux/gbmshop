@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-// 🛡️ สร้างระบบขนส่งอีเมล (Transporter)
+// 🛡️ สร้างระบบขนส่งอีเมล (Transporter) พร้อมระบบตัดการทำงานหากค้าง
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     host: 'smtp.gmail.com',
@@ -11,17 +11,27 @@ const transporter = nodemailer.createTransport({
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 10000,   // 10 seconds
-    socketTimeout: 10000,     // 10 seconds
+    connectionTimeout: 10000, 
+    greetingTimeout: 10000,   
+    socketTimeout: 10000,     
 });
 
 /**
- * ส่งอีเมลรีเซ็ตรหัสผ่าน
+ * ส่งอีเมลรีเซ็ตรหัสผ่าน พร้อมระบบ Log และ Fallback
  * @param {string} to - อีเมลผู้รับ
  * @param {string} resetLink - ลิงก์สำหรับรีเซ็ต
  */
 const sendResetEmail = async (to, resetLink) => {
+    // 🔍 1. ตรวจสอบการตั้งค่า SMTP (FALLBACK LOGIC)
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.log("\n" + "!".repeat(60));
+        console.log("[EMAIL] ⚠️ WARNING: SMTP NOT CONFIGURED!");
+        console.log(`[EMAIL] FALLBACK - Reset Link for ${to}:`);
+        console.log(`[EMAIL] URL: ${resetLink}`);
+        console.log("!".repeat(60) + "\n");
+        return { success: true, method: 'fallback_console' };
+    }
+
     const mailOptions = {
         from: `"GB MoneyShop" <${process.env.EMAIL_USER}>`,
         to: to,
@@ -47,9 +57,9 @@ const sendResetEmail = async (to, resetLink) => {
                         </a>
                     </div>
                     
-                    <p style="color: #6b7280; font-size: 12px; line-height: 1.5;">
-                        หากคุณไม่ได้เป็นคนทำรายการนี้ โปรดเพิกเฉยต่ออีเมลฉบับนี้ค่ะ <br>
-                        บัญชีของคุณยังคงปลอดภัยและไม่มีการเปลี่ยนแปลงใดๆ
+                    <p style="color: #6b7280; font-size: 11px; line-height: 1.5; text-align: center;">
+                        หากปุ่มใช้งานไม่ได้ คัดลอกลิงก์นี้ไปวางในเบราว์เซอร์ค่ะ: <br>
+                        <a href="${resetLink}" style="color: #ff003c; text-decoration: none;">${resetLink}</a>
                     </p>
                 </div>
                 
@@ -61,13 +71,15 @@ const sendResetEmail = async (to, resetLink) => {
     };
 
     try {
-        console.log(`[EMAIL] 📩 🕊️ Attempting to send email to ${to}...`);
+        console.log(`[EMAIL] Sending to ${to}... 🕊️`);
         const info = await transporter.sendMail(mailOptions);
-        console.log(`[EMAIL] ✅ Email sent successfully: ${info.messageId}`);
-        return { success: true, info };
+        console.log(`[EMAIL] SUCCESS ✅ (MessageID: ${info.messageId})`);
+        return { success: true, method: 'smtp' };
     } catch (error) {
-        console.error(`[EMAIL] ❌ Failed to send email:`, error.message);
-        throw new Error('ไม่สามารถส่งอีเมลได้ในขณะนี้ กรุณาลองใหม่ภายหลัง');
+        console.error(`[EMAIL ERROR] ❌ Failed to send to ${to}:`, error.message);
+        // Fallback log link even if SMTP fails mid-way
+        console.log(`[EMAIL ERROR] DEBUG Fallback - Link: ${resetLink}`);
+        throw error;
     }
 };
 

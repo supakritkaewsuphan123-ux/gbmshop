@@ -20,7 +20,6 @@ router.get("/ping", (req, res) => {
 // ──────────────────────────────────────────────────────────────────────────────
 router.route("/forgot-password")
     .post(forgotPasswordLimiter, async (req, res) => {
-        console.log(`[${req.id}] โดนเรียก forgot-password แล้ว`);
         let { email } = req.body || {};
         const genericMessage = "หากอีเมลนี้อยู่ในระบบ ลิงก์สำหรับรีเซ็ตรหัสผ่านได้ถูกส่งไปแล้วค่ะ";
 
@@ -31,47 +30,50 @@ router.route("/forgot-password")
 
             // Normalization
             email = email.trim().toLowerCase();
-            console.log(`[${req.id}] HANDLER: forgot-password for ${email}`);
+            console.log(`[${req.id}] [EMAIL] 🔍 Request received for: ${email}`);
 
             const db = await getDb();
             const user = await db.get("SELECT id, username FROM users WHERE email = ?", [email]);
 
             if (user) {
-                // Generate 32-byte RAW token
-                const rawToken = crypto.randomBytes(32).toString("hex"); // 64 hex chars
-                // Hash with SHA-256 for DB storage
+                // 1. Generate Security Tokens
+                const rawToken = crypto.randomBytes(32).toString("hex");
                 const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
-                const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // ✅ Extended to 1 Hour
+                const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 Hour
 
+                // 2. Save to Database
                 await db.run(
                     "UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?",
                     [hashedToken, expires, user.id]
                 );
 
-                // ✅ CRITICAL DEBUG: Print full link clearly
-                // ✅ CRITICAL FIX: Use the Netlify Frontend URL for the reset link
+                // 3. Construct Link (Dynamic Base URL)
                 const baseUrl = process.env.NODE_ENV === 'production' 
                     ? (process.env.FRONTEND_URL || 'https://gb-marketplace-test-ka.netlify.app')
                     : 'http://localhost:5173';
                 const resetLink = `${baseUrl}/reset-password?token=${rawToken}`;
                 
-                // 📧 SEND REAL EMAIL (ASYNCHRONOUSLY)
-                console.log(`[${req.id}] 🔑 Triggering background email sending to: ${email}`);
-                // Fire and forget - don't await to prevent HTTP timeout
-                sendResetEmail(email, resetLink).catch(e => {
-                    console.error(`[${req.id}] ❌ Background Email Error:`, e.message);
-                });
+                // 4. 📧 SEND REAL EMAIL (AWAITING SUCCESS/FAILURE)
+                console.log(`[${req.id}] [EMAIL] 📤 Attempting to send reset link to: ${email}`);
+                
+                try {
+                    await sendResetEmail(email, resetLink);
+                } catch (emailErr) {
+                    // We don't throw here so the user still gets the generic message
+                    // but we log it internally for the admin to see
+                    console.error(`[${req.id}] [EMAIL ERROR] ❌ Internal failure during sendMail:`, emailErr.message);
+                }
 
-                console.log("\n" + "=".repeat(60));
-                console.log(`[${req.id}] DEBUG - URL: ${resetLink}`);
-                console.log("=".repeat(60) + "\n");
+                // DEBUG Log for server admin
+                console.log(`[${req.id}] [LINK DEBUG] 🔗 Generated Link: ${resetLink}`);
             } else {
-                console.warn(`[${req.id}] [WARN] User not found for email: ${email}`);
+                console.warn(`[${req.id}] [EMAIL] ⚠️ User not found: ${email}`);
             }
 
+            // Always return successful message for security (don't reveal if user exists)
             return res.json({ message: genericMessage });
         } catch (error) {
-            console.error(`[${req.id}] ❌ Forgot Password Error:`, error.message);
+            console.error(`[${req.id}] [EMAIL ERROR] ❌ System Error during Forgot Password:`, error.message);
             return res.status(500).json({ error: "Internal server error" });
         }
     })
