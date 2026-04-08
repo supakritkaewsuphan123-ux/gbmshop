@@ -37,18 +37,34 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      // ✅ REFACTORED TO USE GLOBAL API INSTANCE
+      // ✅ DEBUG LOG (REQUEST)
+      console.log("----------------------------------------");
+      console.log("REQ: Sending reset-password request");
+      console.log("Payload:", { token: token.substring(0, 8) + "...", newPassword: "********" });
+      console.log("----------------------------------------");
+
       const response = await api.post('/auth/reset-password', { 
         token: token.trim().toLowerCase(), 
         newPassword: form.newPassword 
       });
       
+      // ✅ DEBUG LOG (RESPONSE SUCCESS)
+      console.log("RES: Reset Password Success ✅", response);
+
       showToast(response.message || 'รีเซ็ตรหัสผ่านสำเร็จ!', 'success');
       setSuccess(true);
       
-      setTimeout(() => navigate('/login'), 3000);
+      // 🚀 REDIRECT AFTER 1.5 SECONDS
+      console.log("REDIRECT: Moving to /login in 1.5s...");
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
+
     } catch (err) {
       const errMsg = err.message || 'เกิดข้อผิดพลาด';
+      // ✅ DEBUG LOG (RESPONSE ERROR)
+      console.error("RES: Reset Password Error ❌", err);
+      
       showToast(errMsg, 'error');
       setError(errMsg);
     } finally {
