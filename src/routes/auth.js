@@ -49,14 +49,15 @@ router.route("/forgot-password")
                 );
 
                 // ✅ CRITICAL DEBUG: Print full link clearly
-                // ✅ CRITICAL FIX: Use Production URL when available
+                // ✅ CRITICAL FIX: Use the Netlify Frontend URL for the reset link
                 const baseUrl = process.env.NODE_ENV === 'production' 
-                    ? (process.env.PRODUCTION_URL || 'https://gb-money-shop.onrender.com')
+                    ? (process.env.FRONTEND_URL || 'https://gb-marketplace-test-ka.netlify.app')
                     : 'http://localhost:5173';
                 const resetLink = `${baseUrl}/reset-password?token=${rawToken}`;
                 
                 // 📧 SEND REAL EMAIL
-                console.log(`[${req.id}] 🔑 Sending reset link via Email to: ${email}`);
+                console.log(`[${req.id}] 🔑 Sending reset link to ${email}`);
+                console.log(`[${req.id}] 🔗 Link: ${resetLink}`);
                 await sendResetEmail(email, resetLink).catch(e => {
                     console.error(`[${req.id}] ❌ Failed to send email via Nodemailer:`, e.message);
                     // We don't throw here to avoid informing user about email failure immediately

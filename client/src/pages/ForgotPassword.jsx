@@ -52,7 +52,6 @@ export default function ForgotPassword() {
             <h2 className="text-3xl font-bold text-white mb-3">ลืมรหัสผ่าน?</h2>
             <p className="text-gray-400 text-base leading-relaxed">
               กรอกอีเมลของคุณเพื่อรับลิงก์รีเซ็ต <br />
-              (ตรวจสอบหน้าจอ Server เพื่อดูลิงก์ในโหมด DEV)
             </p>
           </div>
 
@@ -114,7 +113,7 @@ export default function ForgotPassword() {
                 <h3 className="text-xl font-bold text-green-500">ส่งคำขอสำเร็จ!</h3>
                 <p className="text-gray-400 leading-relaxed px-4">
                   หากอีเมล <span className="text-white font-medium">{email}</span> มีอยู่ในระบบ <br />
-                  เราได้ส่งลิงก์รีเซ็ตไปให้แล้วค่ะ (อายุ 15 นาที)
+                  เราได้ส่งลิงก์รีเซ็ตไปให้แล้ว (อายุ 15 นาที)
                 </p>
               </div>
               <Link
