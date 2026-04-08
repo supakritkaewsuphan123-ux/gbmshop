@@ -2,15 +2,20 @@ import axios from 'axios';
 
 let baseURL = import.meta.env.VITE_API_BASE_URL;
 
-if (!baseURL) {
-  // If on Netlify, fallback to predicted Render URL
-  if (window.location.hostname.includes('netlify.app')) {
+if (!baseURL || baseURL === '/api') {
+  const isNetlify = window.location.hostname.includes('netlify.app');
+  const isRender = window.location.hostname.includes('onrender.com');
+  
+  if (isNetlify || isRender) {
+    // Definitive Backend URL
     baseURL = 'https://gb-marketplace.onrender.com/api';
-    console.warn(`[API] No VITE_API_BASE_URL found on Netlify. Falling back to: ${baseURL}`);
   } else {
-    baseURL = '/api';
+    baseURL = 'http://localhost:3000/api';
   }
 }
+
+// Clean up: ensure no double slashes at the end
+baseURL = baseURL.replace(/\/$/, '');
 
 console.log(`[API] Base URL initialized: ${baseURL}`);
 
