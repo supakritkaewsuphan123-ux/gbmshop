@@ -3,10 +3,17 @@ const nodemailer = require('nodemailer');
 // 🛡️ สร้างระบบขนส่งอีเมล (Transporter)
 const transporter = nodemailer.createTransport({
     service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // Use SSL
+    pool: true,   // Use pooled connections
     auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // ต้องเป็น App Password 16 หลัก
+        pass: process.env.EMAIL_PASS,
     },
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,   // 10 seconds
+    socketTimeout: 10000,     // 10 seconds
 });
 
 /**

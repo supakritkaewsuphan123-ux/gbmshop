@@ -55,12 +55,11 @@ router.route("/forgot-password")
                     : 'http://localhost:5173';
                 const resetLink = `${baseUrl}/reset-password?token=${rawToken}`;
                 
-                // 📧 SEND REAL EMAIL
-                console.log(`[${req.id}] 🔑 Sending reset link to ${email}`);
-                console.log(`[${req.id}] 🔗 Link: ${resetLink}`);
-                await sendResetEmail(email, resetLink).catch(e => {
-                    console.error(`[${req.id}] ❌ Failed to send email via Nodemailer:`, e.message);
-                    // We don't throw here to avoid informing user about email failure immediately
+                // 📧 SEND REAL EMAIL (ASYNCHRONOUSLY)
+                console.log(`[${req.id}] 🔑 Triggering background email sending to: ${email}`);
+                // Fire and forget - don't await to prevent HTTP timeout
+                sendResetEmail(email, resetLink).catch(e => {
+                    console.error(`[${req.id}] ❌ Background Email Error:`, e.message);
                 });
 
                 console.log("\n" + "=".repeat(60));
@@ -70,10 +69,10 @@ router.route("/forgot-password")
                 console.warn(`[${req.id}] [WARN] User not found for email: ${email}`);
             }
 
-            res.json({ message: genericMessage });
+            return res.json({ message: genericMessage });
         } catch (error) {
             console.error(`[${req.id}] ❌ Forgot Password Error:`, error.message);
-            res.status(500).json({ error: "Internal server error" });
+            return res.status(500).json({ error: "Internal server error" });
         }
     })
     .all((req, res) => {
