@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Calendar, Layers, BarChart } from 'lucide-react';
-import api from '../../lib/api';
+import { supabase } from '../../lib/supabase';
 
 const formatCurrency = (val) => {
   return new Intl.NumberFormat('th-TH', { 
@@ -11,19 +11,56 @@ const formatCurrency = (val) => {
   }).format(val);
 };
 
-export default function HistorySummary() {
+export default function HistorySummary({ invoices: propInvoices }) {
   const [activeTab, setActiveTab] = useState('daily');
   const [data, setData] = useState({ daily: [], monthly: [], yearly: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadHistory();
-  }, []);
+    if (propInvoices) {
+      processInvoices(propInvoices);
+      setLoading(false);
+    } else {
+      loadHistory();
+    }
+  }, [propInvoices]);
+
+  const processInvoices = (invoices) => {
+    // Filter paid invoices
+    const filtered = (invoices || []).filter(inv => inv.status === 'paid');
+    
+    // Group by daily/monthly/yearly
+    const dailyMap = {};
+    const monthlyMap = {};
+    const yearlyMap = {};
+
+    filtered.forEach(inv => {
+      const date = new Date(inv.created_at).toISOString().split('T')[0];
+      const month = new Date(inv.created_at).toISOString().substring(0, 7);
+      const year = new Date(inv.created_at).toISOString().substring(0, 4);
+      const revenue = inv.total_price || 0;
+
+      dailyMap[date] = { revenue: (dailyMap[date]?.revenue || 0) + revenue, count: (dailyMap[date]?.count || 0) + 1, date };
+      monthlyMap[month] = { revenue: (monthlyMap[month]?.revenue || 0) + revenue, count: (monthlyMap[month]?.count || 0) + 1, month };
+      yearlyMap[year] = { revenue: (yearlyMap[year]?.revenue || 0) + revenue, count: (yearlyMap[year]?.count || 0) + 1, year };
+    });
+
+    setData({
+      daily: Object.values(dailyMap).sort((a,b) => b.date.localeCompare(a.date)),
+      monthly: Object.values(monthlyMap).sort((a,b) => b.month.localeCompare(a.month)),
+      yearly: Object.values(yearlyMap).sort((a,b) => b.year.localeCompare(a.year))
+    });
+  };
 
   const loadHistory = async () => {
     try {
-      const res = await api.get('/dashboard/history');
-      if (res.success) setData(res.data);
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select('created_at, total_price, status')
+        .eq('status', 'paid');
+      
+      if (error) throw error;
+      processInvoices(invoices);
     } catch (error) {
       console.error('History fetch failed:', error);
     } finally {
@@ -41,7 +78,6 @@ export default function HistorySummary() {
 
   return (
     <div className="bg-surface border border-border rounded-3xl overflow-hidden mt-8">
-      {/* Tabs Header */}
       <div className="flex border-b border-border bg-black/20 p-2">
         {tabs.map((tab) => (
           <button

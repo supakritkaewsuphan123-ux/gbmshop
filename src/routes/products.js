@@ -7,13 +7,24 @@ const upload = require('../middleware/upload');
 // Get all products
 router.get('/', async (req, res) => {
     try {
+        const { category } = req.query;
         const db = await getDb();
-        const products = await db.all(`
+        
+        let sql = `
             SELECT p.*, u.username as seller_name 
             FROM products p 
             JOIN users u ON p.user_id = u.id
-            ORDER BY p.created_at DESC
-        `);
+        `;
+        const params = [];
+        
+        if (category && ['มือ1', 'มือสอง'].includes(category)) {
+            sql += ` WHERE p.category = ?`;
+            params.push(category);
+        }
+        
+        sql += ` ORDER BY p.created_at DESC`;
+        
+        const products = await db.all(sql, params);
         res.json(products);
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -45,27 +56,53 @@ router.post('/', authMiddleware, upload.fields([
     { name: 'videos', maxCount: 5 }
 ]), async (req, res) => {
     try {
-        const { name, price, condition_percent, description } = req.body;
+        const { name, price, condition_percent, description, category } = req.body;
         const stock = req.body.stock !== undefined ? parseInt(req.body.stock) : 1;
         
         if (!name || !price || !condition_percent) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        // Handle images array (index 0 is main image)
-        const imageFiles = req.files['images'] || [];
-        const mainImage = imageFiles.length > 0 ? imageFiles[0].filename : 'default_product.png';
-        const imagesJson = JSON.stringify(imageFiles.map(f => f.filename));
+        if (category && !['มือ1', 'มือสอง'].includes(category)) {
+            return res.status(400).json({ error: 'Invalid category' });
+        }
+        const finalCategory = category || 'มือ1';
 
-        // Handle videos array
+        // 🚀 SYNC TO SUPABASE STORAGE: Multi-file Upload
+        const { uploadFile } = require('../services/supabaseService');
+        
+        const imageFiles = req.files['images'] || [];
         const videoFiles = req.files['videos'] || [];
-        const videosJson = JSON.stringify(videoFiles.map(f => f.filename));
+        
+        let uploadedImages = [];
+        let uploadedVideos = [];
+
+        try {
+            // Upload images
+            uploadedImages = await Promise.all(
+                imageFiles.map(f => uploadFile(f.buffer, 'product-images', f.originalname))
+            );
+            
+            // Upload videos
+            uploadedVideos = await Promise.all(
+                videoFiles.map(f => uploadFile(f.buffer, 'product-images', f.originalname))
+            );
+            
+            console.log(`[STORAGE] Uploaded ${uploadedImages.length} images and ${uploadedVideos.length} videos`);
+        } catch (err) {
+            console.error('[STORAGE] Product files upload failed:', err);
+            return res.status(500).json({ error: 'Failed to upload product files to cloud storage' });
+        }
+
+        const mainImage = uploadedImages.length > 0 ? uploadedImages[0] : 'default_product.png';
+        const imagesJson = JSON.stringify(uploadedImages);
+        const videosJson = JSON.stringify(uploadedVideos);
 
         const userId = req.user.id;
         const db = await getDb();
         const result = await db.run(
-            'INSERT INTO products (name, price, image, images, videos, condition_percent, description, stock, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [name, price, mainImage, imagesJson, videosJson, condition_percent, description, stock, userId]
+            'INSERT INTO products (name, price, image, images, videos, condition_percent, description, stock, category, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [name, price, mainImage, imagesJson, videosJson, condition_percent, description, stock, finalCategory, userId]
         );
 
         res.status(201).json({ message: 'Product created successfully', productId: result.lastID });
@@ -81,11 +118,15 @@ router.put('/:id', authMiddleware, upload.fields([
     { name: 'videos', maxCount: 5 }
 ]), async (req, res) => {
     try {
-        const { name, price, condition_percent, description } = req.body;
+        const { name, price, condition_percent, description, category } = req.body;
         const stock = req.body.stock !== undefined ? parseInt(req.body.stock) : 1;
 
         if (!name || !price || !condition_percent) {
             return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        if (category && !['มือ1', 'มือสอง'].includes(category)) {
+            return res.status(400).json({ error: 'Invalid category' });
         }
 
         const db = await getDb();
@@ -96,23 +137,37 @@ router.put('/:id', authMiddleware, upload.fields([
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        // Handle images update (stay if no new images)
+        // Handle images & videos update
+        const { uploadFile } = require('../services/supabaseService');
         let mainImage = product.image;
         let imagesJson = product.images;
-        if (req.files['images'] && req.files['images'].length > 0) {
-            mainImage = req.files['images'][0].filename;
-            imagesJson = JSON.stringify(req.files['images'].map(f => f.filename));
+        let videosJson = product.videos || '[]';
+
+        try {
+            if (req.files['images'] && req.files['images'].length > 0) {
+                const uploadedImages = await Promise.all(
+                    req.files['images'].map(f => uploadFile(f.buffer, 'product-images', f.originalname))
+                );
+                mainImage = uploadedImages[0];
+                imagesJson = JSON.stringify(uploadedImages);
+            }
+
+            if (req.files['videos'] && req.files['videos'].length > 0) {
+                const uploadedVideos = await Promise.all(
+                    req.files['videos'].map(f => uploadFile(f.buffer, 'product-images', f.originalname))
+                );
+                videosJson = JSON.stringify(uploadedVideos);
+            }
+        } catch (err) {
+            console.error('[STORAGE] Product files update failed:', err);
+            return res.status(500).json({ error: 'Failed to update product files on cloud storage' });
         }
 
-        // Handle videos update (stay if no new videos)
-        let videosJson = product.videos || '[]';
-        if (req.files['videos'] && req.files['videos'].length > 0) {
-            videosJson = JSON.stringify(req.files['videos'].map(f => f.filename));
-        }
+        const finalCategory = category || product.category;
 
         await db.run(
-            'UPDATE products SET name = ?, price = ?, image = ?, images = ?, videos = ?, condition_percent = ?, description = ?, stock = ? WHERE id = ?',
-            [name, price, mainImage, imagesJson, videosJson, condition_percent, description, stock, req.params.id]
+            'UPDATE products SET name = ?, price = ?, image = ?, images = ?, videos = ?, condition_percent = ?, description = ?, stock = ?, category = ? WHERE id = ?',
+            [name, price, mainImage, imagesJson, videosJson, condition_percent, description, stock, finalCategory, req.params.id]
         );
 
         res.json({ message: 'Product updated successfully' });

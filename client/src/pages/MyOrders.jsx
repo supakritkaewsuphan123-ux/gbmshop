@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { PageLoader } from '../components/Spinner';
 import StatusBadge from '../components/StatusBadge';
-import api from '../lib/api';
+import { supabase } from '../lib/supabase';
 
 export default function MyOrders() {
   const { user, loading: authLoading } = useAuth();
@@ -19,26 +19,88 @@ export default function MyOrders() {
     if (user) loadInvoices();
   }, [user, authLoading]);
 
+  // ⚡ Real-time: อัปเดตสถานะออเดอร์และหลอดสถานะทันที
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`invoices-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'invoices', filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const updated = payload.new;
+          // อัปเดตสถานะและเลขพัสดุทันทีโดยไม่ต้องโหลดใหม่
+          setInvoices(prev =>
+            prev.map(inv =>
+              inv.id === updated.id
+                ? { ...inv, status: updated.status, tracking_number: updated.tracking_number, shipping_carrier: updated.shipping_carrier, rejection_reason: updated.rejection_reason }
+                : inv
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user]);
+
   const loadInvoices = async () => {
     try {
-      const data = await api.get('/invoices/my');
-      setInvoices(data);
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+
+      // For each invoice, fetch product names/prices since they are stored as IDs
+      const enrichedInvoices = await Promise.all(data.map(async (inv) => {
+        if (!inv.items || inv.items.length === 0) return { ...inv, products: [], total_price: 0 };
+        
+        const { data: products } = await supabase
+          .from('products')
+          .select('id, name, price')
+          .in('id', inv.items);
+        
+        const total = products?.reduce((sum, p) => sum + p.price, 0) || 0;
+        return { ...inv, items: products || [], total_price: total };
+      }));
+
+      setInvoices(enrichedInvoices);
     } catch { showToast('โหลดรายการไม่สำเร็จ', 'error'); }
     finally { setLoading(false); }
   };
 
   const uploadSlip = async (invoiceId, file) => {
-    const formData = new FormData();
-    formData.append('slip_image', file);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/invoices/${invoiceId}/slip`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      // 1. Upload Slip Image
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${invoiceId}-${Math.random()}.${fileExt}`;
+      const filePath = `slips/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('payment-slips')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('payment-slips')
+        .getPublicUrl(filePath);
+
+      // 2. Update Invoice
+      const { error: updateError } = await supabase
+        .from('invoices')
+        .update({ 
+          slip_url: publicUrl,
+          status: 'pending' // Reset to pending for admin review
+        })
+        .eq('id', invoiceId);
+
+      if (updateError) throw updateError;
+
       showToast('อัปโหลดสลิปสำเร็จ ✅', 'success');
       loadInvoices();
     } catch (e) { showToast(e.message, 'error'); }
@@ -75,7 +137,71 @@ export default function MyOrders() {
                 <StatusBadge status={inv.status} />
               </div>
 
+              {/* 📊 Order Progress Tube (หลอดสถานะ) */}
+              {inv.status !== 'rejected' && (
+                <div className="px-5 pt-6 pb-2">
+                  <div className="relative flex justify-between">
+                    {/* Background Line */}
+                    <div className="absolute top-4 left-0 w-full h-1 bg-white/5 rounded-full z-0" />
+                    {/* Progress Fill */}
+                    <div 
+                      className="absolute top-4 left-0 h-1 bg-primary rounded-full z-0 transition-all duration-1000" 
+                      style={{ 
+                        width: inv.status === 'completed' ? '100%' 
+                          : inv.status === 'processing' ? '50%' 
+                          : '10%'
+                      }} 
+                    />
+
+                    {[
+                      { 
+                        id: 'confirmed', 
+                        label: 'ยืนยันออเดอร์', 
+                        active: true 
+                      },
+                      { 
+                        id: 'shipping', 
+                        label: 'เตรียมของ', 
+                        active: inv.status === 'processing' || inv.status === 'completed' 
+                      },
+                      { 
+                        id: 'delivered', 
+                        label: 'ส่งสำเร็จ', 
+                        active: inv.status === 'completed' 
+                      }
+                    ].map((step) => (
+                      <div key={step.id} className="relative z-10 flex flex-col items-center gap-2">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center border-4 border-surface transition-all duration-500 ${step.active ? 'bg-primary shadow-[0_0_12px_rgba(var(--primary-rgb),0.6)] scale-110' : 'bg-gray-800'}`}>
+                          <div className={`w-2.5 h-2.5 rounded-full ${step.active ? 'bg-white' : 'bg-gray-700'}`} />
+                        </div>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${step.active ? 'text-primary' : 'text-gray-600'}`}>{step.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="p-5">
+                {/* 🚚 Tracking Info Box */}
+                {inv.tracking_number && (
+                  <div className="mb-6 p-4 bg-gradient-to-r from-primary/20 to-primary/5 border border-primary/30 rounded-2xl shadow-glow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-black text-primary uppercase tracking-widest">ข้อมูลการจัดส่ง</p>
+                      <span className="text-[10px] px-2 py-0.5 bg-primary/20 text-primary rounded-md font-bold uppercase">{inv.shipping_carrier}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xl font-mono font-bold text-white tracking-wider">{inv.tracking_number}</p>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(inv.tracking_number);
+                          showToast('คัดลอกเลขพัสดุแล้ว 📋', 'success');
+                        }}
+                        className="text-[10px] text-primary hover:underline font-bold"
+                      >คัดลอก</button>
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-2 italic">* นำเลขนี้ไปเช็คสถานะในแอป {inv.shipping_carrier} ได้เลยครับ</p>
+                  </div>
+                )}
                 {inv.items?.map((item) => (
                   <div key={item.id} className="flex justify-between text-sm py-1.5">
                     <span className="text-gray-300">📦 {item.name}</span>
@@ -108,12 +234,35 @@ export default function MyOrders() {
                 )}
 
                 {/* Slip upload for QR orders */}
-                {inv.status === 'pending_payment' && inv.method === 'qr' && (
-                  <div className="mt-4 bg-primary/5 border border-primary/30 rounded-xl p-4">
-                    <p className="font-semibold text-primary mb-3">📎 อัปโหลดสลิปชำระเงิน</p>
+                {(inv.status === 'pending_payment' || inv.status === 'rejected') && inv.method === 'qr' && (
+                  <div className={`mt-4 rounded-xl p-4 border ${inv.status === 'rejected' ? 'bg-red-500/5 border-red-500/30' : 'bg-primary/5 border-primary/30'}`}>
+                    <p className={`font-semibold mb-3 ${inv.status === 'rejected' ? 'text-red-400' : 'text-primary'}`}>
+                      {inv.status === 'rejected' ? '❌ ถูกปฏิเสธ: แก้ไขสลิปชำระเงิน' : '📎 อัปโหลดสลิปชำระเงิน'}
+                    </p>
+                    
+                    {inv.status === 'rejected' && inv.rejection_reason && (
+                      <div className="mb-4 bg-red-500/10 p-3 rounded-lg border border-red-500/20 text-xs text-red-300">
+                        <strong>เหตุผล:</strong> {inv.rejection_reason}
+                      </div>
+                    )}
+
                     <input type="file" accept="image/jpeg,image/png"
                       onChange={(e) => e.target.files[0] && uploadSlip(inv.id, e.target.files[0])}
                       className="input-field text-sm" />
+                    
+                    {inv.status === 'rejected' && (
+                      <p className="text-[10px] text-gray-500 mt-2 italic">* เมื่ออัปโหลดใหม่ สถานะจะถูกเปลี่ยนเป็น "รอการอนุมัติ" อีกครั้ง</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Show rejection reason even if NOT a QR order (e.g. COD/Meetup rejected) */}
+                {inv.status === 'rejected' && inv.method !== 'qr' && inv.rejection_reason && (
+                  <div className="mt-4 bg-red-500/5 border border-red-500/30 rounded-xl p-4">
+                     <p className="font-semibold text-red-400 mb-2">❌ ออเดอร์ถูกปฏิเสธ</p>
+                     <div className="bg-red-500/10 p-3 rounded-lg border border-red-500/20 text-xs text-red-300">
+                        <strong>เหตุผล:</strong> {inv.rejection_reason}
+                      </div>
                   </div>
                 )}
               </div>

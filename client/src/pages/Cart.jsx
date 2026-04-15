@@ -6,12 +6,11 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import Modal from '../components/Modal';
-import api from '../lib/api';
+import { supabase } from '../lib/supabase';
 
 function getImageUrl(img) {
   if (!img) return 'https://via.placeholder.com/80?text=?';
-  if (img.startsWith('http')) return img;
-  return `/uploads/${img}`;
+  return img; // Supabase public URLs are already full links
 }
 
 export default function Cart() {
@@ -23,21 +22,30 @@ export default function Cart() {
   const [modalOpen, setModalOpen] = useState(false);
   const [step, setStep] = useState('menu');
   const [meetForm, setMeetForm] = useState({ date: '', time: '', location: '', contact: '', note: '' });
-  const [codForm, setCodForm] = useState({ name: '', phone: '', address: '' });
+  const [codForm, setCodForm] = useState({ 
+    name: '', 
+    phone: '', 
+    houseNo: '', 
+    street: '',
+    district: '',
+    amphure: '',
+    province: '',
+    zip: ''
+  });
   const [codErrors, setCodErrors] = useState({});
   const [walletInfo, setWalletInfo] = useState(null);
   const [placing, setPlacing] = useState(false);
 
-  // Auto-validate items in cart (Remove stale items after reset)
+  // Auto-validate items in cart
   useEffect(() => {
     if (items.length > 0) {
       const validateItems = async () => {
         try {
-          const freshProducts = await api.get('/products');
-          const validIds = new Set(freshProducts.map(p => p.id));
+          const { data, error } = await supabase.from('products').select('id');
+          if (error) throw error;
+          const validIds = new Set(data.map(p => p.id));
           items.forEach(item => {
             if (!validIds.has(item.id)) {
-              console.warn(`Removing stale item from cart: ${item.name} (#${item.id})`);
               removeFromCart(item.id);
             }
           });
@@ -55,16 +63,18 @@ export default function Cart() {
   };
 
   const showWalletStep = async () => {
-    try {
-      const data = await api.get('/users/profile');
-      setWalletInfo(data.user); setStep('wallet');
-    } catch { showToast('โหลดข้อมูล wallet ไม่สำเร็จ', 'error'); }
+    setWalletInfo(user); setStep('wallet');
   };
 
   const placeOrder = async (method) => {
     setPlacing(true);
     const itemIds = items.map((p) => p.id);
-    let payload = { items: itemIds, method };
+    let payload = { 
+      items: itemIds, 
+      method,
+      user_id: user.id,
+      status: 'pending'
+    };
 
     if (method === 'meetup') {
       if (!meetForm.date || !meetForm.time || !meetForm.location || !meetForm.contact) {
@@ -73,17 +83,41 @@ export default function Cart() {
       payload = { ...payload, meet_date: meetForm.date, meet_time: meetForm.time, meet_location: meetForm.location, meet_note: `ติดต่อ: ${meetForm.contact}\n${meetForm.note}` };
     }
     if (method === 'cod') {
-      if (!codForm.name || !codForm.phone || !codForm.address) {
-        showToast('กรุณากรอกข้อมูลจัดส่งให้ครบ', 'error'); setPlacing(false); return;
+      if (!codForm.name || !codForm.phone || !codForm.houseNo || !codForm.district || !codForm.amphure || !codForm.province || !codForm.zip) {
+        showToast('กรุณากรอกข้อมูลจัดส่งให้ครบทุกช่อง', 'error'); setPlacing(false); return;
       }
-      payload = { ...payload, shipping_name: codForm.name, shipping_phone: codForm.phone, shipping_address: codForm.address };
+      if (codForm.phone.replace(/[^0-9]/g, '').length !== 10) {
+        showToast('เบอร์โทรศัพท์ต้องครบ 10 หลัก', 'error'); setPlacing(false); return;
+      }
+      const fullAddress = `${codForm.houseNo} ${codForm.street} ต.${codForm.district} อ.${codForm.amphure} จ.${codForm.province} ${codForm.zip}`;
+      payload = { ...payload, shipping_name: codForm.name, shipping_phone: codForm.phone, shipping_address: fullAddress };
     }
 
     try {
-      await api.post('/invoices', payload);
-      showToast('สั่งซื้อสำเร็จ! ✅', 'success');
-      clearCart(); setModalOpen(false);
-      navigate('/my-orders');
+      // ✅ Idempotency Key: ป้องกันกดซ้ำ / Double Submit
+      const idempotencyKey = crypto.randomUUID();
+
+      const { data, error } = await supabase.rpc('handle_purchase', {
+        p_user_id: user.id,
+        p_item_ids: itemIds,
+        p_method: method,
+        p_shipping_name: (method === 'cod') ? codForm.name : null,
+        p_shipping_phone: (method === 'cod') ? codForm.phone : null,
+        p_shipping_address: (method === 'cod') ? `${codForm.houseNo} ${codForm.street} ต.${codForm.district} อ.${codForm.amphure} จ.${codForm.province} ${codForm.zip}` : null,
+        p_meet_date: (method === 'meetup') ? meetForm.date : null,
+        p_meet_time: (method === 'meetup') ? meetForm.time : null,
+        p_meet_location: (method === 'meetup') ? meetForm.location : null,
+        p_meet_note: (method === 'meetup') ? `ติดต่อ: ${meetForm.contact}\n${meetForm.note}` : null,
+        p_idempotency_key: idempotencyKey
+      });
+
+      if (error) throw error;
+      if (data && !data.success) throw new Error(data.message);
+
+      showToast('สั่งซื้อสำเร็จ! ✅ ระบบตัดสต็อกและยอดเงินเรียบร้อย', 'success');
+      clearCart(); 
+      setModalOpen(false);
+      navigate('/order-success', { state: { order: { ...payload, total, invoice_id: data.invoice_id } } });
     } catch (e) {
       showToast(e.message, 'error');
     } finally { setPlacing(false); }
@@ -204,23 +238,32 @@ export default function Cart() {
             ))}
             <div>
               <label className="label">ที่อยู่จัดส่ง <span className="text-red-400">*</span></label>
-              <textarea className={`input-field ${codErrors.address ? 'border-red-500 focus:border-red-500' : ''}`}
-                rows={3} placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์"
-                value={codForm.address}
-                onChange={(e) => {
-                  setCodForm(p => ({ ...p, address: e.target.value }));
-                  if (e.target.value) setCodErrors(p => ({ ...p, address: false }));
-                }} />
-              {codErrors.address && <p className="text-red-400 text-xs mt-1">⚠️ กรุณากรอกที่อยู่จัดส่ง</p>}
+              <div className="grid grid-cols-2 gap-2">
+                <input type="text" placeholder="บ้านเลขที่ / ซอย" className="input-field" 
+                  value={codForm.houseNo} onChange={(e) => setCodForm(p => ({ ...p, houseNo: e.target.value }))} />
+                <input type="text" placeholder="ถนน (ถ้ามี)" className="input-field" 
+                  value={codForm.street} onChange={(e) => setCodForm(p => ({ ...p, street: e.target.value }))} />
+                <input type="text" placeholder="แขวง / ตำบล" className="input-field" 
+                  value={codForm.district} onChange={(e) => setCodForm(p => ({ ...p, district: e.target.value }))} />
+                <input type="text" placeholder="เขต / อำเภอ" className="input-field" 
+                  value={codForm.amphure} onChange={(e) => setCodForm(p => ({ ...p, amphure: e.target.value }))} />
+                <input type="text" placeholder="จังหวัด" className="input-field" 
+                  value={codForm.province} onChange={(e) => setCodForm(p => ({ ...p, province: e.target.value }))} />
+                <input type="text" placeholder="รหัสไปรษณีย์" className="input-field" 
+                  value={codForm.zip} onChange={(e) => setCodForm(p => ({ ...p, zip: e.target.value }))} />
+              </div>
             </div>
             <button onClick={() => {
               const errors = {
                 name: !codForm.name,
-                phone: !codForm.phone,
-                address: !codForm.address,
+                phone: !codForm.phone || codForm.phone.replace(/[^0-9]/g, '').length !== 10,
+                address: !codForm.houseNo || !codForm.district || !codForm.amphure || !codForm.province || !codForm.zip,
               };
               setCodErrors(errors);
-              if (Object.values(errors).some(Boolean)) return;
+              if (Object.values(errors).some(Boolean)) {
+                showToast('กรุณากรอกข้อมูลให้ครบถ้วนและเบอร์โทรครบ 10 หลัก', 'error');
+                return;
+              }
               placeOrder('cod');
             }} disabled={placing} className="btn-primary w-full py-3">
               {placing ? 'กำลังส่ง...' : 'ยืนยัน COD'}

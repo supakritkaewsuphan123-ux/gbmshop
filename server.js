@@ -55,9 +55,23 @@ app.get('/api/health', (req, res) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ PERMISSIVE CORS FOR TROUBLESHOOTING
+// ✅ SECURE CORS CONFIGURATION
+const allowedOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:5173',
+    'http://localhost:3000',
+    'https://gbmoney.shop' // Example production domain
+];
+
 app.use(cors({
-    origin: true, // Allow all origins
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 
@@ -94,6 +108,8 @@ app.use('/api/invoices', require('./src/routes/invoices'));
 app.use('/api/users', require('./src/routes/users'));
 app.use('/api/settings', require('./src/routes/settings'));
 app.use('/api/sales', require('./src/routes/sales'));
+app.use('/api/notifications', require('./src/routes/notifications').router);
+app.use('/api/wishlist', require('./src/routes/wishlist'));
 app.use('/api/dashboard', require('./src/routes/dashboard'));
 
 // Custom route requested by user - SECURED
@@ -181,12 +197,14 @@ app.use((req, res) => {
 
 // ✅ GLOBAL ERROR HANDLER (NO SILENT FAILURES)
 app.use((err, req, res, next) => {
+    const isProduction = process.env.NODE_ENV === 'production';
+    
     console.error(`[${req.id}] ❌ SERVER ERROR:`, err.message);
-    if (process.env.NODE_ENV !== 'production') console.error(err.stack);
+    if (!isProduction) console.error(err.stack);
     
     const status = err.status || 500;
     res.status(status).json({ 
-        error: process.env.NODE_ENV === 'production' ? 'Something went wrong!' : err.message,
+        error: isProduction ? 'ขออภัย เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้งค่ะ' : err.message,
         request_id: req.id
     });
 });
@@ -214,6 +232,19 @@ app.listen(APP_PORT, async () => {
                 console.error('[MAINTENANCE] Cleanup failed:', err);
             }
         }, 60 * 60 * 1000);
+
+        // PRODUCTION: Daily Notification Cleanup (Older than 30 days)
+        setInterval(async () => {
+            try {
+                const db = await getDb();
+                const result = await db.run("DELETE FROM notifications WHERE created_at < datetime('now', '-30 days')");
+                if (result.changes > 0) {
+                    console.log(`[MAINTENANCE] Purged ${result.changes} old notifications.`);
+                }
+            } catch (err) {
+                console.error('[MAINTENANCE] Notification cleanup failed:', err);
+            }
+        }, 24 * 60 * 60 * 1000);
     } catch (error) {
         console.error('❌ FATAL: Failed to initialize database:', error.message);
         process.exit(1);

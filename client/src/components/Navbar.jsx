@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const { user, logout, isAdmin } = useAuth();
@@ -30,6 +31,7 @@ export default function Navbar() {
   const navLinks = [
     { to: '/', label: 'หน้าแรก' },
     { to: '/products', label: 'ตลาดสินค้า' },
+    { to: '/help', label: 'ศูนย์ช่วยเหลือ' },
     { to: '/contact', label: 'ติดต่อเรา' },
   ];
 
@@ -69,6 +71,9 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="hidden lg:flex items-center justify-end gap-3 flex-nowrap min-w-fit">
+            {/* Notification Bell */}
+            {user && <NotificationBell />}
+            
             {/* Cart */}
             <Link to="/cart" className="relative p-2 text-gray-300 hover:text-white transition-colors group">
               <ShoppingCart size={22} className="group-hover:scale-110 transition-transform" />
@@ -94,7 +99,7 @@ export default function Navbar() {
                   </Link>
                 ) : (
                   <Link to="/dashboard" className="btn-outline py-2 px-4 text-sm flex items-center gap-1.5 whitespace-nowrap">
-                    <LayoutDashboard size={15} /> แดชบอร์ด
+                    <LayoutDashboard size={15} /> เช็คเงินใน wallet
                   </Link>
                 )}
                 <button onClick={handleLogout} className="btn-primary py-2 px-4 text-sm flex items-center gap-1.5 whitespace-nowrap">
@@ -149,15 +154,18 @@ export default function Navbar() {
                 </NavLink>
               ))}
               <div className="border-t border-border pt-3 flex flex-col gap-2">
-                <Link to="/cart" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 py-2 px-3 text-gray-300 hover:text-white">
-                  <ShoppingCart size={18} /> ตะกร้าสินค้า {count > 0 && <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full">{count}</span>}
-                </Link>
+                <div className="flex items-center justify-between px-3">
+                  <Link to="/cart" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 py-2 text-gray-300 hover:text-white">
+                    <ShoppingCart size={18} /> ตะกร้าสินค้า {count > 0 && <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full">{count}</span>}
+                  </Link>
+                  {user && <NotificationBell />}
+                </div>
                 {user ? (
                   <>
                     {isAdmin ? (
                       <Link to="/admin" onClick={() => setMenuOpen(false)} className="btn-outline py-2 text-center text-sm">แผงแอดมิน</Link>
                     ) : (
-                      <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="btn-outline py-2 text-center text-sm">แดชบอร์ด</Link>
+                      <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="btn-outline py-2 text-center text-sm">เช็คเงินใน wallet</Link>
                     )}
                     <button onClick={handleLogout} className="btn-primary py-2 text-sm">ออกจากระบบ</button>
                   </>

@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Zap, ArrowLeft, User } from 'lucide-react';
-import api from '../lib/api';
+import { ShoppingCart, Zap, ArrowLeft, User, Heart } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { PageLoader } from '../components/Spinner';
 import Modal from '../components/Modal';
 import ProductGallery from '../components/ProductGallery';
+import { getImageUrl } from '../lib/urlHelper';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -27,22 +28,87 @@ export default function ProductDetail() {
   const [qrUrl, setQrUrl] = useState('');
   const [placing, setPlacing] = useState(false);
   const [codErrors, setCodErrors] = useState({});
+  const [inWishlist, setInWishlist] = useState(false);
+  const [togglingWishlist, setTogglingWishlist] = useState(false);
 
   useEffect(() => {
-    api.get(`/products/${id}`)
-      .then(setProduct)
-      .catch(() => showToast('โหลดสินค้าไม่สำเร็จ', 'error'))
-      .finally(() => setLoading(false));
-  }, [id]);
+    fetchProduct();
+    checkWishlist();
+  }, [id, user]);
+
+  const fetchProduct = async () => {
+    setLoading(true);
+    try {
+      const { data: productData, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      
+      let sellerName = 'ผู้ขายพัฒนาระบบ';
+      if (productData.user_id) {
+        const { data: profile } = await supabase.from('profiles').select('username').eq('id', productData.user_id).single();
+        if (profile) sellerName = profile.username;
+      }
+      
+      setProduct({
+        ...productData,
+        seller_name: sellerName
+      });
+    } catch (err) {
+      showToast('โหลดสินค้าไม่สำเร็จ', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkWishlist = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('wishlist')
+        .select('*')
+        .eq('product_id', id)
+        .eq('user_id', user.id)
+        .single();
+      
+      setInWishlist(!!data);
+    } catch (err) {
+      console.error('Wishlist check error:', err);
+    }
+  };
+
+  const toggleWishlist = async () => {
+    if (!user) { showToast('กรุณาเข้าสู่ระบบก่อน', 'error'); navigate('/login'); return; }
+    setTogglingWishlist(true);
+    try {
+      if (inWishlist) {
+        await supabase.from('wishlist').delete().eq('product_id', id).eq('user_id', user.id);
+        setInWishlist(false);
+        showToast('ลบออกจากรายการโปรดแล้ว', 'success');
+      } else {
+        await supabase.from('wishlist').insert({ product_id: id, user_id: user.id });
+        setInWishlist(true);
+        showToast('เพิ่มลงในรายการโปรดแล้ว', 'success');
+      }
+    } catch (err) {
+      showToast('เกิดข้อผิดพลาด', 'error');
+    } finally {
+      setTogglingWishlist(false);
+    }
+  };
 
   const isOwn = user && product && user.id === product.user_id;
   const inCart = items.some((p) => p.id === product?.id);
 
   // Prepare Media Array for Gallery
   const media = product ? [
-    ...(product.images ? (() => { try { return JSON.parse(product.images); } catch(e) { return []; } })().map(img => ({ type: 'image', src: img })) : []),
-    ...(product.videos ? (() => { try { return JSON.parse(product.videos); } catch(e) { return []; } })().map(vid => ({ type: 'video', src: vid })) : [])
-  ] : [];
+    { type: 'image', src: getImageUrl(product.image, 'product_images') },
+    ...(product.images ? (() => { try { return JSON.parse(product.images); } catch(e) { return []; } })().map(img => ({ type: 'image', src: getImageUrl(img, 'product_images') })) : []),
+    ...(product.videos ? (() => { try { return JSON.parse(product.videos); } catch(e) { return []; } })().map(vid => ({ type: 'video', src: getImageUrl(vid, 'product_images') })) : [])
+  ].filter(m => m.src) : [];
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -57,54 +123,36 @@ export default function ProductDetail() {
   };
 
   const showQR = () => {
-    setQrUrl(`/api/settings/qr?amount=${product.price}`);
+    setQrUrl(`https://api.gb.money/qr?amount=${product.price}`); // Link to external QR generator
     setModalStep('qr');
   };
 
   const showWalletStep = async () => {
-    try {
-      const data = await api.get('/users/profile');
-      setWalletInfo(data.user);
-      setModalStep('wallet');
-    } catch { showToast('โหลดข้อมูล wallet ไม่สำเร็จ', 'error'); }
+    // Note: In Supabase migration, we rely on the AuthContext user object which has the profile/balance
+    setWalletInfo(user);
+    setModalStep('wallet');
   };
 
   const placeOrder = async (method) => {
     setPlacing(true);
     try {
-      // ✅ Use /api/invoices (The new unified ordering system)
-      let payload = { items: [id], method };
+      const { data, error } = await supabase.rpc('handle_purchase', {
+        p_user_id: user.id,
+        p_item_ids: [parseInt(id)],
+        p_method: method,
+        p_shipping_name: (method === 'cod') ? codForm.name : null,
+        p_shipping_phone: (method === 'cod') ? codForm.phone : null,
+        p_shipping_address: (method === 'cod') ? codForm.address : null,
+        p_meet_date: (method === 'meetup') ? meetForm.date : null,
+        p_meet_time: (method === 'meetup') ? meetForm.time : null,
+        p_meet_location: (method === 'meetup') ? meetForm.location : null,
+        p_meet_note: (method === 'meetup') ? `ติดต่อ: ${meetForm.contact}\n${meetForm.note}` : null
+      });
 
-      if (method === 'meetup') {
-        if (!meetForm.date || !meetForm.time || !meetForm.location || !meetForm.contact) {
-          showToast('กรุณากรอกข้อมูลนัดรับให้ครบ', 'error'); setPlacing(false); return;
-        }
-        payload.meet_date = meetForm.date;
-        payload.meet_time = meetForm.time;
-        payload.meet_location = meetForm.location;
-        payload.meet_note = `ติดต่อ: ${meetForm.contact}\n${meetForm.note}`;
-      }
+      if (error) throw error;
+      if (data && !data.success) throw new Error(data.message);
 
-      if (method === 'cod') {
-        if (!codForm.name || !codForm.phone || !codForm.address) {
-          showToast('กรุณากรอกข้อมูลจัดส่งให้ครบ', 'error'); setPlacing(false); return;
-        }
-        payload.shipping_name = codForm.name;
-        payload.shipping_phone = codForm.phone;
-        payload.shipping_address = codForm.address;
-      }
-
-      if (method === 'angpao') {
-        const angpaoEl = document.getElementById('angpaoLink');
-        if (!angpaoEl?.value?.includes('gift.truemoney.com')) {
-          showToast('กรุณาใส่ลิงก์อั่งเปาที่ถูกต้อง', 'error'); setPlacing(false); return;
-        }
-        payload.payment_ref = angpaoEl.value;
-      }
-
-      // Consolidate on /api/invoices so it appears in Admin Dashboard immediately
-      await api.post('/invoices', payload);
-      showToast(method === 'meetup' ? 'นัดรับสินค้าเรียบร้อย!' : 'สั่งซื้อสำเร็จ!', 'success');
+      showToast(method === 'meetup' ? 'นัดรับสินค้าเรียบร้อย!' : 'สั่งซื้อสำเร็จ! ตัดสต็อกและเงินแล้ว', 'success');
       setModalOpen(false);
       navigate('/dashboard');
     } catch (e) {
@@ -139,11 +187,24 @@ export default function ProductDetail() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="flex flex-col"
         >
-          <span className="inline-block bg-primary/10 border border-primary/30 text-primary text-sm font-semibold px-3 py-1 rounded-full mb-4 w-fit">
-            สภาพสินค้า {product.condition_percent}%
-          </span>
+          <div className="flex items-center justify-between mb-4">
+             <span className="inline-block bg-primary/10 border border-primary/30 text-primary text-sm font-semibold px-3 py-1 rounded-full w-fit">
+              สภาพสินค้า {product.condition_percent}%
+            </span>
+            {user && (
+              <button 
+                onClick={toggleWishlist}
+                disabled={togglingWishlist}
+                className={`p-2 rounded-full transition-all duration-300 ${inWishlist ? 'bg-red-500/20 text-red-500 shadow-glow-sm' : 'bg-surface border border-border text-gray-400 hover:text-white'}`}
+              >
+                <Heart size={20} fill={inWishlist ? 'currentColor' : 'none'} />
+              </button>
+            )}
+          </div>
           <h1 className="text-4xl font-extrabold text-white mb-3">{product.name}</h1>
-          <div className="text-4xl font-bold text-primary mb-3">฿{product.price.toLocaleString()}</div>
+          <div className="flex items-center gap-4 mb-3">
+            <div className="text-4xl font-bold text-primary">฿{product.price.toLocaleString()}</div>
+          </div>
           <div className={`text-sm font-semibold mb-4 ${product.stock <= 0 ? 'text-red-400' : 'text-green-400'}`}>
             {product.stock <= 0 ? '⛔ หมดสต็อก' : `✅ สต็อกเหลือ ${product.stock} ชิ้น`}
           </div>
@@ -151,23 +212,32 @@ export default function ProductDetail() {
             {product.description || 'ไม่มีคำอธิบายสินค้า'}
           </p>
 
-          {!isOwn && product.stock > 0 && (
+          {/* Action Buttons */}
+          {!isOwn && (
             <div className="flex flex-col gap-3">
-              <motion.button
-                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                onClick={openBuy}
-                className="btn-primary py-4 text-lg flex items-center justify-center gap-2"
-              >
-                <Zap size={20} /> ซื้อเลย
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                onClick={handleAddToCart}
-                className={`btn-outline py-4 text-lg flex items-center justify-center gap-2 ${inCart ? 'opacity-60' : ''}`}
-                disabled={inCart}
-              >
-                <ShoppingCart size={20} /> {inCart ? 'อยู่ในตะกร้าแล้ว' : 'เพิ่มลงตะกร้า'}
-              </motion.button>
+              {product.stock > 0 ? (
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                    onClick={openBuy}
+                    className="btn-primary py-4 text-lg flex items-center justify-center gap-2"
+                  >
+                    <Zap size={20} /> ซื้อเลย
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                    onClick={handleAddToCart}
+                    className={`btn-outline py-4 text-lg flex items-center justify-center gap-2 ${inCart ? 'opacity-60' : ''}`}
+                    disabled={inCart}
+                  >
+                    <ShoppingCart size={20} /> {inCart ? 'อยู่ในตะกร้าแล้ว' : 'เพิ่มลงตะกร้า'}
+                  </motion.button>
+                </>
+              ) : (
+                <div className="w-full py-4 bg-gray-500/10 border border-gray-500/20 rounded-2xl text-gray-500 text-center font-bold flex items-center justify-center gap-2 cursor-not-allowed">
+                  <X size={20} /> ขออภัย! สินค้าหมดสต็อก
+                </div>
+              )}
             </div>
           )}
           {isOwn && (

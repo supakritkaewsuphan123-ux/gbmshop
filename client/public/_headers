@@ -1,0 +1,42 @@
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # ✅ HTTPS Enforcement
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+    # ✅ Content Security Policy (ป้องกัน XSS / Script Injection)
+    Content-Security-Policy = """
+      default-src 'self';
+      script-src 'self' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in;
+      media-src 'self' blob: https://*.supabase.co https://*.supabase.in;
+      connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co;
+      frame-src 'none';
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+    """
+
+    # ✅ ป้องกัน Clickjacking
+    X-Frame-Options = "DENY"
+
+    # ✅ ป้องกัน MIME type sniffing
+    X-Content-Type-Options = "nosniff"
+
+    # ✅ ป้องกัน XSS (legacy browsers)
+    X-XSS-Protection = "1; mode=block"
+
+    # ✅ จำกัด referrer info
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # ✅ ป้องกันการเข้าถึง features ที่ไม่จำเป็น
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+
+# ✅ Force HTTPS Redirect
+[[redirects]]
+  from = "http://gbmoney.shop/*"
+  to = "https://gbmoney.shop/:splat"
+  status = 301
+  force = true

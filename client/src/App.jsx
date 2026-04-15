@@ -2,6 +2,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import CookieBanner from './components/CookieBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Banknote, Coins, Clock } from 'lucide-react';
 
@@ -18,13 +19,17 @@ import Contact from './pages/Contact';
 import FinancialDashboard from './pages/FinancialDashboard';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import Help from './pages/Help';
+import OrderSuccess from './pages/OrderSuccess';
 
 export default function App() {
   const location = useLocation();
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0c] text-white font-prompt relative overflow-x-hidden">
-      {/* Global Decoration Layer (Simplified & Intense Glow) */}
+      {/* Global Decoration Layer (Restored Original Effects) */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {/* Money Icons */}
         <motion.div 
@@ -86,16 +91,20 @@ export default function App() {
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<Home />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/products/:id" element={<ProductDetail />} />
-            <Route path="/cart" element={<Cart />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="/order-success" element={<ProtectedRoute><OrderSuccess /></ProtectedRoute>} />
 
             {/* Protected routes */}
+            <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+            <Route path="/products/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
+            <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
             <Route path="/my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
@@ -114,6 +123,7 @@ export default function App() {
         </AnimatePresence>
       </main>
       <Footer />
+      <CookieBanner />
     </div>
   );
 }

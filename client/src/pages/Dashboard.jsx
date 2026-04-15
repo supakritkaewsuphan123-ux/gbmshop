@@ -6,11 +6,14 @@ import { useNavigate } from 'react-router-dom';
 import { PageLoader, TableRowSkeleton } from '../components/Spinner';
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
-import api from '../lib/api';
-import { Package, Wallet, ShoppingBag, Plus, Trash2, User, MessageSquare, Phone, Globe } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { Package, Wallet, ShoppingBag, Plus, Trash2, User, MessageSquare, Phone, Globe, Heart, Settings, Camera, Save } from 'lucide-react';
+import { validateImageFile, generateSafeFilename, sanitizeText } from '../lib/security';
 
 const TABS = [
   { id: 'wallet', label: 'GB Wallet', icon: <Wallet size={16} /> },
+  { id: 'wishlist', label: 'รายการโปรด', icon: <Heart size={16} /> },
+  { id: 'settings', label: 'การตั้งค่า', icon: <Settings size={16} /> },
   { id: 'contact', label: 'ติดต่อเรา', icon: <MessageSquare size={16} /> },
 ];
 
@@ -27,36 +30,175 @@ export default function Dashboard() {
   const [topupFile, setTopupFile] = useState(null);
   const [adminInfo, setAdminInfo] = useState(null);
   const [submittingTopup, setSubmittingTopup] = useState(false);
+  const [wishlist, setWishlist] = useState([]);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  
+  // Settings State
+  const [settingsForm, setSettingsForm] = useState({ username: '', avatar: null });
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
+  // โหลดข้อมูลเริ่มต้น
   useEffect(() => {
     if (!authLoading && !user) { navigate('/login'); return; }
     if (user) { 
       loadProfile(); 
       loadTopups();
       loadSettings();
+      loadWishlist();
     }
   }, [user, authLoading]);
 
+  // ⚡ Real-time: ฟังการเปลี่ยนแปลงยอดเงินใน Wallet
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`profile-balance-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        (payload) => {
+          // อัปเดตยอดเงินทันทีโดยไม่ต้องโหลดใหม่ทั้งหมด
+          if (payload.new?.balance !== undefined) {
+            setProfile(prev => prev ? { ...prev, balance: payload.new.balance } : prev);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user]);
+
   const loadSettings = async () => {
     try {
-      const cfg = await api.get('/settings/public');
-      setAdminInfo(cfg);
+      const { data, error } = await supabase.from('settings').select('*').single();
+      if (error) throw error;
+      setAdminInfo(data);
     } catch { console.error('settings load error'); }
   };
 
   const loadProfile = async () => {
+    if (!user) return;
     try {
-      const data = await api.get('/users/profile');
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, balance, avatar_url, role')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
       setProfile(data);
-    } catch { showToast('โหลดโปรไฟล์ไม่สำเร็จ', 'error'); }
+    } catch (err) { 
+      console.error('[Dashboard] loadProfile error:', err);
+      showToast(`โหลดโปรไฟล์ไม่สำเร็จ: ${err.message || 'Unknown Error'}`, 'error'); 
+    }
     finally { setLoading(false); }
   };
 
   const loadTopups = async () => {
     try {
-      const data = await api.get('/users/my-topups');
-      setTopups(data);
-    } catch { console.error('topups load error'); }
+      const { data, error } = await supabase
+        .from('topups')
+        .select('id, amount, status, created_at, rejection_reason')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setTopups(data || []);
+    } catch (err) { 
+      console.error('[Dashboard] loadTopups error:', err);
+      showToast('ไม่สามารถโหลดประวัติเติมเงินได้', 'error');
+    }
+  };
+
+  const loadWishlist = async () => {
+    if (!user) return;
+    setWishlistLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('wishlist')
+        .select('product_id, products(id, name, price, image, category)')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      setWishlist(data.map(item => item.products));
+    } catch { console.error('wishlist load error'); }
+    finally { setWishlistLoading(false); }
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    if (!profile) return;
+    
+    const cleanUsername = sanitizeText(settingsForm.username, 20);
+    if (cleanUsername.length < 3) return showToast('ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร', 'error');
+
+    setUpdatingProfile(true);
+    try {
+      let avatarUrl = profile.avatar_url;
+
+      // 1. จัดการอัปโหลดรูปถ้ามีรูปใหม่
+      if (settingsForm.avatar) {
+        const check = validateImageFile(settingsForm.avatar, { maxSizeMB: 2 });
+        if (!check.valid) throw new Error(check.error);
+
+        const filePath = generateSafeFilename(settingsForm.avatar, 'avatars');
+        const { error: uploadError } = await supabase.storage.from('product-images').upload(filePath, settingsForm.avatar);
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(filePath);
+        avatarUrl = publicUrl;
+      }
+
+      // 2. อัปเดต Database
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ username: cleanUsername, avatar_url: avatarUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      // 3. อัปเดต Local State
+      setProfile(prev => ({ ...prev, username: cleanUsername, avatar_url: avatarUrl }));
+      showToast('อัปเดตข้อมูลสำเร็จ! ✨', 'success');
+      setSettingsForm(p => ({ ...p, avatar: null }));
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
+
+  useEffect(() => {
+    if (profile) {
+      setSettingsForm(p => ({ ...p, username: profile.username || '' }));
+    }
+  }, [profile]);
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSettingsForm(p => ({ ...p, avatar: file }));
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const deleteFromWishlist = async (productId) => {
+    try {
+      const { error } = await supabase
+        .from('wishlist')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('product_id', productId);
+      
+      if (error) throw error;
+      loadWishlist();
+      showToast('ลบออกจากรายการโปรดแล้ว', 'success');
+    } catch (err) {
+      showToast('เกิดข้อผิดพลาดในการลบ', 'error');
+      console.error(err);
+    }
   };
 
   const openTopupModal = () => {
@@ -66,14 +208,31 @@ export default function Dashboard() {
   const submitTopup = async () => {
     if (!topupAmount || !topupFile) { showToast('กรุณากรอกยอดและแนบสลิป', 'error'); return; }
     setSubmittingTopup(true);
-    const fd = new FormData();
-    fd.append('amount', topupAmount);
-    fd.append('slip_image', topupFile);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/users/topup', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const fileExt = topupFile.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const filePath = `slips/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('topup-slips')
+        .upload(filePath, topupFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('topup-slips')
+        .getPublicUrl(filePath);
+
+      const { error: insertError } = await supabase.from('topups').insert({
+        user_id: user.id,
+        amount: parseFloat(topupAmount),
+        slip_url: publicUrl,
+        status: 'pending',
+        idempotency_key: crypto.randomUUID()
+      });
+
+      if (insertError) throw insertError;
+
       showToast('ส่งคำขอเติมเงินแล้ว รอแอดมินอนุมัติ', 'success');
       setTopupModalOpen(false); setTopupAmount(''); setTopupFile(null);
       loadTopups(); loadProfile();
@@ -81,22 +240,11 @@ export default function Dashboard() {
     finally { setSubmittingTopup(false); }
   };
 
-  const deleteProduct = async (id) => {
-    if (!confirm('ยืนยันการลบสินค้า?')) return;
-    try {
-      await api.delete(`/products/${id}`);
-      showToast('ลบสินค้าเรียบร้อย', 'success');
-      loadProfile();
-    } catch (e) { showToast(e.message, 'error'); }
-  };
-
   if (authLoading || loading) return <PageLoader />;
 
-  const u = profile?.user;
-  const products = profile?.products || [];
+  const u = profile;
   const balance = u?.balance || 0;
-  const avatarSrc = u?.profile_image && u.profile_image !== 'default_avatar.png'
-    ? `/uploads/${u.profile_image}` : '/default_avatar.png';
+  const avatarSrc = u?.avatar_url || '/default_avatar.png';
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
@@ -145,6 +293,83 @@ export default function Dashboard() {
         {/* Main */}
         <main className="lg:col-span-3">
           <AnimatePresence mode="wait">
+            {tab === 'settings' && (
+              <motion.div key="settings" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <h2 className="text-2xl font-bold mb-6">⚙️ การตั้งค่าโปรไฟล์</h2>
+                
+                <div className="bg-surface border border-border rounded-2xl p-8 max-w-2xl">
+                  <form onSubmit={handleUpdateProfile} className="space-y-8">
+                    {/* Avatar Upload */}
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative group">
+                        <div className="w-32 h-32 rounded-full border-4 border-primary/20 overflow-hidden bg-white/5 relative">
+                          <img 
+                            src={previewUrl || profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'G'}&background=random`} 
+                            className="w-full h-full object-cover" 
+                            alt="Avatar" 
+                          />
+                          <label className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                            <Camera size={24} className="text-white mb-1" />
+                            <span className="text-[10px] text-white font-bold uppercase">Change</span>
+                            <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
+                          </label>
+                        </div>
+                        {settingsForm.avatar && (
+                          <div className="absolute -top-2 -right-2 bg-primary text-white text-[10px] px-2 py-1 rounded-full animate-pulse shadow-glow-sm">
+                            New!
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500">คลิกที่รูปเพื่อเปลี่ยน (ขนาดไม่เกิน 2MB)</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Username</label>
+                        <input 
+                          type="text" 
+                          value={settingsForm.username}
+                          onChange={(e) => setSettingsForm(p => ({ ...p, username: e.target.value }))}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all outline-none"
+                          placeholder="ชื่อที่ต้องการแสดง"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Email (Read-only)</label>
+                        <input 
+                          type="text" 
+                          disabled
+                          value={user?.email}
+                          className="w-full bg-white/2 border border-white/5 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-4">
+                      <button
+                        type="submit"
+                        disabled={updatingProfile}
+                        className="w-full md:w-auto px-8 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold transition-all shadow-glow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {updatingProfile ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            กำลังบันทึก...
+                          </>
+                        ) : (
+                          <><Save size={18} /> บันทึกการเปลี่ยนแปลง</>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </motion.div>
+            )}
+
             {tab === 'contact' && (
               <motion.div key="contact" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                 <h2 className="text-2xl font-bold mb-6">📞 ติดต่อเรา</h2>
@@ -214,12 +439,10 @@ export default function Dashboard() {
                 </div>
               </motion.div>
             )}
-
             {tab === 'wallet' && (
               <motion.div key="wallet" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                 <h2 className="text-2xl font-bold mb-6">💳 GB Wallet</h2>
 
-                {/* Balance card */}
                 <div className="bg-gradient-to-br from-primary/20 to-surface border border-primary/30 rounded-2xl p-8 text-center mb-6 animate-pulse-glow">
                   <p className="text-gray-400 mb-2">ยอดคงเหลือ</p>
                   <p className="text-5xl font-extrabold text-primary mb-4">฿{balance.toLocaleString()}</p>
@@ -232,27 +455,80 @@ export default function Dashboard() {
                   </motion.button>
                 </div>
 
-                {/* Topup history */}
                 <h3 className="text-lg font-semibold mb-3">ประวัติการเติมเงิน</h3>
                 <div className="bg-surface border border-border rounded-2xl overflow-hidden">
                   <table className="w-full">
                     <thead className="border-b border-border">
-                      <tr>{['#', 'ยอด', 'สถานะ', 'วันที่'].map(h => <th key={h} className="text-left px-5 py-3 text-sm text-gray-500">{h}</th>)}</tr>
+                      <tr>{['#', 'ยอด', 'สถานะ', 'วันที่', 'หมายเหตุ'].map(h => <th key={h} className="text-left px-5 py-3 text-sm text-gray-500">{h}</th>)}</tr>
                     </thead>
                     <tbody>
                       {topups.length === 0 ? (
-                        <tr><td colSpan={4} className="text-center py-8 text-gray-500">ยังไม่มีประวัติการเติมเงิน</td></tr>
+                        <tr><td colSpan={5} className="text-center py-8 text-gray-500">ยังไม่มีประวัติการเติมเงิน</td></tr>
                       ) : topups.map((t) => (
                         <tr key={t.id} className="border-b border-border last:border-0 hover:bg-white/2 transition-colors">
                           <td className="px-5 py-3 text-gray-500 text-sm">#{t.id}</td>
                           <td className="px-5 py-3 text-primary font-bold">฿{t.amount.toLocaleString()}</td>
                           <td className="px-5 py-3"><StatusBadge status={t.status} /></td>
                           <td className="px-5 py-3 text-gray-500 text-sm">{new Date(t.created_at).toLocaleDateString('th-TH')}</td>
+                          <td className="px-5 py-3 text-red-400 text-xs italic">{t.status === 'rejected' ? (t.rejection_reason || 'ข้อมูลไม่ถูกต้อง') : '--'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
+              </motion.div>
+            )}
+
+            {tab === 'wishlist' && (
+              <motion.div key="wishlist" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">❤️ รายการโปรด ({wishlist.length})</h2>
+                  <button onClick={loadWishlist} className="text-xs text-primary hover:underline">รีเฟรช</button>
+                </div>
+                
+                {wishlistLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map(i => <div key={i} className="h-40 bg-white/5 rounded-2xl animate-pulse" />)}
+                  </div>
+                ) : wishlist.length === 0 ? (
+                  <div className="py-20 text-center glass rounded-3xl border border-dashed border-white/10">
+                    <Heart size={48} className="mx-auto text-gray-700 mb-4 opacity-20" />
+                    <p className="text-gray-500">ยังไม่มีรายการโปรด</p>
+                    <button onClick={() => navigate('/products')} className="mt-4 text-primary font-bold hover:underline">ไปดูตลาดสินค้ากัน!</button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {wishlist.map((p) => (
+                      <div key={p.id} className="bg-surface border border-border rounded-2xl overflow-hidden flex group">
+                        <div className="w-1/3 aspect-square overflow-hidden">
+                           <img 
+                            src={p.image?.startsWith('http') ? p.image : `/uploads/${p.image}`} 
+                            alt={p.name} 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                          />
+                        </div>
+                        <div className="p-4 flex-1 flex flex-col justify-between">
+                          <div>
+                            <h4 className="font-bold text-white text-sm line-clamp-1">{p.name}</h4>
+                            <p className="text-primary font-bold text-lg">฿{p.price.toLocaleString()}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => navigate(`/products/${p.id}`)}
+                              className="btn-outline flex-1 py-1.5 text-xs"
+                            >ดูรายละเอียด</button>
+                            <button 
+                              onClick={() => deleteFromWishlist(p.id)}
+                              className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -266,7 +542,7 @@ export default function Dashboard() {
             <p className="font-semibold text-primary mb-2">ช่องทางโอนเงิน</p>
             {adminInfo.promptpay_qr && (
               <div className="text-center mb-2">
-                <img src={`/uploads/${adminInfo.promptpay_qr}`} alt="QR" className="w-40 h-40 object-contain bg-white rounded-xl mx-auto p-2" />
+                <img src={adminInfo.promptpay_qr} alt="QR" className="w-40 h-40 object-contain bg-white rounded-xl mx-auto p-2" />
               </div>
             )}
             {adminInfo.promptpay_number && <p className="text-gray-300">📱 พร้อมเพย์: <strong>{adminInfo.promptpay_number}</strong></p>}

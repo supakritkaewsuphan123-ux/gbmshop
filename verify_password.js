@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const hash = '$2b$10$z1pqM9NDOFxVBi5zZXuuuu0oiHt9hV7bsgJSrW7Z8FE/ivSmNMY56';
 const password = 'admingbmoney4972';
 

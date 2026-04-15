@@ -3,14 +3,12 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { ShoppingCart, Eye } from 'lucide-react';
-
-function getImageUrl(img) {
-  if (!img) return 'https://via.placeholder.com/300x250?text=No+Image';
-  if (img.startsWith('http')) return img;
-  return `/uploads/${img}`;
-}
+import WishlistButton from './WishlistButton';
+import { useAuth } from '../context/AuthContext';
+import { getImageUrl } from '../lib/urlHelper';
 
 export default function ProductCard({ product, index = 0 }) {
+  const { user } = useAuth();
   const { addToCart, items } = useCart();
   const { showToast } = useToast();
   const inCart = items.some((p) => p.id === product.id);
@@ -38,21 +36,42 @@ export default function ProductCard({ product, index = 0 }) {
       }`}
     >
       {/* Condition badge */}
-      <div className="absolute top-3 left-3 z-10 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">
+      <div className="absolute top-3 left-3 z-10 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow-glow-sm">
         สภาพ {product.condition_percent}%
+      </div>
+
+      {/* Category badge */}
+      <div className={`absolute top-3 right-3 z-10 text-white text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shadow-lg ${
+        product.category === 'มือสอง' 
+          ? 'bg-gradient-to-r from-orange-500 to-amber-500' 
+          : 'bg-gradient-to-r from-emerald-500 to-teal-500'
+      }`}>
+        {product.category || 'มือ1'}
       </div>
 
       {/* Out of stock overlay */}
       {product.stock <= 0 && (
-        <div className="absolute inset-0 z-20 bg-black/60 flex items-center justify-center rounded-2xl">
-          <span className="bg-red-600 text-white font-bold px-4 py-2 rounded-full text-sm">หมดสต็อก</span>
+        <div className="absolute inset-0 z-30 bg-black/70 backdrop-blur-[2px] flex items-center justify-center rounded-2xl">
+          <div className="flex flex-col items-center gap-2">
+            <span className="bg-red-600/90 text-white font-black px-6 py-2 rounded-full text-sm shadow-xl tracking-wider uppercase">
+              หมดสต็อก
+            </span>
+            <span className="text-white/60 text-[10px] font-medium">Out of Stock</span>
+          </div>
+        </div>
+      )}
+
+      {/* Wishlist Button Overlay */}
+      {user && (
+        <div className="absolute top-14 right-3 z-10">
+          <WishlistButton productId={product.id} size={16} />
         </div>
       )}
 
       {/* Image */}
       <div className="relative overflow-hidden bg-white" style={{ height: '220px' }}>
         <img
-          src={getImageUrl(product.image)}
+          src={getImageUrl(product.image, 'product_images')}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           onError={(e) => { e.target.src = 'https://via.placeholder.com/300x250?text=No+Image'; }}

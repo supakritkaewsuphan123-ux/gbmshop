@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 import { motion } from 'framer-motion';
 import { Line } from 'react-chartjs-2';
-import api from '../../lib/api';
-import 'chart.js/auto'; // Ensure Chart.js is auto-registered
 import { 
   BarChart3, TrendingUp, ShoppingBag, CheckCircle, 
-  Clock, RefreshCcw, DollarSign, ArrowUpRight 
+  Clock, RefreshCcw, DollarSign 
 } from 'lucide-react';
 import StatCard from './StatCard';
 import HistorySummary from './HistorySummary';
 import { TableRowSkeleton } from '../Spinner';
+import 'chart.js/auto';
 
 const formatCurrency = (val) => {
   return new Intl.NumberFormat('th-TH', { 
@@ -22,20 +22,76 @@ const formatCurrency = (val) => {
 const formatNumber = (val) => (val || 0).toLocaleString();
 
 export default function FinancialOverview() {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({
+    revenue: { total: 0, today: 0, month: 0 },
+    orders: { total: 0, today: 0, month: 0 },
+    success: { total: 0, today: 0, month: 0 },
+    pending: 0
+  });
   const [chartRawData, setChartRawData] = useState([]);
+  const [rawInvoices, setRawInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const statsRes = await api.get('/dashboard');
-      const chartRes = await api.get('/dashboard/chart');
-
-      if (statsRes.success) setStats(statsRes.data);
-      if (chartRes.success) setChartRawData(chartRes.data || []);
+      // Optimize: Select only needed columns for stats
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select('id, status, created_at, total_price');
       
+      if (error) throw error;
+      setRawInvoices(invoices || []);
+
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const monthStr = now.toISOString().substring(0, 7);
+
+      const computedStats = (invoices || []).reduce((acc, inv) => {
+        const isPaid = inv.status === 'paid';
+        const isPending = inv.status === 'pending';
+        const invDate = new Date(inv.created_at).toISOString().split('T')[0];
+        const invMonth = new Date(inv.created_at).toISOString().substring(0, 7);
+        const price = inv.total_price || 0; 
+
+        if (isPaid) {
+          acc.revenue.total += price;
+          acc.success.total += 1;
+          if (invDate === todayStr) {
+            acc.revenue.today += price;
+            acc.success.today += 1;
+          }
+          if (invMonth === monthStr) {
+            acc.revenue.month += price;
+            acc.success.month += 1;
+          }
+        }
+        
+        acc.orders.total += 1;
+        if (invDate === todayStr) acc.orders.today += 1;
+        if (invMonth === monthStr) acc.orders.month += 1;
+        if (isPending) acc.pending += 1;
+
+        return acc;
+      }, {
+        revenue: { total: 0, today: 0, month: 0 },
+        orders: { total: 0, today: 0, month: 0 },
+        success: { total: 0, today: 0, month: 0 },
+        pending: 0
+      });
+
+      setStats(computedStats);
+
+      const chartMap = (invoices || []).filter(i => i.status === 'paid').reduce((acc, inv) => {
+        const date = new Date(inv.created_at).toISOString().split('T')[0];
+        acc[date] = (acc[date] || 0) + (inv.total_price || 0);
+        return acc;
+      }, {});
+      
+      const chartData = Object.keys(chartMap).sort().map(date => ({ date, revenue: chartMap[date] }));
+      setChartRawData(chartData);
+
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -46,13 +102,12 @@ export default function FinancialOverview() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(() => fetchData(true), 15000); // 15 sec auto-refresh
+    const interval = setInterval(() => fetchData(true), 60000); // 60 sec polling
     return () => clearInterval(interval);
   }, []);
 
   if (loading) return <TableRowSkeleton rows={5} />;
 
-  // Map data to Chart.js format
   const labels = chartRawData.map(item => item.date);
   const dataPoints = chartRawData.map(item => item.revenue);
 
@@ -76,38 +131,38 @@ export default function FinancialOverview() {
         <h2 className="text-2xl font-bold italic tracking-tighter">📊 ผลประกอบการเรียลไทม์</h2>
         <div className="flex items-center gap-2 text-xs text-gray-500">
            {refreshing && <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}><RefreshCcw size={12} /></motion.span>}
-           เชื่อมต่อฐานข้อมูล SQLite สำเร็จ
+           Connected to Supabase
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard 
           label="รายได้รวมทั้งหมด" 
-          value={formatCurrency(stats?.revenue?.total || 0)} 
-          subValueToday={formatCurrency(stats?.revenue?.today || 0)}
-          subValueMonth={formatCurrency(stats?.revenue?.month || 0)}
+          value={formatCurrency(stats.revenue.total)} 
+          subValueToday={formatCurrency(stats.revenue.today)}
+          subValueMonth={formatCurrency(stats.revenue.month)}
           icon={<DollarSign size={20} />} 
           color="bg-primary text-primary" 
         />
         <StatCard 
           label="ออเดอร์ทั้งหมด" 
-          value={formatNumber(stats?.orders?.total || 0)} 
-          subValueToday={formatNumber(stats?.orders?.today || 0)}
-          subValueMonth={formatNumber(stats?.orders?.month || 0)}
+          value={formatNumber(stats.orders.total)} 
+          subValueToday={formatNumber(stats.orders.today)}
+          subValueMonth={formatNumber(stats.orders.month)}
           icon={<ShoppingBag size={20} />} 
           color="bg-blue-500 text-blue-500" 
         />
         <StatCard 
           label="สำเร็จสะสม" 
-          value={formatNumber(stats?.success?.total || 0)} 
-          subValueToday={formatNumber(stats?.success?.today || 0)}
-          subValueMonth={formatNumber(stats?.success?.month || 0)}
+          value={formatNumber(stats.success.total)} 
+          subValueToday={formatNumber(stats.success.today)}
+          subValueMonth={formatNumber(stats.success.month)}
           icon={<CheckCircle size={20} />} 
           color="bg-green-500 text-green-500" 
         />
         <StatCard 
           label="รายชื่อรอตรวจสอบ" 
-          value={formatNumber(stats?.pending || 0)} 
+          value={formatNumber(stats.pending)} 
           subValueToday="--"
           subValueMonth="--"
           icon={<Clock size={20} />} 
@@ -148,16 +203,16 @@ export default function FinancialOverview() {
                <div className="flex justify-between items-center border-b border-border pb-3">
                  <span className="text-sm text-gray-400">อัตราความสำเร็จรวม</span>
                  <span className="text-sm font-bold text-green-400">
-                   {stats?.orders?.total > 0 ? ((stats?.success?.total / stats?.orders?.total) * 100).toFixed(1) : 0}%
+                   {stats.orders.total > 0 ? ((stats.success.total / stats.orders.total) * 100).toFixed(1) : 0}%
                  </span>
                </div>
                <div className="flex justify-between items-center border-b border-border pb-3">
                  <span className="text-sm text-gray-400">ยอดวันนี้</span>
-                 <span className="text-sm font-bold text-primary">{formatCurrency(stats?.revenue?.today || 0)}</span>
+                 <span className="text-sm font-bold text-primary">{formatCurrency(stats.revenue.today)}</span>
                </div>
                <div className="flex justify-between items-center border-b border-border pb-3">
                  <span className="text-sm text-gray-400">ออเดอร์วันนี้</span>
-                 <span className="text-sm font-bold text-blue-400">{stats?.orders?.today || 0} รายการ</span>
+                 <span className="text-sm font-bold text-blue-400">{stats.orders.today} รายการ</span>
                </div>
             </div>
           </div>
@@ -167,7 +222,7 @@ export default function FinancialOverview() {
         </div>
       </div>
 
-      <HistorySummary />
+      <HistorySummary invoices={rawInvoices} />
     </div>
   );
 }

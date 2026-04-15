@@ -5,6 +5,7 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const generatePayload = require('promptpay-qr');
 const qrcode = require('qrcode');
 
+
 // Get all settings (Public - safely used for generating QR)
 router.get('/public', async (req, res) => {
     try {
@@ -59,26 +60,33 @@ router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
 // Admin ONLY: Update settings
 router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        const { promptpay_number, wallet_number, meetup_address, meetup_contact, contact_name, contact_url } = req.body;
+        const { promptpay_number, wallet_number, meetup_address, meetup_contact, contact_name, contact_url, delete_qr } = req.body;
+        console.log(`[Settings] ATOMIC Update Request: ${JSON.stringify(req.body)}`);
         const db = await getDb();
-        
-        const updateSetting = async (key, val) => {
-            if (val !== undefined) {
-                const existing = await db.get('SELECT key FROM settings WHERE key = ?', [key]);
-                if (existing) {
-                    await db.run('UPDATE settings SET value = ? WHERE key = ?', [val, key]);
-                } else {
-                    await db.run('INSERT INTO settings (key, value) VALUES (?, ?)', [key, val]);
-                }
-            }
-        };
 
-        await updateSetting('promptpay_number', promptpay_number);
-        await updateSetting('wallet_number', wallet_number);
-        await updateSetting('meetup_address', meetup_address);
-        await updateSetting('meetup_contact', meetup_contact);
-        await updateSetting('contact_name', contact_name);
-        await updateSetting('contact_url', contact_url);
+        // 1. Build a series of UPDATE/DELETE commands
+        // We use INSERT OR REPLACE to ensure the key exists or is updated
+        const updates = [
+            ['promptpay_number', promptpay_number],
+            ['wallet_number', wallet_number],
+            ['meetup_address', meetup_address],
+            ['meetup_contact', meetup_contact],
+            ['contact_name', contact_name],
+            ['contact_url', contact_url]
+        ];
+
+        for (const [key, val] of updates) {
+            if (val !== undefined && val !== null) {
+                await db.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, val]);
+            }
+        }
+
+        // 2. Handle QR Deletion explicitly LAST
+        if (delete_qr === true || delete_qr === 'true') {
+            console.log('[Settings] 🗑️ PERFORMING CRITICAL DELETE of promptpay_qr...');
+            const delResult = await db.run('DELETE FROM settings WHERE key LIKE ?', ['%promptpay_qr%']);
+            console.log(`[Settings] DELETE rows affected: ${delResult.changes}`);
+        }
 
         res.json({ message: 'Settings updated successfully' });
     } catch (error) {
@@ -94,18 +102,30 @@ router.post('/qr', authMiddleware, adminMiddleware, upload.single('qr_image'), a
         if (!req.file) return res.status(400).json({ error: 'No image provided' });
         const db = await getDb();
         
-        const existing = await db.get('SELECT key FROM settings WHERE key = "promptpay_qr"');
-        if (existing) {
-            await db.run('UPDATE settings SET value = ? WHERE key = "promptpay_qr"', [req.file.filename]);
-        } else {
-            await db.run('INSERT INTO settings (key, value) VALUES ("promptpay_qr", ?)', [req.file.filename]);
+        // 🚀 SYNC TO SUPABASE STORAGE: QR Image
+        const { uploadFile } = require('../services/supabaseService');
+        let qrPath = '';
+        try {
+            qrPath = await uploadFile(req.file.buffer, 'product-images', req.file.originalname);
+            console.log(`[STORAGE] QR uploaded to Supabase: ${qrPath}`);
+        } catch (err) {
+            console.error('[STORAGE] QR upload failed:', err);
+            return res.status(500).json({ error: 'Failed to upload QR image to cloud storage' });
         }
 
-        res.json({ message: 'QR successfully uploaded', qr: req.file.filename });
+        const existing = await db.get('SELECT key FROM settings WHERE key = "promptpay_qr"');
+        if (existing) {
+            await db.run('UPDATE settings SET value = ? WHERE key = "promptpay_qr"', [qrPath]);
+        } else {
+            await db.run('INSERT INTO settings (key, value) VALUES ("promptpay_qr", ?)', [qrPath]);
+        }
+
+        res.json({ message: 'QR successfully uploaded', qr: qrPath });
     } catch (error) {
         console.error('Error uploading QR:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
 
 module.exports = router;

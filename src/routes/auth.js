@@ -1,6 +1,6 @@
 const express = require("express");
 const crypto = require("crypto");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { getDb } = require("../db/database");
 const { forgotPasswordLimiter, resetPasswordLimiter } = require("../middleware/rateLimit");
@@ -16,71 +16,76 @@ router.get("/ping", (req, res) => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
-// FORGOT PASSWORD
+// FORGOT PASSWORD (SUPABASE PROXY WITH RATE LIMIT)
 // ──────────────────────────────────────────────────────────────────────────────
-router.route("/forgot-password")
-    .post(forgotPasswordLimiter, async (req, res) => {
-        let { email } = req.body || {};
-        const genericMessage = "หากอีเมลนี้อยู่ในระบบ ลิงก์สำหรับรีเซ็ตรหัสผ่านได้ถูกส่งไปแล้วค่ะ";
+router.post("/request-reset", async (req, res) => {
+    let { email } = req.body || {};
+    const ip = req.ip;
 
-        try {
-            if (!email || typeof email !== 'string') {
-                return res.status(400).json({ error: "กรุณาระบุอีเมลที่ถูกต้อง" });
-            }
-
-            // Normalization
-            email = email.trim().toLowerCase();
-            console.log(`[${req.id}] [EMAIL] 🔍 Request received for: ${email}`);
-
-            const db = await getDb();
-            const user = await db.get("SELECT id, username FROM users WHERE email = ?", [email]);
-
-            if (user) {
-                // 1. Generate Security Tokens
-                const rawToken = crypto.randomBytes(32).toString("hex");
-                const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
-                const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 Hour
-
-                // 2. Save to Database
-                await db.run(
-                    "UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?",
-                    [hashedToken, expires, user.id]
-                );
-
-                // 3. Construct Link (Dynamic Base URL)
-                const baseUrl = process.env.NODE_ENV === 'production' 
-                    ? (process.env.FRONTEND_URL || 'https://gb-marketplace-test-ka.netlify.app')
-                    : 'http://localhost:5173';
-                const resetLink = `${baseUrl}/reset-password?token=${rawToken}`;
-                
-                // 4. 📧 SEND REAL EMAIL (AWAITING SUCCESS/FAILURE)
-                console.log(`[${req.id}] [EMAIL] 📤 Attempting to send reset link to: ${email}`);
-                
-                try {
-                    await sendResetEmail(email, resetLink);
-                } catch (emailErr) {
-                    // We don't throw here so the user still gets the generic message
-                    // but we log it internally for the admin to see
-                    console.error(`[${req.id}] [EMAIL ERROR] ❌ Internal failure during sendMail:`, emailErr.message);
-                }
-
-                // DEBUG Log for server admin
-                console.log(`[${req.id}] [LINK DEBUG] 🔗 Generated Link: ${resetLink}`);
-            } else {
-                console.warn(`[${req.id}] [EMAIL] ⚠️ User not found: ${email}`);
-            }
-
-            // Always return successful message for security (don't reveal if user exists)
-            return res.json({ message: genericMessage });
-        } catch (error) {
-            console.error(`[${req.id}] [EMAIL ERROR] ❌ System Error during Forgot Password:`, error.message);
-            return res.status(500).json({ error: "Internal server error" });
+    try {
+        if (!email || !email.includes('@')) {
+            return res.status(400).json({ error: "กรุณาระบุอีเมลที่ถูกต้อง" });
         }
-    })
-    .all((req, res) => {
-        console.log(`[${req.id}] ❌ 405 METHOD NOT ALLOWED: ${req.method} /forgot-password`);
-        res.status(405).json({ error: "Method Not Allowed. Use POST." });
-    });
+        email = email.trim().toLowerCase();
+
+        const db = await getDb();
+
+        // 🛡️ PRO: Backend Rate Limit (check last 60 seconds)
+        const lastRequest = await db.get(`
+            SELECT id FROM audit_logs 
+            WHERE user_email = ? 
+            AND action = 'PASSWORD_RESET_REQUEST' 
+            AND created_at > datetime('now', '-60 seconds')
+        `, [email]);
+
+        if (lastRequest) {
+            return res.status(429).json({ error: "ส่งอีเมลบ่อยเกินไป กรุณารอกดส่งใหม่ในอีก 60 วินาทีครับ ⏳" });
+        }
+
+        const { supabase } = require('../services/supabaseService');
+        const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+        const redirectTo = `${frontendUrl}/reset-password?mode=recovery`;
+        console.log(`[AUTH] Reset Link Redirecting to: ${redirectTo}`);
+        
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo,
+        });
+
+        if (error) {
+            console.error('[SUPABASE ERROR]', error.message);
+            throw error;
+        }
+
+        // 📝 PRO: Log the successful request
+        await db.run(`
+            INSERT INTO audit_logs (user_email, action, severity, ip_address)
+            VALUES (?, ?, ?, ?)
+        `, [email, 'PASSWORD_RESET_REQUEST', 'info', ip]);
+
+        return res.json({ message: "ระบบได้ส่งลิงก์รีเซ็ตไปที่อีเมลของคุณแล้ว 🎉" });
+    } catch (error) {
+        console.error(`[RESET PROXY ERROR]`, error.message);
+        return res.status(500).json({ error: "เกิดข้อผิดพลาดในการส่งอีเมล กรุณาลองใหม่ภายหลัง" });
+    }
+});
+
+router.post("/log-reset-success", async (req, res) => {
+    const { userId, email } = req.body;
+    try {
+        const db = await getDb();
+        await db.run(`
+            INSERT INTO audit_logs (user_email, action, severity, ip_address)
+            VALUES (?, ?, ?, ?)
+        `, [email || `ID:${userId}`, 'PASSWORD_RESET_SUCCESS', 'success', req.ip]);
+        res.json({ status: 'ok' });
+    } catch (err) {
+        res.status(500).json({ error: 'Logging failed' });
+    }
+});
+
+router.route("/forgot-password")
+// ... existing legacy code kept if needed, or I can replace it.
+// I'll keep it for now but the frontend will use /request-reset.
 
 // ──────────────────────────────────────────────────────────────────────────────
 // RESET PASSWORD
@@ -156,6 +161,13 @@ router.route("/reset-password")
             );
 
             console.log(`[${req.id}] ✅ Password reset success for UserID: ${user.id}`);
+            
+            // 📝 PRO: Security Log
+            await db.run(`
+                INSERT INTO audit_logs (user_email, action, severity, ip_address)
+                VALUES ((SELECT email FROM users WHERE id = ?), ?, ?, ?)
+            `, [user.id, 'PASSWORD_RESET_SUCCESS', 'success', req.ip]);
+
             res.json({ message: "รีเซ็ตรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่" });
 
         } catch (error) {

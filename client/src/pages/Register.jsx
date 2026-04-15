@@ -6,23 +6,16 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export default function Register() {
-  const [form, setForm] = useState({ username: '', password: '', confirmPassword: '', email: '' });
+  const [form, setForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
   const [showPwd, setShowPwd] = useState(false);
   const [showConfirmPwd, setShowConfirmPwd] = useState(false);
-  const [preview, setPreview] = useState(null);
-  const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const fileRef = useRef();
+  
   const { register } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const handleFile = (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
-  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,12 +26,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const fd = new FormData();
-      fd.append('username', form.username);
-      fd.append('password', form.password);
-      fd.append('email', form.email);
-      if (file) fd.append('profile_image', file);
-      await register(fd);
+      await register(form.username, form.email, form.password);
       showToast('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ 🎉', 'success');
       navigate('/login');
     } catch (err) {
@@ -62,39 +50,22 @@ export default function Register() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Avatar upload */}
-            <div className="flex justify-center">
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => fileRef.current.click()}
-                className="relative w-24 h-24 rounded-full border-2 border-dashed border-border hover:border-primary transition-all duration-300 overflow-hidden bg-surface-hover group"
-              >
-                {preview ? (
-                  <img src={preview} alt="avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500 group-hover:text-primary transition-colors">
-                    <Upload size={22} />
-                    <span className="text-xs mt-1">รูปโปรไฟล์</span>
-                  </div>
-                )}
-              </motion.button>
-              <input type="file" ref={fileRef} accept="image/*" onChange={handleFile} className="hidden" />
-            </div>
+
 
             <div>
-              <label className="label">ชื่อผู้ใช้</label>
+              <label className="label">ชื่อผู้ใช้ (Username)</label>
               <input type="text" required value={form.username}
                 onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
-                className="input-field" placeholder="เลือกชื่อผู้ใช้" />
+                className="input-field" placeholder="ชื่อเล่นหรือชื่อจริง" />
             </div>
+
             <div>
               <label className="label">อีเมล</label>
               <input type="email" required value={form.email}
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                 className="input-field" placeholder="example@email.com" />
             </div>
+
             <div>
               <label className="label">รหัสผ่าน</label>
               <div className="relative">
@@ -137,11 +108,10 @@ export default function Register() {
               </div>
             </div>
 
-
             <motion.button
               type="submit" disabled={loading}
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-              className="btn-primary w-full py-3.5 text-base flex items-center justify-center gap-2"
+              className="btn-primary w-full py-3.5 text-base flex items-center justify-center gap-2 mt-4"
             >
               {loading ? 'กำลังสร้างบัญชี...' : <><UserPlus size={18} /> สร้างบัญชีใหม่</>}
             </motion.button>

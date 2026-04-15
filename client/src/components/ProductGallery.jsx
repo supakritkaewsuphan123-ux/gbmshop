@@ -98,16 +98,26 @@ export default function ProductGallery({ media = [] }) {
               animate="center"
               exit="exit"
               transition={{ x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
-              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              className="absolute inset-0 flex items-center justify-center pointer-events-auto"
             >
               {currentMedia.type === 'video' ? (
-                <div className="relative w-full h-full pointer-events-auto">
+                <div className="relative w-full h-full z-20 bg-black flex items-center justify-center">
+                   {/* Loading Spinner for Video */}
+                   <div className="absolute inset-0 flex items-center justify-center z-0">
+                      <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                   </div>
+                   
                    <video 
+                     key={getUrl(currentMedia.src)}
                      src={getUrl(currentMedia.src)}
-                     className="w-full h-full object-contain"
+                     className="relative w-full h-full object-contain z-10"
                      controls
                      autoPlay
                      muted
+                     playsInline
+                     preload="auto"
+                     crossOrigin="anonymous"
+                     controlsList="nodownload"
                    />
                 </div>
               ) : (
@@ -139,7 +149,7 @@ export default function ProductGallery({ media = [] }) {
         {/* Expand Button */}
         <button 
           onClick={(e) => { e.stopPropagation(); setIsFullScreen(true); }}
-          className="absolute top-4 right-4 z-10 bg-white/10 hover:bg-white/20 backdrop-blur-md p-2 rounded-xl text-white opacity-0 group-hover:opacity-100 transition-all border border-white/20 shadow-lg"
+          className="absolute top-4 right-4 z-[40] bg-white/10 hover:bg-white/20 backdrop-blur-md p-2 rounded-xl text-white opacity-0 group-hover:opacity-100 transition-all border border-white/20 shadow-lg"
         >
           <Maximize2 size={18} />
         </button>
@@ -149,13 +159,13 @@ export default function ProductGallery({ media = [] }) {
           <>
             <button 
               onClick={(e) => { e.stopPropagation(); paginate(-1); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/10 hover:bg-white/30 backdrop-blur-md p-3 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all border border-white/20 shadow-xl"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-[40] bg-white/10 hover:bg-white/30 backdrop-blur-md p-3 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all border border-white/20 shadow-xl"
             >
               <ChevronLeft size={24} />
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); paginate(1); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/10 hover:bg-white/30 backdrop-blur-md p-3 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all border border-white/20 shadow-xl"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-[40] bg-white/10 hover:bg-white/30 backdrop-blur-md p-3 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all border border-white/20 shadow-xl"
             >
               <ChevronRight size={24} />
             </button>

@@ -1,30 +1,86 @@
-const Database = require('better-sqlite3');
+const initSqlJs = require('sql.js');
+const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const dbPath = path.join(__dirname, '../../database.sqlite');
 
-// Wrapper to maintain compatibility with the async 'sqlite' package usage
+let dbInstance = null;
+let SQL_MODULE = null;
+
+const saveDb = (db) => {
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(dbPath, buffer);
+};
+
 const dbWrapper = (db) => ({
-    get: async (sql, params = []) => db.prepare(sql).get(...params),
-    all: async (sql, params = []) => db.prepare(sql).all(...params),
+    get: async (sql, params = []) => {
+        const stmt = db.prepare(sql);
+        stmt.bind(params);
+        let result = undefined;
+        if (stmt.step()) {
+            result = stmt.getAsObject();
+        }
+        stmt.free();
+        return result;
+    },
+    all: async (sql, params = []) => {
+        const stmt = db.prepare(sql);
+        stmt.bind(params);
+        const results = [];
+        while (stmt.step()) {
+            results.push(stmt.getAsObject());
+        }
+        stmt.free();
+        return results;
+    },
     run: async (sql, params = []) => {
-        const result = db.prepare(sql).run(...params);
-        return { lastID: result.lastInsertRowid, changes: result.changes };
+        try {
+            console.log(`[DB] RUN: ${sql} | PARAMS: ${JSON.stringify(params)}`);
+            const stmt = db.prepare(sql);
+            stmt.run(params);
+            stmt.free();
+            
+            saveDb(db);
+            
+            let lastID = 0;
+            let changes = 0;
+            const lidRes = db.exec("SELECT last_insert_rowid()");
+            if (lidRes.length > 0) lastID = lidRes[0].values[0][0];
+            
+            const chgRes = db.exec("SELECT changes()");
+            if (chgRes.length > 0) changes = chgRes[0].values[0][0];
+            
+            console.log(`[DB] OK. Rows affected: ${changes}`);
+            return { lastID, changes };
+        } catch (err) {
+            console.error('[DB] ERROR:', err.message);
+            throw err;
+        }
     },
     exec: async (sql) => {
         db.exec(sql);
+        saveDb(db);
         return true;
     },
-    close: async () => db.close()
+    close: async () => {
+        saveDb(db);
+        db.close();
+        dbInstance = null;
+    }
 });
-
-let dbInstance = null;
 
 async function getDb() {
     if (!dbInstance) {
-        const db = new Database(dbPath);
-        db.pragma('journal_mode = WAL'); // Performance boost
+        if (!SQL_MODULE) {
+            SQL_MODULE = await initSqlJs();
+        }
+        let filebuffer = null;
+        if (fs.existsSync(dbPath)) {
+            filebuffer = fs.readFileSync(dbPath);
+        }
+        const db = new SQL_MODULE.Database(filebuffer);
         dbInstance = dbWrapper(db);
     }
     return dbInstance;
@@ -59,6 +115,7 @@ async function initDb() {
             description TEXT,
             stock INTEGER DEFAULT 1,
             user_id INTEGER NOT NULL,
+            category TEXT DEFAULT 'มือ1',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
         )
@@ -84,28 +141,28 @@ async function initDb() {
         )
     `);
 
-    // Force Reset/Create admin user during troubleshooting
-    const hashedPassword = await bcrypt.hash('admin1234', 10);
+    // Create admin user
     const existingAdmin = await db.get('SELECT id FROM users WHERE username = ?', ['admingb']);
     
-    if (existingAdmin) {
-        await db.run('UPDATE users SET password = ?, role = ? WHERE username = ?', [hashedPassword, 'admin', 'admingb']);
-        console.log('✅ Admin password FORCED RESET to: admin1234');
-    } else {
+    if (!existingAdmin) {
+        const hashedPassword = await bcrypt.hash('admin1234', 10);
         await db.run(
             'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)', 
             ['admingb', 'admin@gb-marketplace.com', hashedPassword, 'admin']
         );
-        console.log('✅ Admin user CREATED: admingb with password admin1234');
+        console.log('✅ Admin user CREATED: admingb with default password admin1234');
+    } else {
+        await db.run('UPDATE users SET role = ? WHERE username = ?', ['admin', 'admingb']);
+        console.log('✅ Admin user already exists. Persistent login maintained.');
     }
 
-    // Migration: Columns check
+    // Migration helper
     const runMigration = async (label, sql) => {
         try {
             await db.exec(sql);
             if (process.env.NODE_ENV !== 'production') console.log(`Migration [${label}]: Success`);
         } catch (err) {
-            // Already exists or column exists
+            // Error usually means column already exists
         }
     };
 
@@ -122,6 +179,10 @@ async function initDb() {
     await runMigration('images', `ALTER TABLE products ADD COLUMN images TEXT`);
     await runMigration('video', `ALTER TABLE products ADD COLUMN video TEXT`);
     await runMigration('videos', `ALTER TABLE products ADD COLUMN videos TEXT`);
+    await runMigration('Add category to products', "ALTER TABLE products ADD COLUMN category TEXT DEFAULT 'มือ1'");
+    await runMigration('Add rejection_reason to invoices', "ALTER TABLE invoices ADD COLUMN rejection_reason TEXT");
+    await runMigration('Add rejection_reason to topups', "ALTER TABLE topups ADD COLUMN rejection_reason TEXT");
+    await runMigration('Add supabase_id to users', "ALTER TABLE users ADD COLUMN supabase_id TEXT");
 
     // Create Topups table
     await db.exec(`
@@ -131,6 +192,7 @@ async function initDb() {
             amount REAL NOT NULL,
             slip_image TEXT,
             status TEXT DEFAULT 'pending',
+            rejection_reason TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
         )
@@ -152,15 +214,11 @@ async function initDb() {
             shipping_name TEXT,
             shipping_phone TEXT,
             shipping_address TEXT,
+            rejection_reason TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
         )
     `);
-
-    // Migration: Shipping details
-    await runMigration('shipping_name', `ALTER TABLE invoices ADD COLUMN shipping_name TEXT`);
-    await runMigration('shipping_phone', `ALTER TABLE invoices ADD COLUMN shipping_phone TEXT`);
-    await runMigration('shipping_address', `ALTER TABLE invoices ADD COLUMN shipping_address TEXT`);
 
     // Create Settings table
     await db.exec(`
@@ -180,13 +238,7 @@ async function initDb() {
         ('contact_url', 'https://facebook.com/admin')
     `);
 
-    // Additional User Migrations
-    await runMigration('Add email column', `ALTER TABLE users ADD COLUMN email TEXT`);
-    await runMigration('Add reset_token column', `ALTER TABLE users ADD COLUMN reset_token TEXT`);
-    await runMigration('Add reset_expires column', `ALTER TABLE users ADD COLUMN reset_expires DATETIME`);
-    await runMigration('Add token_version column', `ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0`);
-
-    // Create Audit Logs table
+    // Audit Logs table
     await db.exec(`
         CREATE TABLE IF NOT EXISTS audit_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -198,7 +250,7 @@ async function initDb() {
         )
     `);
 
-    // Create Blocked IPs table
+    // Blocked IPs table
     await db.exec(`
         CREATE TABLE IF NOT EXISTS blocked_ips (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -206,6 +258,54 @@ async function initDb() {
             reason TEXT,
             expires_at DATETIME NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Notifications table
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            title TEXT NOT NULL,
+            message TEXT,
+            type TEXT DEFAULT 'info',
+            is_read INTEGER DEFAULT 0,
+            is_global INTEGER DEFAULT 0,
+            link TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Indexing for performance
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_notif_user_read ON notifications(user_id, is_read)`);
+    await db.exec(`CREATE INDEX IF NOT EXISTS idx_notif_created ON notifications(created_at)`);
+
+    // Reviews table
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+            comment TEXT,
+            images TEXT, -- JSON array of filenames
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+            UNIQUE(user_id, product_id) -- One review per user per product
+        )
+    `);
+
+    // Wishlist table
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS wishlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            product_id INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+            FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
+            UNIQUE(user_id, product_id)
         )
     `);
 }

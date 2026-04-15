@@ -1,34 +1,106 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { usePageMetadata } from '../hooks/usePageMetadata';
 
 export default function Login() {
-  const [form, setForm] = useState({ username: '', password: '' });
+  usePageMetadata('เข้าสู่ระบบ', 'เข้าสู่ระบบ GB Marketplace เพื่อจัดการสินค้าและ Wallet ของคุณอย่างปลอดภัย');
+  const [form, setForm] = useState({ identifier: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from?.pathname || '/';
+
+  // Safe navigation AFTER context flushes the state
+  useEffect(() => {
+    if (!authLoading && user) {
+      const targetPath = user.role === 'admin' ? '/admin' : from;
+      navigate(targetPath, { replace: true });
+    }
+  }, [user, authLoading, navigate, from]);
+
+  // Persistent State from localStorage
+  const [failCount, setFailCount] = useState(() => {
+    const saved = localStorage.getItem('loginFailCount');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [lockedUntil, setLockedUntil] = useState(() => {
+    const saved = localStorage.getItem('loginLockedUntil');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  // Countdown timer logic (Real-time update)
+  useEffect(() => {
+    const updateTimer = () => {
+      const remaining = Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      
+      if (remaining <= 0 && lockedUntil !== 0) {
+        setLockedUntil(0);
+        localStorage.removeItem('loginLockedUntil');
+      }
+    };
+
+    updateTimer(); // Initial call
+
+    if (lockedUntil > Date.now()) {
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [lockedUntil]);
+
+  const isLocked = timeLeft > 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLocked) return;
+    
     setLoading(true);
+    const cleanIdentifier = form.identifier.toLowerCase().trim();
+    
     try {
-      const user = await login(form.username, form.password);
-      showToast('เข้าสู่ระบบสำเร็จ! 🎉', 'success');
+      await login(cleanIdentifier, form.password.trim());
       
-      // Use window.location.href to force a full reload and ensure state sync
-      const targetPath = user?.role === 'admin' ? '/admin' : (from || '/dashboard');
-      window.location.href = targetPath;
+      // Success: Clear everything
+      showToast('เข้าสู่ระบบสำเร็จ! 🎉', 'success');
+      setFailCount(0);
+      setLockedUntil(0);
+      localStorage.removeItem('loginFailCount');
+      localStorage.removeItem('loginLockedUntil');
+      setLoading(false);
     } catch (err) {
-      showToast(err.message, 'error');
-    } finally { setLoading(false); }
+      const msg = err.message || '';
+      
+      // Increment fail count
+      const newFailCount = failCount + 1;
+      setFailCount(newFailCount);
+      localStorage.setItem('loginFailCount', newFailCount);
+
+      // Check threshold (More than 5 attempts) OR server-side lockout message
+      if (newFailCount > 5 || msg.includes('รอ') || msg.includes('บ่อยเกินไป')) {
+        const lockDuration = 60 * 1000; // 60 seconds
+        const lockTimestamp = Date.now() + lockDuration;
+        
+        setLockedUntil(lockTimestamp);
+        localStorage.setItem('loginLockedUntil', lockTimestamp);
+        
+        showToast('คุณพยายามผิดเกิน 5 ครั้ง ระบบล็อกชั่วคราว 60 วินาที 🔒', 'error');
+      } else {
+        showToast(`${msg} (ผิดครั้งที่ ${newFailCount}/5)`, 'error');
+      }
+      
+      setLoading(false);
+    }
   };
+
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
@@ -51,10 +123,10 @@ export default function Login() {
               <label className="label">ชื่อผู้ใช้ หรือ อีเมล</label>
               <input
                 type="text" required
-                value={form.username}
-                onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
+                value={form.identifier}
+                onChange={(e) => setForm((p) => ({ ...p, identifier: e.target.value }))}
                 className="input-field"
-                placeholder="ใส่ชื่อผู้ใช้ หรือ อีเมล"
+                placeholder="ชื่อผู้ใช้ หรือ email@example.com"
               />
             </div>
             <div>
@@ -83,14 +155,31 @@ export default function Login() {
               </Link>
             </div>
 
+            {/* ✅ Lockout Warning */}
+            {isLocked && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-center">
+                <p className="text-red-400 text-sm font-bold">🔒 บัญชีถูกล็อคชั่วคราว</p>
+                <p className="text-red-300 text-xs mt-1">กรุณารอ <span className="font-mono font-bold">{timeLeft}</span> วินาที</p>
+              </div>
+            )}
+
+            {/* ✅ Attempt Counter */}
+            {failCount > 0 && !isLocked && (
+              <p className="text-xs text-center text-orange-400">
+                พยายามผิด {failCount}/5 ครั้ง {failCount === 5 ? '⚠️ ครั้งสุดท้ายแล้ว! ระวังโดนล็อก' : failCount >= 3 && '⚠️ เหลืออีก ' + (5 - failCount) + ' ครั้ง'}
+              </p>
+            )}
+
             <motion.button
               type="submit"
-              disabled={loading}
-              whileHover={{ scale: 1.02 }}
+              disabled={loading || isLocked}
+              whileHover={{ scale: isLocked ? 1 : 1.02 }}
               whileTap={{ scale: 0.97 }}
-              className="btn-primary w-full py-3.5 text-base flex items-center justify-center gap-2"
+              className={`btn-primary w-full py-3.5 text-base flex items-center justify-center gap-2 ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {loading ? (
+              {isLocked ? (
+                <>🔒 รอ {timeLeft} วินาที</>
+              ) : loading ? (
                 <span className="flex items-center gap-2">
                   <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>

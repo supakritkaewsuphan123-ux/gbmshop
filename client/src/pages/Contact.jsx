@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Phone, Mail, MessageSquare, Globe, Clock } from 'lucide-react';
-import api from '../lib/api';
+import { supabase } from '../lib/supabase';
 
 export default function Contact() {
   const [adminInfo, setAdminInfo] = useState(null);
 
   useEffect(() => {
-    api.get('/settings/public')
-      .then(setAdminInfo)
+    supabase.from('settings').select('*').single()
+      .then(({ data }) => setAdminInfo(data))
       .catch(console.error);
   }, []);
 

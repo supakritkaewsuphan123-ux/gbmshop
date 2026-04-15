@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Zap, Shield, TrendingUp, Phone, Mail, MessageSquare, Send, Globe } from 'lucide-react';
-import api from '../lib/api';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/Spinner';
 import { useToast } from '../context/ToastContext';
+import { usePageMetadata } from '../hooks/usePageMetadata';
 
 const FEATURES = [
   { icon: <Zap size={28} className="text-primary" />, title: 'ราคาดีที่สุด', desc: 'สินค้ามือสองคุณภาพ ราคาโดนใจ คัดมาแล้ว' },
@@ -14,11 +16,13 @@ const FEATURES = [
 ];
 
 export default function Home() {
+  usePageMetadata('หน้าแรก', 'GB Marketplace - ตลาดซื้อขายสินค้าพรีเมียม ปลอดภัย มั่นใจ 100% พร้อมระบบ Wallet อัตโนมัติ');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [typedText, setTypedText] = useState('');
   const [adminInfo, setAdminInfo] = useState(null);
   const [contactLoading, setContactLoading] = useState(false);
+  const { user, logout } = useAuth();
   const { showToast } = useToast();
   const fullText = 'จำหน่ายของ มือสองสภาพดี';
 
@@ -53,18 +57,53 @@ export default function Home() {
     };
 
     type();
-    api.get('/settings/public')
-      .then(setAdminInfo)
+    supabase.from('settings').select('*').single()
+      .then(({ data }) => setAdminInfo(data))
       .catch(console.error);
 
     return () => clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
-    api.get('/products')
-      .then((data) => setProducts(data.slice(0, 4)))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    setLoading(true);
+    let isMounted = true;
+    
+    const loadData = async () => {
+      try {
+        const { data: productsData, error } = await supabase
+          .from('products')
+          .select('*')
+          .limit(4)
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
+        
+        if (productsData && productsData.length > 0) {
+          const userIds = [...new Set(productsData.map(p => p.user_id).filter(Boolean))];
+          let profileMap = {};
+          
+          if (userIds.length > 0) {
+            const { data: profiles } = await supabase.from('profiles').select('id, username').in('id', userIds);
+            if (profiles) profileMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+          }
+          
+          const enriched = productsData.map(p => ({
+            ...p,
+            seller_name: profileMap[p.user_id]?.username || 'System'
+          }));
+          if (isMounted) setProducts(enriched);
+        } else {
+          if (isMounted) setProducts([]);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    
+    loadData();
+    return () => { isMounted = false; };
   }, []);
 
   const handleContactSubmit = (e) => {
@@ -147,7 +186,7 @@ export default function Home() {
             </div>
 
             <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto font-medium leading-relaxed opacity-80">
-              อัปเกรดคลังสินค้าเพื่อคุณ ซื้อ-ขายสินค้าอิเล็กทรอนิกส์มือสองคุณภาพสูง และอุปกรณ์เกมครบวงจร
+              อัปเกรดคลังสินค้าเพื่อคุณ ขายสินค้ามือสองคุณภาพดี และเครื่องใช้ไฟฟ้าต่างๆ
             </p>
 
             <div className="flex gap-4 justify-center flex-wrap">
@@ -156,11 +195,19 @@ export default function Home() {
                   เลือกสินค้า <ArrowRight size={20} />
                 </Link>
               </motion.div>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                <Link to="/register" className="btn-outline text-lg px-10 py-5 flex items-center justify-center min-w-[240px]">
-                  สมัครสมาชิก
-                </Link>
-              </motion.div>
+              {user ? (
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
+                  <button onClick={logout} className="btn-outline text-lg px-10 py-5 flex items-center justify-center min-w-[240px]">
+                    ออกจากระบบ
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
+                  <Link to="/register" className="btn-outline text-lg px-10 py-5 flex items-center justify-center min-w-[240px]">
+                    สมัครสมาชิก
+                  </Link>
+                </motion.div>
+              )}
             </div>
           </motion.div>
         </div>
@@ -200,23 +247,45 @@ export default function Home() {
           <p className="section-subtitle">สินค้ามือสองคุณภาพดีที่ลงขายล่าสุด</p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {loading
-            ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
-            : products.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
-        </div>
-
-        {!loading && (
+        {!user ? (
           <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mt-10"
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            className="glass p-12 text-center rounded-3xl border border-primary/20 bg-primary/5 shadow-glow-sm"
           >
-            <Link to="/products" className="btn-outline px-10 py-3 inline-flex items-center gap-2">
-              ดูสินค้าทั้งหมด <ArrowRight size={16} />
-            </Link>
+            <div className="mb-6 w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
+              <Shield size={32} className="text-primary" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-3">กรุณาเข้าสู่ระบบเพื่อดูสินค้า</h3>
+            <p className="text-gray-400 mb-8 max-w-md mx-auto">
+              สิทธิพิเศษสำหรับสมาชิกเท่านั้น! ลงทะเบียนวันนี้เพื่อเลือกซื้อสินค้ามือสองคุณภาพดีในราคาประหยัด
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Link to="/login" className="btn-primary px-8 py-3">เข้าสู่ระบบ</Link>
+              <Link to="/register" className="btn-outline px-8 py-3">สมัครสมาชิก</Link>
+            </div>
           </motion.div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
+                : products.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
+            </div>
+
+            {!loading && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                className="text-center mt-10"
+              >
+                <Link to="/products" className="btn-outline px-10 py-3 inline-flex items-center gap-2">
+                  ดูสินค้าทั้งหมด <ArrowRight size={16} />
+                </Link>
+              </motion.div>
+            )}
+          </>
         )}
       </section>
 

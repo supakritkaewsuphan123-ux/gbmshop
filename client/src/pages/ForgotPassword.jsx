@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import api from '../lib/api';
+import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import axios from 'axios';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -17,17 +18,14 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      if (email.length > 100) {
-        throw new Error('อีเมลยาวเกินไป');
-      }
-
-      // ✅ REFACTORED TO USE GLOBAL API INSTANCE
-      const response = await api.post('/auth/forgot-password', { email });
+      // 🛡️ PRO: Backend Proxy with Rate Limit
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || ''}/api/auth/request-reset`, { email });
       
-      showToast(response.message || 'ส่งลิงก์รีเซ็ตสำเร็จ', 'success');
+      showToast(response.data.message || 'ระบบได้ส่งลิงก์รีเซ็ตไปที่อีเมลของคุณแล้ว 🎉', 'success');
       setSubmitted(true);
     } catch (err) {
-      showToast(err.message || 'เกิดข้อผิดพลาด', 'error');
+      const errorMessage = err.response?.data?.error || err.message || 'เกิดข้อผิดพลาด';
+      showToast(errorMessage, 'error');
     } finally {
       setLoading(false);
     }

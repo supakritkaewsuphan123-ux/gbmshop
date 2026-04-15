@@ -3,12 +3,21 @@ const router = express.Router();
 const { getDb } = require('../db/database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const { createNotification } = require('./notifications');
 
 // Create a new invoice from cart items
 router.post('/', authMiddleware, async (req, res) => {
     try {
         const { items, method, payment_ref, meet_date, meet_time, meet_location, meet_note, shipping_name, shipping_phone, shipping_address } = req.body;
         if (!items || !items.length) return res.status(400).json({ error: 'Items required' });
+
+        // Phone validation (10 digits) if COD
+        if (method === 'cod') {
+            const cleanPhone = shipping_phone ? shipping_phone.replace(/[^0-9]/g, '') : '';
+            if (cleanPhone.length !== 10) {
+                return res.status(400).json({ error: 'เบอร์โทรศัพท์ต้องครบ 10 หลัก (Phone number must be 10 digits)' });
+            }
+        }
 
         const buyerId = req.user.id;
         const db = await getDb();
@@ -64,6 +73,18 @@ router.post('/', authMiddleware, async (req, res) => {
             await db.run('UPDATE products SET stock = stock - 1 WHERE id = ?', [prod.id]);
         }
 
+        // 🔔 NOTIFY ADMIN: New Order
+        const admin = await db.get("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+        if (admin) {
+            await createNotification({
+                user_id: admin.id,
+                title: '🛒 มีออเดอร์ใหม่!',
+                message: `ออเดอร์ #${invoiceId} ยอด ฿${totalCost.toLocaleString()} (${deliveryMethod})`,
+                type: 'info',
+                link: `/admin?tab=orders&id=${invoiceId}`
+            });
+        }
+
         res.status(201).json({ message: 'Order placed successfully', invoiceId, status });
     } catch (error) {
         console.error('Error creating invoice:', error);
@@ -86,6 +107,18 @@ router.post('/:id/slip', authMiddleware, upload.single('slip_image'), async (req
         
         // Also update sub-orders for dashboard sync if needed
         await db.run("UPDATE orders SET slip_image = ?, status = 'pending' WHERE invoice_id = ?", [req.file.filename, req.params.id]);
+
+        // 🔔 NOTIFY ADMIN: New Slip
+        const admin = await db.get("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+        if (admin) {
+            await createNotification({
+                user_id: admin.id,
+                title: '📸 สลิปใหม่เข้าแล้ว!',
+                message: `ออเดอร์ #${req.params.id} อัปโหลดสลิปแล้ว ตรวจสอบด่วน`,
+                type: 'warning',
+                link: `/admin?tab=orders&id=${req.params.id}`
+            });
+        }
 
         res.json({ message: 'Slip uploaded successfully', slip: req.file.filename });
     } catch (error) {
@@ -149,6 +182,19 @@ router.post('/:id/approve', authMiddleware, adminMiddleware, async (req, res) =>
         const db = await getDb();
         await db.run(`UPDATE invoices SET status = 'paid' WHERE id = ?`, [req.params.id]);
         await db.run(`UPDATE orders SET status = 'completed' WHERE invoice_id = ?`, [req.params.id]);
+
+        // 🔔 NOTIFY USER: Order Approved
+        const invoice = await db.get('SELECT user_id, total_price FROM invoices WHERE id = ?', [req.params.id]);
+        if (invoice) {
+            await createNotification({
+                user_id: invoice.user_id,
+                title: '✅ ชำระเงินสำเร็จ!',
+                message: `ออเดอร์ #${req.params.id} ยอด ฿${invoice.total_price.toLocaleString()} ได้รับการยืนยันแล้ว`,
+                type: 'success',
+                link: '/my-orders'
+            });
+        }
+
         res.json({ message: 'Approved successfully' });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
@@ -158,9 +204,24 @@ router.post('/:id/approve', authMiddleware, adminMiddleware, async (req, res) =>
 // Admin: Reject Invoice
 router.post('/:id/reject', authMiddleware, adminMiddleware, async (req, res) => {
     try {
+        const { reason } = req.body;
         const db = await getDb();
-        await db.run(`UPDATE invoices SET status = 'rejected' WHERE id = ?`, [req.params.id]);
+        await db.run(`UPDATE invoices SET status = 'rejected', rejection_reason = ? WHERE id = ?`, [reason, req.params.id]);
         await db.run(`UPDATE orders SET status = 'rejected' WHERE invoice_id = ?`, [req.params.id]);
+
+        // 🔔 NOTIFY USER: Order Rejected
+        const invoice = await db.get('SELECT user_id FROM invoices WHERE id = ?', [req.params.id]);
+        if (invoice) {
+            const reasonText = reason ? `: ${reason}` : ' (ตรวจสอบสลิปหรือติดต่อแอดมิน)';
+            await createNotification({
+                user_id: invoice.user_id,
+                title: '❌ ออเดอร์ไม่สำเร็จ',
+                message: `ออเดอร์ #${req.params.id} ถูกปฏิเสธ${reasonText}`,
+                type: 'error',
+                link: '/my-orders'
+            });
+        }
+
         res.json({ message: 'Rejected successfully' });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
