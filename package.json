@@ -9,7 +9,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-    "build": "cd client && npm install && npm run build"
+    "build": "npm install && (cd client && npm install && npm run build)",
+    "debug:host": "echo '--- Root Dir Content ---' && ls -la && echo '--- Checking client folder ---' && (ls -d client || echo 'client folder NOT FOUND') && echo '--- Home Dir ---' && pwd"
   },
   "keywords": [],
   "author": "",
