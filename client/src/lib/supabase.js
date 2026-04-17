@@ -1,39 +1,47 @@
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Supabase Initialization (Production-grade)
+ * Supabase Initialization (Senior Frontend - Production-grade)
  * 
- * Strict standards:
- * 1. Environment variables only (VITE_ prefix required for Vite)
- * 2. Protocol validation (HTTPS)
- * 3. Conditional error handling (Warn in dev, Throw in prod)
+ * Features:
+ * - Masked Status Logging (OK/MISSING) - Dev only
+ * - Strict Environment Validation
+ * - Secure Failure (Throws in Prod, Warns in Dev)
  */
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const isDev = import.meta.env.DEV;
 
-// 1. Validation Logic
-const validateConfig = () => {
-  const missingVars = [];
-  if (!supabaseUrl) missingVars.push('VITE_SUPABASE_URL');
-  if (!supabaseAnonKey) missingVars.push('VITE_SUPABASE_ANON_KEY');
+// 1. Masked Status Logger (Development Only)
+if (isDev) {
+  console.group('🛡️ [Supabase] Environment Status');
+  console.log(`URL: ${supabaseUrl ? '✅ OK' : '❌ MISSING'}`);
+  console.log(`KEY: ${supabaseAnonKey ? '✅ OK' : '❌ MISSING'}`);
+  console.groupEnd();
+}
 
-  if (missingVars.length > 0) {
-    const errorMsg = `[Supabase] Missing Environment Variables: ${missingVars.join(', ')}. Check your .env file.`;
+// 2. Strict Validation & Security Guard
+const validateAndInit = () => {
+  const missing = [];
+  if (!supabaseUrl) missing.push('VITE_SUPABASE_URL');
+  if (!supabaseAnonKey) missing.push('VITE_SUPABASE_ANON_KEY');
+
+  if (missing.length > 0) {
+    const errorMsg = `[Supabase] Critical Error: Missing environment variables (${missing.join(', ')}).`;
     
     if (isDev) {
-      console.warn(errorMsg);
-      return false;
+      console.warn(`${errorMsg}\nCheck your .env file or build configuration.`);
+      return null;
     } else {
-      // Hard crash in production to prevent data inconsistency or silent failures
+      // Production Security: Immediate throw to prevent silent failure
       throw new Error(errorMsg);
     }
   }
 
-  // 2. Protocol Check
+  // Protocol Check (Must be https)
   if (supabaseUrl && !supabaseUrl.startsWith('https://')) {
-    const protocolError = '[Supabase] Invalid URL: VITE_SUPABASE_URL must use HTTPS for production security.';
+    const protocolError = '[Supabase] Security Error: URL must use HTTPS for production.';
     if (isDev) {
       console.warn(protocolError);
     } else {
@@ -41,30 +49,9 @@ const validateConfig = () => {
     }
   }
 
-  return true;
+  return createClient(supabaseUrl, supabaseAnonKey);
 };
 
-// 3. Client Initialization
-let supabase = null;
-
-if (validateConfig()) {
-  try {
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-    
-    if (isDev) {
-      console.log('✅ [Supabase] Client initialized successfully.');
-    }
-  } catch (err) {
-    const initError = `[Supabase] Initialization failed: ${err.message}`;
-    if (isDev) {
-      console.error(initError);
-    } else {
-      throw new Error(initError);
-    }
-  }
-} else {
-  // Graceful degradation for Dev ONLY (avoiding total crash if not needed)
-  // But in production, validateConfig would have already thrown an error.
-}
+const supabase = validateAndInit();
 
 export { supabase };
