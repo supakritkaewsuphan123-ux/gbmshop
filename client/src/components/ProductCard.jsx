@@ -56,7 +56,7 @@ export default function ProductCard({ product, index = 0 }) {
           ? 'bg-gradient-to-r from-orange-500 to-amber-500' 
           : 'bg-gradient-to-r from-emerald-500 to-teal-500'
       }`}>
-        {product.category || 'มือ1'}
+        {product.category === 'มือสอง' ? 'มือ2' : (product.category || 'มือ1')}
       </div>
 
       {/* Out of stock overlay */}

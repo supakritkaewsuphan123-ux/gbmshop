@@ -114,7 +114,7 @@ export default function Products() {
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                {cat === 'มือสอง' ? 'มือสอง' : cat}
+                {cat === 'มือสอง' ? 'มือ2' : cat}
               </button>
             ))}
           </div>

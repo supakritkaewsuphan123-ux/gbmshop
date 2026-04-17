@@ -739,7 +739,7 @@ export default function Admin() {
               <label className="label">หมวดหมู่</label>
               <select className="input-field" value={productForm.category} onChange={e => setProductForm(p => ({ ...p, category: e.target.value }))}>
                 <option value="มือ1">มือ1 (ใหม่)</option>
-                <option value="มือสอง">มือสอง</option>
+                <option value="มือสอง">มือ2</option>
               </select>
             </div>
           </div>
