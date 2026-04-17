@@ -236,7 +236,7 @@ export default function ProductDetail() {
                     onClick={openBuy}
                     className="btn-primary py-4 text-lg flex items-center justify-center gap-2"
                   >
-                    <Zap size={20} /> {user ? 'ซื้อเลย' : 'เข้าสู่ระบบเพื่อซื้อเลย'}
+                    <Zap size={20} /> ซื้อเลย
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
@@ -244,7 +244,7 @@ export default function ProductDetail() {
                     className={`btn-outline py-4 text-lg flex items-center justify-center gap-2 ${inCart ? 'opacity-60' : ''}`}
                     disabled={inCart}
                   >
-                    <ShoppingCart size={20} /> {inCart ? 'อยู่ในตะกร้าแล้ว' : (user ? 'เพิ่มลงตะกร้า' : 'เข้าสู่ระบบเพื่อเพิ่มลงตะกร้า')}
+                    <ShoppingCart size={20} /> {inCart ? 'อยู่ในตะกร้าแล้ว' : 'เพิ่มลงตะกร้า'}
                   </motion.button>
                 </>
               ) : (
