@@ -104,7 +104,7 @@ export default function Products() {
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           {/* Category Tabs */}
           <div className="flex bg-surface border border-border p-1 rounded-2xl w-full md:w-auto">
-            {['ทั้งหมด', 'มือ1', 'มือ2'].map((cat) => (
+            {['ทั้งหมด', 'มือ1', 'มือสอง'].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
@@ -114,7 +114,7 @@ export default function Products() {
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                {cat}
+                {cat === 'มือสอง' ? 'มือสอง' : cat}
               </button>
             ))}
           </div>
