@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Zap, ArrowLeft, User, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -14,6 +14,7 @@ import { getImageUrl } from '../lib/urlHelper';
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { addToCart, items } = useCart();
   const { showToast } = useToast();
@@ -81,7 +82,11 @@ export default function ProductDetail() {
   };
 
   const toggleWishlist = async () => {
-    if (!user) { showToast('กรุณาเข้าสู่ระบบก่อน', 'error'); navigate('/login'); return; }
+    if (!user) { 
+      showToast('กรุณาเข้าสู่ระบบก่อน', 'error'); 
+      navigate('/login', { state: { from: location } }); 
+      return; 
+    }
     setTogglingWishlist(true);
     try {
       if (inWishlist) {
@@ -105,19 +110,28 @@ export default function ProductDetail() {
 
   // Prepare Media Array for Gallery
   const media = product ? [
-    { type: 'image', src: getImageUrl(product.image, 'product_images') },
-    ...(product.images ? (() => { try { return JSON.parse(product.images); } catch(e) { return []; } })().map(img => ({ type: 'image', src: getImageUrl(img, 'product_images') })) : []),
-    ...(product.videos ? (() => { try { return JSON.parse(product.videos); } catch(e) { return []; } })().map(vid => ({ type: 'video', src: getImageUrl(vid, 'product_images') })) : [])
+    { type: 'image', src: getImageUrl(product.image_url, 'product-images') },
+    ...(product.images ? (() => { try { return JSON.parse(product.images); } catch(e) { return []; } })().map(img => ({ type: 'image', src: getImageUrl(img, 'product-images') })) : []),
+    ...(product.videos ? (() => { try { return JSON.parse(product.videos); } catch(e) { return []; } })().map(vid => ({ type: 'video', src: getImageUrl(vid, 'product-images') })) : [])
   ].filter(m => m.src) : [];
 
   const handleAddToCart = () => {
     if (!product) return;
-    addToCart({ id: product.id, name: product.name, price: product.price, image: product.image });
+    if (!user) {
+      showToast('กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้าลงตะกร้า', 'error');
+      navigate('/login', { state: { from: location } });
+      return;
+    }
+    addToCart({ id: product.id, name: product.name, price: product.price, image: product.image_url });
     showToast('เพิ่มลงตะกร้าเรียบร้อย 🛒', 'success');
   };
 
   const openBuy = () => {
-    if (!user) { showToast('กรุณาเข้าสู่ระบบก่อน', 'error'); navigate('/login'); return; }
+    if (!user) { 
+      showToast('กรุณาเข้าสู่ระบบก่อน', 'error'); 
+      navigate('/login', { state: { from: location } }); 
+      return; 
+    }
     setModalStep('menu');
     setModalOpen(true);
   };

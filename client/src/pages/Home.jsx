@@ -9,11 +9,7 @@ import { ProductCardSkeleton } from '../components/Spinner';
 import { useToast } from '../context/ToastContext';
 import { usePageMetadata } from '../hooks/usePageMetadata';
 
-const FEATURES = [
-  { icon: <Zap size={28} className="text-primary" />, title: 'ราคาดีที่สุด', desc: 'สินค้ามือสองคุณภาพ ราคาโดนใจ คัดมาแล้ว' },
-  { icon: <Shield size={28} className="text-primary" />, title: 'ซื้อขายปลอดภัย', desc: 'มีระบบยืนยันการชำระเงินและรับรองผู้ขาย' },
-  { icon: <TrendingUp size={28} className="text-primary" />, title: 'อัปเดตทุกวัน', desc: 'สินค้าใหม่เข้าทุกวัน ไม่พลาดของดี' },
-];
+// FEATURES section removed
 
 export default function Home() {
   usePageMetadata('หน้าแรก', 'GB Marketplace - ตลาดซื้อขายสินค้าพรีเมียม ปลอดภัย มั่นใจ 100% พร้อมระบบ Wallet อัตโนมัติ');
@@ -73,7 +69,7 @@ export default function Home() {
         const { data: productsData, error } = await supabase
           .from('products')
           .select('*')
-          .limit(4)
+          .limit(8)
           .order('created_at', { ascending: false });
           
         if (error) throw error;
@@ -213,27 +209,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== FEATURE CARDS ===== */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {FEATURES.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.5 }}
-              className="glass p-6 hover:border-primary/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-sm"
-            >
-              <div className="mb-4 w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                {f.icon}
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">{f.title}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">{f.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+      {/* FEATURE CARDS REMOVED */}
 
       {/* ===== FEATURED PRODUCTS ===== */}
       <section className="max-w-7xl mx-auto px-6 pb-24 border-b border-white/5">
@@ -247,45 +223,23 @@ export default function Home() {
           <p className="section-subtitle">สินค้ามือสองคุณภาพดีที่ลงขายล่าสุด</p>
         </motion.div>
 
-        {!user ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            className="glass p-12 text-center rounded-3xl border border-primary/20 bg-primary/5 shadow-glow-sm"
-          >
-            <div className="mb-6 w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
-              <Shield size={32} className="text-primary" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-3">กรุณาเข้าสู่ระบบเพื่อดูสินค้า</h3>
-            <p className="text-gray-400 mb-8 max-w-md mx-auto">
-              สิทธิพิเศษสำหรับสมาชิกเท่านั้น! ลงทะเบียนวันนี้เพื่อเลือกซื้อสินค้ามือสองคุณภาพดีในราคาประหยัด
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Link to="/login" className="btn-primary px-8 py-3">เข้าสู่ระบบ</Link>
-              <Link to="/register" className="btn-outline px-8 py-3">สมัครสมาชิก</Link>
-            </div>
-          </motion.div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {loading
-                ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
-                : products.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {loading
+            ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
+            : products.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
+        </div>
 
-            {!loading && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                className="text-center mt-10"
-              >
-                <Link to="/products" className="btn-outline px-10 py-3 inline-flex items-center gap-2">
-                  ดูสินค้าทั้งหมด <ArrowRight size={16} />
-                </Link>
-              </motion.div>
-            )}
-          </>
+        {!loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mt-10"
+          >
+            <Link to="/products" className="btn-outline px-10 py-3 inline-flex items-center gap-2">
+              ดูสินค้าทั้งหมด <ArrowRight size={16} />
+            </Link>
+          </motion.div>
         )}
       </section>
 

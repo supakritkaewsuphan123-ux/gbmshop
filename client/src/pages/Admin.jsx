@@ -387,7 +387,7 @@ export default function Admin() {
         stock: parseInt(productForm.stock), 
         category: productForm.category, 
         description: productForm.description, 
-        image: imageUrl, // ✅ Changed from image_url for consistency
+        image_url: imageUrl, 
         images: JSON.stringify(additionalImages),
         videos: JSON.stringify(videos)
       };
@@ -460,7 +460,7 @@ export default function Admin() {
               <tbody>{products.map(p => (
                 <tr key={p.id} className="border-b border-border last:border-0 hover:bg-white/5 whitespace-nowrap">
                   <td className="px-5 py-3 text-sm text-gray-500">#{p.id}</td>
-                  <td className="px-5 py-3 text-sm font-medium"><div className="flex items-center gap-2"><img src={getImageUrl(p.image, 'product_images')} className="w-8 h-8 rounded object-cover" />{p.name}</div></td>
+                  <td className="px-5 py-3 text-sm font-medium"><div className="flex items-center gap-2"><img src={getImageUrl(p.image_url, 'product-images')} className="w-8 h-8 rounded object-cover" />{p.name}</div></td>
                   <td className="px-5 py-3 text-sm text-gray-400">{p.seller_name}</td>
                   <td className="px-5 py-3 text-primary font-bold">฿{p.price?.toLocaleString()}</td>
                   <td className="px-5 py-3 text-sm text-gray-400">{p.stock}</td>

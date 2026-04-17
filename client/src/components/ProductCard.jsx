@@ -5,22 +5,32 @@ import { useToast } from '../context/ToastContext';
 import { ShoppingCart, Eye } from 'lucide-react';
 import WishlistButton from './WishlistButton';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getImageUrl } from '../lib/urlHelper';
 
 export default function ProductCard({ product, index = 0 }) {
   const { user } = useAuth();
   const { addToCart, items } = useCart();
   const { showToast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
   const inCart = items.some((p) => p.id === product.id);
 
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    if (!user) {
+      showToast('กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้าลงตะกร้า', 'error');
+      navigate('/login', { state: { from: location } });
+      return;
+    }
+
     if (inCart) {
       showToast('สินค้าอยู่ในตะกร้าแล้ว', 'info');
       return;
     }
-    addToCart({ id: product.id, name: product.name, price: product.price, image: product.image });
+    addToCart({ id: product.id, name: product.name, price: product.price, image: product.image_url });
     showToast('เพิ่มลงตะกร้าเรียบร้อย 🛒', 'success');
   };
 
@@ -71,7 +81,7 @@ export default function ProductCard({ product, index = 0 }) {
       {/* Image */}
       <div className="relative overflow-hidden bg-white" style={{ height: '220px' }}>
         <img
-          src={getImageUrl(product.image, 'product_images')}
+          src={getImageUrl(product.image_url, 'product-images')}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           onError={(e) => { e.target.src = 'https://via.placeholder.com/300x250?text=No+Image'; }}
