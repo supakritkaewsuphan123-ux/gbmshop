@@ -1,51 +1,70 @@
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * Supabase Initialization (Production-grade)
+ * 
+ * Strict standards:
+ * 1. Environment variables only (VITE_ prefix required for Vite)
+ * 2. Protocol validation (HTTPS)
+ * 3. Conditional error handling (Warn in dev, Throw in prod)
+ */
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const isDev = import.meta.env.DEV;
 
-let supabaseInstance = null;
+// 1. Validation Logic
+const validateConfig = () => {
+  const missingVars = [];
+  if (!supabaseUrl) missingVars.push('VITE_SUPABASE_URL');
+  if (!supabaseAnonKey) missingVars.push('VITE_SUPABASE_ANON_KEY');
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('[Supabase] Missing environment variables. Please check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.');
-} else {
-  try {
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
-  } catch (err) {
-    console.error('[Supabase] Initialization error:', err);
+  if (missingVars.length > 0) {
+    const errorMsg = `[Supabase] Missing Environment Variables: ${missingVars.join(', ')}. Check your .env file.`;
+    
+    if (isDev) {
+      console.warn(errorMsg);
+      return false;
+    } else {
+      // Hard crash in production to prevent data inconsistency or silent failures
+      throw new Error(errorMsg);
+    }
   }
+
+  // 2. Protocol Check
+  if (supabaseUrl && !supabaseUrl.startsWith('https://')) {
+    const protocolError = '[Supabase] Invalid URL: VITE_SUPABASE_URL must use HTTPS for production security.';
+    if (isDev) {
+      console.warn(protocolError);
+    } else {
+      throw new Error(protocolError);
+    }
+  }
+
+  return true;
+};
+
+// 3. Client Initialization
+let supabase = null;
+
+if (validateConfig()) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    if (isDev) {
+      console.log('✅ [Supabase] Client initialized successfully.');
+    }
+  } catch (err) {
+    const initError = `[Supabase] Initialization failed: ${err.message}`;
+    if (isDev) {
+      console.error(initError);
+    } else {
+      throw new Error(initError);
+    }
+  }
+} else {
+  // Graceful degradation for Dev ONLY (avoiding total crash if not needed)
+  // But in production, validateConfig would have already thrown an error.
 }
 
-// Improved: Truly recursive Proxy to handle ANY method chain safely
-const createUncrashableProxy = (name = 'root') => {
-  const handler = {
-    get: (target, prop) => {
-      // Return a function that returns the same proxy, allowing any chain depth
-      if (prop === 'then') return undefined; // Avoid issues with async/await
-      return createUncrashableProxy(prop);
-    },
-    apply: (target, thisArg, args) => {
-      // When called as a function, return the same proxy
-      return createUncrashableProxy('apply');
-    }
-  };
-
-  // The proxy is a function so it can be called: proxy.method()()()
-  const proxyFn = function() { return new Proxy(() => {}, handler); };
-  return new Proxy(proxyFn, handler);
-};
-
-// Base definitions for common methods to return sensible defaults if needed
-const baseFallback = {
-  auth: {
-    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-    signInWithPassword: () => Promise.reject(new Error('Supabase not initialized')),
-  },
-  storage: {
-    from: () => ({
-      getPublicUrl: () => ({ data: { publicUrl: '' } }),
-    })
-  }
-};
-
-export const supabase = supabaseInstance || Object.assign(createUncrashableProxy(), baseFallback);
+export { supabase };
