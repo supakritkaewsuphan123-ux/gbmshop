@@ -29,7 +29,7 @@ const validateAndInit = () => {
 
   if (missing.length > 0) {
     const errorMsg = `[Supabase] Critical Error: Missing environment variables (${missing.join(', ')}).`;
-    
+
     if (isDev) {
       console.warn(`${errorMsg}\nCheck your .env file or build configuration.`);
       return null;
