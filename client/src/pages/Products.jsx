@@ -107,8 +107,8 @@ export default function Products() {
           <div className="w-16 h-16 bg-white border border-blue-100 rounded-2xl flex items-center justify-center text-primary mb-8 shadow-sm">
              <Globe size={32} />
           </div>
-          <h1 className="text-6xl font-black text-[#EE4D2D] mb-4 tracking-tighter uppercase">รายการสินค้า</h1>
-          <p className="text-xl text-[#EE4D2D]/60 font-bold tracking-tight">เลือกซื้อสินค้าคุณภาพที่คัดสรรมาเพื่อคุณโดยเฉพาะ</p>
+          <h1 className="text-6xl font-black text-navy mb-4 tracking-tighter uppercase">รายการสินค้า</h1>
+          <p className="text-xl text-navy/60 font-bold tracking-tight">เลือกซื้อสินค้าคุณภาพที่คัดสรรมาเพื่อคุณโดยเฉพาะ</p>
         </motion.div>
 
         {/* Category Iconic Banner */}
@@ -119,7 +119,7 @@ export default function Products() {
                 className={`p-6 rounded-[32px] transition-all duration-500 border-2 min-w-[140px] flex flex-col items-center gap-4 ${
                   selectedCategory === 'ทั้งหมด'
                     ? 'bg-primary border-primary text-white shadow-glow-sm scale-105'
-                    : 'bg-brand-navy/40 border-primary/10 text-primary/70 hover:border-primary/40 hover:bg-brand-navy/60'
+                    : 'bg-white/40 border-navy/10 text-navy/70 hover:border-navy/40 hover:bg-white/60'
                 }`}
               >
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${selectedCategory === 'ทั้งหมด' ? 'bg-white/20' : 'bg-primary/5'}`}>
@@ -135,7 +135,7 @@ export default function Products() {
                   className={`p-6 rounded-[32px] transition-all duration-500 border-2 min-w-[140px] flex flex-col items-center gap-4 ${
                     selectedCategory === cat.name
                       ? 'bg-primary border-primary text-white shadow-glow-sm scale-105'
-                      : 'bg-brand-navy/40 border-primary/10 text-primary/70 hover:border-primary/40 hover:bg-brand-navy/60'
+                      : 'bg-white/40 border-navy/10 text-navy/70 hover:border-navy/40 hover:bg-white/60'
                   }`}
                 >
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${selectedCategory === cat.name ? 'bg-white/20' : 'bg-primary/5'}`}>
@@ -155,13 +155,13 @@ export default function Products() {
               animate={{ opacity: 1, x: 0 }}
               className="relative max-w-2xl w-full"
             >
-              <div className="absolute left-6 top-1/2 -translate-y-1/2 text-primary/40"><Search size={22} /></div>
+              <div className="absolute left-6 top-1/2 -translate-y-1/2 text-navy/40"><Search size={22} /></div>
               <input
                 type="text"
                 placeholder="ค้นหาสินค้าที่คุณต้องการ..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input-field pl-16 py-6 text-xl tracking-tight border-primary/10 focus:border-primary shadow-sm bg-brand-navy/60 text-primary"
+                className="input-field pl-16 py-6 text-xl tracking-tight border-navy/10 focus:border-navy shadow-sm bg-white/60 text-navy placeholder-navy/30"
               />
             </motion.div>
 
@@ -169,11 +169,11 @@ export default function Products() {
               <select 
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-brand-navy/60 border border-primary/10 rounded-2xl px-10 py-5 text-primary text-xs font-black uppercase tracking-widest focus:outline-none focus:border-primary transition-all cursor-pointer shadow-sm w-full md:w-auto appearance-none text-center"
+                className="bg-white/60 border border-navy/10 rounded-2xl px-10 py-5 text-navy text-xs font-black uppercase tracking-widest focus:outline-none focus:border-navy transition-all cursor-pointer shadow-sm w-full md:w-auto appearance-none text-center"
               >
-                <option value="latest" className="bg-brand-navy">เรียงลำดับ: ล่าสุด</option>
-                <option value="price-low" className="bg-brand-navy">ราคา: ต่ำ - สูง</option>
-                <option value="price-high" className="bg-brand-navy">ราคา: สูง - ต่ำ</option>
+                <option value="latest" className="bg-white">เรียงลำดับ: ล่าสุด</option>
+                <option value="price-low" className="bg-white">ราคา: ต่ำ - สูง</option>
+                <option value="price-high" className="bg-white">ราคา: สูง - ต่ำ</option>
               </select>
             </div>
           </div>
@@ -197,16 +197,16 @@ export default function Products() {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="text-center py-40 bg-brand-navy/30 backdrop-blur-md rounded-[48px] border-2 border-dashed border-primary/10 shadow-sm"
+              className="text-center py-40 bg-white/30 backdrop-blur-md rounded-[48px] border-2 border-dashed border-navy/10 shadow-sm"
             >
-              <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-10 text-5xl shadow-sm">
-                 <Search size={40} className="text-primary/40" />
+              <div className="w-24 h-24 bg-navy/5 rounded-full flex items-center justify-center mx-auto mb-10 text-5xl shadow-sm">
+                 <Search size={40} className="text-navy/40" />
               </div>
-              <h3 className="text-4xl font-black text-primary mb-4 tracking-tight uppercase">ไม่พบสินค้า</h3>
-              <p className="text-primary/60 font-bold mb-10 max-w-md mx-auto">ไม่มีสินค้าที่คุณเลือกในขณะนี้ ลองเปลี่ยนคำค้นหาหรือหมวดหมู่ใหม่ครับ</p>
+              <h3 className="text-4xl font-black text-navy mb-4 tracking-tight uppercase">ไม่พบสินค้า</h3>
+              <p className="text-navy/60 font-bold mb-10 max-w-md mx-auto">ไม่มีสินค้าที่คุณเลือกในขณะนี้ ลองเปลี่ยนคำค้นหาหรือหมวดหมู่ใหม่ครับ</p>
               <button 
                 onClick={() => { setSearch(''); setSelectedCategory('ทั้งหมด'); }}
-                className="bg-primary text-white font-black px-12 py-5 rounded-2xl shadow-glow-sm hover:brightness-110 active:scale-95 transition-all"
+                className="bg-navy text-white font-black px-12 py-5 rounded-2xl shadow-glow-sm hover:brightness-110 active:scale-95 transition-all"
               >
                 รีเซ็ตการค้นหาของฉัน
               </button>

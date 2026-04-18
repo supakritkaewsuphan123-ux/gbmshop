@@ -43,8 +43,8 @@ export default function Login() {
             <div className="w-16 h-16 bg-primary/5 flex items-center justify-center text-primary mx-auto mb-8 rounded-2xl shadow-sm border border-primary/10">
               <ShieldCheck size={32} />
             </div>
-            <h2 className="text-5xl font-black text-primary mb-2 tracking-tighter uppercase">Login</h2>
-            <p className="text-primary/60 font-bold tracking-tight">เข้าใช้งานบัญชี GBshop ของคุณ</p>
+            <h2 className="text-5xl font-black text-white mb-2 tracking-tighter uppercase">Login</h2>
+            <p className="text-white/60 font-bold tracking-tight">เข้าใช้งานบัญชี GBshop ของคุณ</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
@@ -95,9 +95,9 @@ export default function Login() {
         </div>
         
         <div className="mt-12 text-center flex items-center justify-center gap-6">
-           <Link to="/" className="text-[10px] text-primary/30 font-black uppercase tracking-widest hover:text-primary transition-all">Home</Link>
-           <span className="w-1 h-1 bg-primary/10 rounded-full" />
-           <Link to="/help" className="text-[10px] text-primary/30 font-black uppercase tracking-widest hover:text-primary transition-all">Help Center</Link>
+           <Link to="/" className="text-[10px] text-white/30 font-black uppercase tracking-widest hover:text-white transition-all">Home</Link>
+           <span className="w-1 h-1 bg-white/10 rounded-full" />
+           <Link to="/help" className="text-[10px] text-white/30 font-black uppercase tracking-widest hover:text-white transition-all">Help Center</Link>
         </div>
       </motion.div>
     </div>

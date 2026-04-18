@@ -41,7 +41,7 @@ export default function Navbar() {
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
         scrolled
-          ? 'bg-[#111d33]/80 backdrop-blur-xl shadow-lg py-4 border-b border-primary/10'
+          ? 'bg-white/40 backdrop-blur-xl shadow-lg py-4 border-b border-navy/10'
           : 'bg-transparent py-6'
       }`}
     >
@@ -80,7 +80,7 @@ export default function Navbar() {
                 <NotificationBell />
                 <Link to="/cart" className="relative w-12 h-12 bg-primary/5 rounded-2xl flex items-center justify-center text-primary/60 hover:text-primary hover:bg-primary/10 border border-primary/10 transition-all group">
                    <ShoppingCart size={22} className="group-hover:scale-110 transition-transform" />
-                   {count > 0 && <span className="absolute -top-1 -right-1 bg-primary text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border border-[#111d33]">
+                   {count > 0 && <span className="absolute -top-1 -right-1 bg-primary text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border border-[#82bce8]">
                     {count}
                    </span>}
                 </Link>
@@ -128,7 +128,7 @@ export default function Navbar() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="lg:hidden absolute top-full inset-x-0 bg-[#111d33]/95 backdrop-blur-2xl border-b border-primary/10 shadow-2xl p-6"
+            className="lg:hidden absolute top-full inset-x-0 bg-white/95 backdrop-blur-2xl border-b border-navy/10 shadow-2xl p-6"
           >
             <div className="flex flex-col gap-4">
               {navLinks.map((l) => (

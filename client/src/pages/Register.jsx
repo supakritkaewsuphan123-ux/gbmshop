@@ -47,8 +47,8 @@ export default function Register() {
             <div className="w-16 h-16 bg-primary/5 border border-primary/10 flex items-center justify-center text-primary mx-auto mb-8 rounded-2xl shadow-sm">
               <ShieldPlus size={32} />
             </div>
-            <h2 className="text-5xl font-black text-primary mb-2 tracking-tighter uppercase">Register</h2>
-            <p className="text-primary/60 font-bold tracking-tight">เข้าร่วมครอบครัว GBshop </p>
+            <h2 className="text-5xl font-black text-white mb-2 tracking-tighter uppercase">Register</h2>
+            <p className="text-white/60 font-bold tracking-tight">สมัครสมาชิก GBshop เพื่อเริ่มต้นช้อปสินค้าพรีเมียม</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6 relative z-10">

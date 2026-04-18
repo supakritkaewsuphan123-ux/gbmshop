@@ -18,17 +18,17 @@ export default {
           light: "rgba(238,77,45,0.1)",
         },
         brand: {
-          dark: "#111d33",
-          darker: "#0a0f1d",
-          navy: "#11213d",
+          dark: "#82bce8",
+          darker: "#d1e5f4",
+          navy: "#050B18",
         },
         secondary: {
           DEFAULT: "#FB923C",
           light: "#DBEAFE",
         },
-        background: "#111d33",
-        surface: "#11213d",
-        border: "rgba(238,77,45,0.1)",
+        background: "#82bce8",
+        surface: "#FFFFFF",
+        border: "rgba(5, 11, 24, 0.1)",
       },
       boxShadow: {
         soft: "0 4px 20px rgba(0,0,0,0.4)",

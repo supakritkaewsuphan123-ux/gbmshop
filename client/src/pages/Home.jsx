@@ -70,8 +70,8 @@ export default function Home() {
             viewport={{ once: true }}
             className="text-left"
           >
-            <h2 className="text-6xl font-black text-[#EE4D2D] mb-6 tracking-tight">สินค้าแนะนำ</h2>
-            <p className="text-2xl text-[#EE4D2D] font-bold">เลือกชมสินค้าคุณภาพที่ผ่านการคัดสรรมาเพื่อคุณ</p>
+            <h2 className="text-6xl font-black text-navy mb-6 tracking-tight">สินค้าแนะนำ</h2>
+            <p className="text-2xl text-navy/80 font-bold">เลือกชมสินค้าคุณภาพที่ผ่านการคัดสรรมาเพื่อคุณ</p>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
             <Link to="/products" className="text-primary font-black flex items-center gap-3 hover:translate-x-2 transition-transform py-6 px-12 bg-primary/5 backdrop-blur-sm rounded-[24px] border border-primary/10 shadow-glow-sm">
@@ -92,18 +92,18 @@ export default function Home() {
          <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-24">
             <div className="text-center group">
                <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto mb-8 shadow-glow-sm border border-primary/20 group-hover:bg-primary group-hover:text-white transition-all"><ShieldCheck size={36} /></div>
-               <h4 className="text-2xl font-black text-primary mb-3 uppercase tracking-tighter">ปลอดภัย 100%</h4>
-               <p className="text-primary/70 font-bold leading-relaxed">ตรวจสอบความปลอดภัยทุกออเดอร์ มั่นใจได้ในทุกคำสั่งซื้อ</p>
+               <h4 className="text-2xl font-black text-navy mb-3 uppercase tracking-tighter">ปลอดภัย 100%</h4>
+               <p className="text-navy/70 font-bold leading-relaxed">ตรวจสอบความปลอดภัยทุกออเดอร์ มั่นใจได้ในทุกคำสั่งซื้อ</p>
             </div>
             <div className="text-center group">
-               <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto mb-8 shadow-glow-sm border border-primary/20 group-hover:bg-primary group-hover:text-white transition-all"><Zap size={36} /></div>
-               <h4 className="text-2xl font-black text-primary mb-3 uppercase tracking-tighter">จัดส่งว่องไว</h4>
-               <p className="text-primary/70 font-bold leading-relaxed">ระบบยืนยันออเดอร์รวดเร็ว พร้อมแจ้งเตือนทันทีเมื่อมีการเปลี่ยนแปลง</p>
+               <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center text-primary mx-auto mb-8 shadow-glow-sm border border-navy/10 group-hover:bg-primary group-hover:text-white transition-all"><Zap size={36} /></div>
+               <h4 className="text-2xl font-black text-navy mb-3 uppercase tracking-tighter">จัดส่งว่องไว</h4>
+               <p className="text-navy/70 font-bold leading-relaxed">ระบบยืนยันออเดอร์รวดเร็ว พร้อมแจ้งเตือนทันทีเมื่อมีการเปลี่ยนแปลง</p>
             </div>
             <div className="text-center group">
-               <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto mb-8 shadow-glow-sm border border-primary/20 group-hover:bg-primary group-hover:text-white transition-all"><MessageSquare size={36} /></div>
-               <h4 className="text-2xl font-black text-primary mb-3 uppercase tracking-tighter">ดูแลตลอด 24 ชม.</h4>
-               <p className="text-primary/70 font-bold leading-relaxed">ทีมงานแอดมินพร้อมซัพพอร์ตและแก้ไขปัญหาให้คุณได้ทุกเวลา</p>
+               <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center text-primary mx-auto mb-8 shadow-glow-sm border border-navy/10 group-hover:bg-primary group-hover:text-white transition-all"><MessageSquare size={36} /></div>
+               <h4 className="text-2xl font-black text-navy mb-3 uppercase tracking-tighter">ดูแลตลอด 24 ชม.</h4>
+               <p className="text-navy/70 font-bold leading-relaxed">ทีมงานแอดมินพร้อมซัพพอร์ตและแก้ไขปัญหาให้คุณได้ทุกเวลา</p>
             </div>
          </div>
       </section>
@@ -116,8 +116,8 @@ export default function Home() {
            viewport={{ once: true }}
            className="text-center mb-20"
         >
-          <h2 className="text-6xl font-black text-[#EE4D2D] mb-6 tracking-tight">ช่องทางติดต่อ</h2>
-          <p className="text-2xl text-[#EE4D2D]/80 font-bold">เลือกช่องทางที่คุณสะดวกเพื่อสอบถามข้อมูลเพิ่มเติม</p>
+          <h2 className="text-6xl font-black text-navy mb-6 tracking-tight">ช่องทางติดต่อ</h2>
+          <p className="text-2xl text-navy/80 font-bold">เลือกช่องทางที่คุณสะดวกเพื่อสอบถามข้อมูลเพิ่มเติม</p>
         </motion.div>
 
         <motion.div
@@ -127,30 +127,30 @@ export default function Home() {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-5xl mx-auto"
         >
           <a href="https://lin.ee/Z1pMLkJ" target="_blank" rel="noopener noreferrer"
-            className="p-10 bg-brand-navy/60 backdrop-blur-sm border border-primary/10 rounded-[48px] hover:border-primary hover:-translate-y-2 transition-all group text-center shadow-glow-sm block">
-            <div className="w-20 h-20 bg-primary/5 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-green-500/10 transition-all mx-auto shadow-sm">
-              <MessageSquare size={40} className="text-primary group-hover:text-green-500" />
+            className="p-10 bg-white/40 backdrop-blur-sm border border-navy/10 rounded-[48px] hover:border-primary hover:-translate-y-2 transition-all group text-center shadow-glow-sm block">
+            <div className="w-20 h-20 bg-white/20 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-green-500/10 transition-all mx-auto shadow-sm">
+              <MessageSquare size={40} className="text-primary group-hover:text-green-600" />
             </div>
-            <p className="text-[10px] text-primary/60 uppercase font-black mb-1 tracking-[0.4em]">LINE Official</p>
-            <p className="text-primary font-black text-2xl">@gbmoneyshop</p>
+            <p className="text-[10px] text-navy/40 uppercase font-black mb-1 tracking-[0.4em]">LINE Official</p>
+            <p className="text-navy font-black text-2xl">@gbmoneyshop</p>
           </a>
 
           <a href="https://www.facebook.com/share/1EmdvU4Jwu/" target="_blank" rel="noopener noreferrer"
-            className="p-10 bg-brand-navy/60 backdrop-blur-sm border border-primary/10 rounded-[48px] hover:border-primary hover:-translate-y-2 transition-all group text-center shadow-glow-sm block">
-            <div className="w-20 h-20 bg-primary/5 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-blue-600 transition-all mx-auto shadow-sm">
-              <Globe size={40} className="text-primary group-hover:text-white" />
+            className="p-10 bg-white/40 backdrop-blur-sm border border-navy/10 rounded-[48px] hover:border-primary hover:-translate-y-2 transition-all group text-center shadow-glow-sm block">
+            <div className="w-20 h-20 bg-white/20 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-blue-600/10 transition-all mx-auto shadow-sm">
+              <Globe size={40} className="text-primary group-hover:text-blue-600" />
             </div>
-            <p className="text-[10px] text-primary/60 uppercase font-black mb-1 tracking-[0.4em]">Facebook</p>
-            <p className="text-primary font-black text-2xl">GB Money Shop</p>
+            <p className="text-[10px] text-navy/40 uppercase font-black mb-1 tracking-[0.4em]">Facebook</p>
+            <p className="text-navy font-black text-2xl">GB Money Shop</p>
           </a>
 
           <a href="mailto:support@gbmoney.com"
-            className="p-10 bg-brand-navy/60 backdrop-blur-sm border border-primary/10 rounded-[48px] hover:border-primary hover:-translate-y-2 transition-all group text-center shadow-glow-sm block md:col-span-2 lg:col-span-1">
-            <div className="w-20 h-20 bg-primary/5 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-primary transition-all mx-auto shadow-sm">
+            className="p-10 bg-white/40 backdrop-blur-sm border border-navy/10 rounded-[48px] hover:border-primary hover:-translate-y-2 transition-all group text-center shadow-glow-sm block md:col-span-2 lg:col-span-1">
+            <div className="w-20 h-20 bg-white/20 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-primary transition-all mx-auto shadow-sm">
               <Mail size={40} className="text-primary group-hover:text-white" />
             </div>
-            <p className="text-[10px] text-primary/60 uppercase font-black mb-1 tracking-[0.4em]">Email Support</p>
-            <p className="text-primary font-black text-2xl lowercase">support@gbmoney.com</p>
+            <p className="text-[10px] text-navy/40 uppercase font-black mb-1 tracking-[0.4em]">Email Support</p>
+            <p className="text-navy font-black text-2xl lowercase">support@gbmoney.com</p>
           </a>
         </motion.div>
       </section>

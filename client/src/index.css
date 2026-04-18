@@ -9,37 +9,39 @@
 
   body {
     font-family: 'Prompt', 'Inter', -apple-system, sans-serif;
-    background-color: #111d33;
-    color: #EE4D2D;
+    background-color: #82bce8;
+    color: #050B18;
     line-height: 1.6;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Force Orange Text Globally */
-  h1, h2, h3, h4, h5, h6, p, span, a, label, input, select, textarea, button {
+  /* Force Dark Navy Text Globally for Readability on Sky Blue */
+  h1, h2, h3, h4, h5, h6, p, span, a, label, input, select, textarea {
+    color: #050B18 !important;
+  }
+
+  /* Keep Orange for specific brand accents */
+  .text-primary, .text-shopee {
     color: #EE4D2D !important;
   }
 
-  .text-slate-900, .text-slate-800, .text-slate-700, .text-slate-600, .text-slate-500, .text-slate-400, .text-black, .text-gray-900 {
-    color: #EE4D2D !important;
-  }
-
-  /* Global Background Overrides for Medium Blue Theme */
+  /* Global Background Overrides for Sky Blue Light Mode Theme */
   .bg-slate-900, .bg-black, .bg-slate-800, .bg-gray-900, .bg-white {
-    background-color: rgba(17, 29, 51, 0.95) !important;
-    border: 1px solid rgba(238, 77, 45, 0.15) !important;
+    background-color: rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(5, 11, 24, 0.05) !important;
   }
 
   .bg-slate-50, .bg-slate-100, .bg-gray-50, .bg-gray-100 {
-    background-color: rgba(17, 33, 61, 0.8) !important;
+    background-color: rgba(255, 255, 255, 0.6) !important;
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(238, 77, 45, 0.1) !important;
+    border: 1px solid rgba(5, 11, 24, 0.05) !important;
   }
 
-  /* Global Border Overrides to Orange-Tinted Navy */
+  /* Global Border Overrides to Navy-Tinted Softness */
   .border-slate-50, .border-slate-100, .border-slate-200, .border-gray-100, .border-gray-200, .border-blue-50, .border-blue-100 {
-    border-color: rgba(238, 77, 45, 0.1) !important;
+    border-color: rgba(5, 11, 24, 0.05) !important;
   }
 
   /* Global Button Refinement */
@@ -120,15 +122,15 @@
   }
 
   .input-field {
-    @apply w-full bg-brand-darker border border-primary/10 rounded-2xl px-5 py-4
-           text-primary placeholder-primary/30 font-medium
-           focus:outline-none focus:border-primary focus:ring-0
+    @apply w-full bg-brand-darker border border-white/10 rounded-2xl px-5 py-4
+           text-white placeholder-white/30 font-medium
+           focus:outline-none focus:border-white focus:ring-0
            shadow-soft transition-all duration-200
            font-prompt;
   }
 
   .label {
-    @apply block text-sm font-bold text-primary/80 mb-2 uppercase tracking-tighter;
+    @apply block text-sm font-bold text-white/80 mb-2 uppercase tracking-tighter;
   }
 
   .badge {
@@ -136,17 +138,17 @@
   }
 
   .nav-link {
-    @apply text-primary/70 font-black text-sm uppercase tracking-widest transition-all duration-200
-           hover:text-primary px-4 py-2 relative after:absolute after:bottom-0 after:left-4 after:right-4 
-           after:h-0.5 after:bg-primary after:scale-x-0 hover:after:scale-x-100 after:transition-transform;
+    @apply text-navy/70 font-black text-sm uppercase tracking-widest transition-all duration-200
+           hover:text-navy px-4 py-2 relative after:absolute after:bottom-0 after:left-4 after:right-4 
+           after:h-0.5 after:bg-navy after:scale-x-0 hover:after:scale-x-100 after:transition-transform;
   }
 
   .section-title {
-    @apply text-4xl font-black mb-4 text-primary tracking-tight;
+    @apply text-4xl font-black mb-4 text-navy tracking-tight;
   }
   
   .section-subtitle {
-    @apply text-primary/60 font-bold mb-10 text-lg;
+    @apply text-navy/60 font-bold mb-10 text-lg;
   }
 
   .shimmer {

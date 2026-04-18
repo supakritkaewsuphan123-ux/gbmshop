@@ -40,11 +40,11 @@ export default function ProductCard({ product, index = 0 }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.6, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
-      className="group relative bg-brand-navy/60 backdrop-blur-md border border-primary/10 rounded-[32px] overflow-hidden transition-all duration-500 hover:shadow-glow-sm hover:border-primary/30 flex flex-col"
+      className="group relative bg-white/40 backdrop-blur-md border border-navy/10 rounded-[32px] overflow-hidden transition-all duration-500 hover:shadow-glow-sm hover:border-navy/30 flex flex-col"
     >
       {/* Badges */}
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-         <div className="bg-brand-dark/95 backdrop-blur-md text-primary text-[9px] font-black px-3 py-1.5 rounded-xl shadow-sm border border-primary/10 uppercase tracking-widest leading-none">
+         <div className="bg-white/95 backdrop-blur-md text-navy text-[9px] font-black px-3 py-1.5 rounded-xl shadow-sm border border-navy/10 uppercase tracking-widest leading-none">
            Cond: {product.condition_percent}%
          </div>
       </div>
@@ -90,26 +90,26 @@ export default function ProductCard({ product, index = 0 }) {
         </div>
         
         <Link to={`/products/${product.id}`} className="block mb-2">
-            <h3 className="font-black text-primary text-lg line-clamp-1 leading-tight tracking-tight hover:text-primary transition-colors uppercase">{product.name}</h3>
+            <h3 className="font-black text-navy text-lg line-clamp-1 leading-tight tracking-tight hover:text-navy/80 transition-colors uppercase">{product.name}</h3>
         </Link>
         
         <div className="flex items-center justify-between mb-4">
-          <p className="text-primary/60 text-[10px] font-bold uppercase tracking-widest">
-            By <span className="text-primary font-black">{product.seller_name}</span>
+          <p className="text-navy/60 text-[10px] font-bold uppercase tracking-widest">
+            By <span className="text-navy font-black">{product.seller_name}</span>
           </p>
-          <div className="flex items-center gap-1 text-primary/60 text-[10px] font-black uppercase tracking-widest">
+          <div className="flex items-center gap-1 text-navy/60 text-[10px] font-black uppercase tracking-widest">
             <Box size={10} /> {product.stock}
           </div>
         </div>
 
          <div className="mt-auto flex items-center justify-between pt-4 border-t border-primary/10">
-          <span className="text-primary font-black text-2xl tracking-tighter">฿{product.price.toLocaleString()}</span>
+          <span className="text-navy font-black text-2xl tracking-tighter">฿{product.price.toLocaleString()}</span>
           
           <div className="flex gap-2">
             {product.stock > 0 && !inCart && (
               <button
                 onClick={handleAddToCart}
-                className="w-10 h-10 bg-primary/10 text-primary hover:text-white hover:bg-primary border border-primary/20 rounded-xl transition-all flex items-center justify-center shadow-sm"
+                className="w-10 h-10 bg-white/20 text-primary hover:text-white hover:bg-primary border border-navy/10 rounded-xl transition-all flex items-center justify-center shadow-sm"
                 title="Add to Cart"
               >
                 <ShoppingCart size={16} />
