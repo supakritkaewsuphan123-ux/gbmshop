@@ -90,20 +90,20 @@ export default function ProductCard({ product, index = 0 }) {
         </div>
         
         <Link to={`/products/${product.id}`} className="block mb-2">
-            <h3 className="font-black text-navy text-lg line-clamp-1 leading-tight tracking-tight hover:text-navy/80 transition-colors uppercase">{product.name}</h3>
+            <h3 className="font-black text-navy text-2xl line-clamp-1 leading-tight tracking-tight hover:text-navy/80 transition-colors uppercase">{product.name}</h3>
         </Link>
         
         <div className="flex items-center justify-between mb-4">
-          <p className="text-navy/60 text-[10px] font-bold uppercase tracking-widest">
+          <p className="text-navy/60 text-sm font-bold uppercase tracking-widest">
             By <span className="text-navy font-black">{product.seller_name}</span>
           </p>
-          <div className="flex items-center gap-1 text-navy/60 text-[10px] font-black uppercase tracking-widest">
-            <Box size={10} /> {product.stock}
+          <div className="flex items-center gap-1 text-navy/60 text-sm font-black uppercase tracking-widest">
+            <Box size={14} /> {product.stock}
           </div>
         </div>
 
          <div className="mt-auto flex items-center justify-between pt-4 border-t border-primary/10">
-          <span className="text-navy font-black text-2xl tracking-tighter">฿{product.price.toLocaleString()}</span>
+          <span className="text-navy font-black text-4xl tracking-tighter">฿{product.price.toLocaleString()}</span>
           
           <div className="flex gap-2">
             {product.stock > 0 && !inCart && (

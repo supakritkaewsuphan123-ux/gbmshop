@@ -70,8 +70,8 @@ export default function Home() {
             viewport={{ once: true }}
             className="text-left"
           >
-            <h2 className="text-6xl font-black text-navy mb-6 tracking-tight">สินค้าแนะนำ</h2>
-            <p className="text-2xl text-navy/80 font-bold">เลือกชมสินค้าคุณภาพที่ผ่านการคัดสรรมาเพื่อคุณ</p>
+            <h2 className="text-8xl font-black text-navy mb-8 tracking-tight">สินค้าแนะนำ</h2>
+            <p className="text-3xl text-navy/80 font-bold">เลือกชมสินค้าคุณภาพที่ผ่านการคัดสรรมาเพื่อคุณ</p>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
             <Link to="/products" className="text-primary font-black flex items-center gap-3 hover:translate-x-2 transition-transform py-6 px-12 bg-primary/5 backdrop-blur-sm rounded-[24px] border border-primary/10 shadow-glow-sm">
@@ -116,8 +116,8 @@ export default function Home() {
            viewport={{ once: true }}
            className="text-center mb-20"
         >
-          <h2 className="text-6xl font-black text-navy mb-6 tracking-tight">ช่องทางติดต่อ</h2>
-          <p className="text-2xl text-navy/80 font-bold">เลือกช่องทางที่คุณสะดวกเพื่อสอบถามข้อมูลเพิ่มเติม</p>
+          <h2 className="text-8xl font-black text-navy mb-8 tracking-tight">ช่องทางติดต่อ</h2>
+          <p className="text-3xl text-navy/80 font-bold">เลือกช่องทางที่คุณสะดวกเพื่อสอบถามข้อมูลเพิ่มเติม</p>
         </motion.div>
 
         <motion.div
