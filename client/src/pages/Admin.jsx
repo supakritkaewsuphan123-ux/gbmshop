@@ -278,22 +278,24 @@ export default function Admin() {
     if (!error) { showToast('ลบแล้ว', 'success'); loadProducts(); }
   };
 
-  const openAddModal = () => { 
+  const openAddModal = async () => { 
+    await loadCategories();
     setEditProduct(null); 
     setProductForm({ 
       name: '', price: '', condition_percent: '100', stock: 1, 
-      category: 'มือ1', description: '', image: null, 
+      category: categories[0]?.name || 'มือ1', description: '', image: null, 
       additional_images: [], videos: [] 
     }); 
     setAddProductModal(true); 
   };
 
-  const openEditModal = (p) => { 
+  const openEditModal = async (p) => { 
+    await loadCategories();
     setEditProduct(p); 
     setProductForm({ 
       name: p.name, price: p.price, 
       condition_percent: p.condition_percent || '100', 
-      stock: p.stock, category: p.category || 'มือ1', 
+      stock: p.stock, category: p.category || categories[0]?.name || 'มือ1', 
       description: p.description || '', image: null,
       additional_images: [], videos: [] 
     }); 
@@ -760,11 +762,16 @@ export default function Admin() {
               <div className="space-y-2">
                  <label className="label">Category</label>
                  <select className="input-field cursor-pointer" value={productForm.category} onChange={e => setProductForm(p => ({ ...p, category: e.target.value }))}>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
-                  <option value="มือ1">มือ1 (Default)</option>
-                  <option value="มือสอง">มือ2 (Default)</option>
+                  {categories.length > 0 ? (
+                    categories.map(cat => (
+                      <option key={cat.id} value={cat.name}>{cat.name}</option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="มือ1">มือ1 (Default)</option>
+                      <option value="มือสอง">มือ2 (Default)</option>
+                    </>
+                  )}
                 </select>
               </div>
               <div className="space-y-2">
