@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Zap, Shield, TrendingUp, Phone, Mail, MessageSquare, Send, Globe } from 'lucide-react';
+import { ArrowRight, Phone, Mail, MessageSquare, Globe } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import ProductCard from '../components/ProductCard';
@@ -9,12 +9,15 @@ import { ProductCardSkeleton } from '../components/Spinner';
 import { useToast } from '../context/ToastContext';
 import { usePageMetadata } from '../hooks/usePageMetadata';
 
-// FEATURES section removed
-
 export default function Home() {
   usePageMetadata('หน้าแรก', 'GB Marketplace - ตลาดซื้อขายสินค้าพรีเมียม ปลอดภัย มั่นใจ 100% พร้อมระบบ Wallet อัตโนมัติ');
+  
+  const { user, logout } = useAuth();
+  const { showToast } = useToast();
+  const [adminInfo, setAdminInfo] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     supabase.from('settings').select('*').single()
       .then(({ data }) => setAdminInfo(data))
@@ -62,16 +65,6 @@ export default function Home() {
     loadData();
     return () => { isMounted = false; };
   }, []);
-
-  const handleContactSubmit = (e) => {
-    e.preventDefault();
-    setContactLoading(true);
-    setTimeout(() => {
-      showToast('ขอบคุณที่ติดต่อเรา! ทีมงานจะตอบกลับโดยเร็วที่สุดครับ 📩', 'success');
-      e.target.reset();
-      setContactLoading(false);
-    }, 1000);
-  };
 
   return (
     <div>
@@ -123,10 +116,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURE CARDS REMOVED */}
-
       {/* ===== FEATURED PRODUCTS ===== */}
-      <section className="max-w-7xl mx-auto px-6 pb-24 border-b border-white/5">
+      <section className="max-w-7xl mx-auto px-6 pb-24 border-b border-slate-100">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -179,7 +170,6 @@ export default function Home() {
           viewport={{ once: true }}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto"
         >
-          {/* โทร — แก้เบอร์โทรที่ href="tel:..." และข้อความด้านล่าง */}
           <a href="tel:0829879790"
             className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-primary/40 hover:bg-primary/5 transition-all group text-center cursor-pointer block shadow-sm">
             <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
@@ -189,7 +179,6 @@ export default function Home() {
             <p className="text-slate-900 font-semibold">082-987-9790</p>
           </a>
 
-          {/* LINE — แก้ลิงก์ไลน์ที่ href="..." */}
           <a href="https://lin.ee/Z1pMLkJ" target="_blank" rel="noopener noreferrer"
             className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-green-500/40 hover:bg-green-500/5 transition-all group text-center cursor-pointer block shadow-sm">
             <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
@@ -199,7 +188,6 @@ export default function Home() {
             <p className="text-slate-900 font-semibold">@gbmoneyshop</p>
           </a>
 
-          {/* Facebook — แก้ลิงก์เฟซบุ๊กที่ href="..." */}
           <a href="https://www.facebook.com/share/1EmdvU4Jwu/" target="_blank" rel="noopener noreferrer"
             className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-blue-500/40 hover:bg-blue-500/5 transition-all group text-center cursor-pointer block shadow-sm">
             <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
@@ -209,7 +197,6 @@ export default function Home() {
             <p className="text-slate-900 font-semibold">GB Money Shop</p>
           </a>
 
-          {/* Email — แก้อีเมลที่ href="mailto:..." */}
           <a href="mailto:support@gbmoney.com"
             className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-purple-500/40 hover:bg-purple-500/5 transition-all group text-center cursor-pointer block shadow-sm">
             <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
