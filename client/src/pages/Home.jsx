@@ -60,7 +60,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="bg-white">
+    <div className="bg-transparent">
       {/* ===== FEATURED PRODUCTS (TOP) ===== */}
       <section className="max-w-7xl mx-auto px-6 pt-32 pb-40">
         <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-10">
@@ -74,7 +74,7 @@ export default function Home() {
             <p className="text-2xl text-[#F97316] font-bold">เลือกชมสินค้าคุณภาพที่ผ่านการคัดสรรมาเพื่อคุณ</p>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
-            <Link to="/products" className="text-[#000000] font-black flex items-center gap-3 hover:translate-x-2 transition-transform py-6 px-12 bg-white rounded-[24px] border border-blue-50 shadow-soft">
+            <Link to="/products" className="text-[#000000] font-black flex items-center gap-3 hover:translate-x-2 transition-transform py-6 px-12 bg-white/50 backdrop-blur-sm rounded-[24px] border border-blue-100 shadow-soft">
               ดูทั้งหมด <ArrowRight size={24} className="text-primary" />
             </Link>
           </motion.div>
@@ -88,20 +88,20 @@ export default function Home() {
       </section>
 
       {/* ===== TRUST SECTION ===== */}
-      <section className="bg-slate-50/30 py-40 border-y border-slate-50">
+      <section className="bg-blue-50/20 py-40 border-y border-blue-100/30">
          <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-24">
             <div className="text-center group">
-               <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-primary mx-auto mb-8 shadow-soft border border-blue-50 group-hover:bg-primary group-hover:text-white transition-all"><ShieldCheck size={36} /></div>
+               <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-primary mx-auto mb-8 shadow-soft border border-blue-100 group-hover:bg-primary group-hover:text-white transition-all"><ShieldCheck size={36} /></div>
                <h4 className="text-2xl font-black text-[#000000] mb-3 uppercase tracking-tighter">ปลอดภัย 100%</h4>
                <p className="text-[#555555] font-bold leading-relaxed">ตรวจสอบความปลอดภัยทุกออเดอร์ มั่นใจได้ในทุกคำสั่งซื้อ</p>
             </div>
             <div className="text-center group">
-               <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-primary mx-auto mb-8 shadow-soft border border-blue-50 group-hover:bg-primary group-hover:text-white transition-all"><Zap size={36} /></div>
+               <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-primary mx-auto mb-8 shadow-soft border border-blue-100 group-hover:bg-primary group-hover:text-white transition-all"><Zap size={36} /></div>
                <h4 className="text-2xl font-black text-[#000000] mb-3 uppercase tracking-tighter">จัดส่งว่องไว</h4>
                <p className="text-[#555555] font-bold leading-relaxed">ระบบยืนยันออเดอร์รวดเร็ว พร้อมแจ้งเตือนทันทีเมื่อมีการเปลี่ยนแปลง</p>
             </div>
             <div className="text-center group">
-               <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-primary mx-auto mb-8 shadow-soft border border-blue-50 group-hover:bg-primary group-hover:text-white transition-all"><MessageSquare size={36} /></div>
+               <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-primary mx-auto mb-8 shadow-soft border border-blue-100 group-hover:bg-primary group-hover:text-white transition-all"><MessageSquare size={36} /></div>
                <h4 className="text-2xl font-black text-[#000000] mb-3 uppercase tracking-tighter">ดูแลตลอด 24 ชม.</h4>
                <p className="text-[#555555] font-bold leading-relaxed">ทีมงานแอดมินพร้อมซัพพอร์ตและแก้ไขปัญหาให้คุณได้ทุกเวลา</p>
             </div>
@@ -127,7 +127,7 @@ export default function Home() {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-5xl mx-auto"
         >
           <a href="https://lin.ee/Z1pMLkJ" target="_blank" rel="noopener noreferrer"
-            className="p-10 bg-white border border-blue-50 rounded-[48px] hover:border-blue-100 hover:-translate-y-2 transition-all group text-center shadow-soft block">
+            className="p-10 bg-white/80 backdrop-blur-sm border border-blue-100 rounded-[48px] hover:border-blue-200 hover:-translate-y-2 transition-all group text-center shadow-soft block">
             <div className="w-20 h-20 bg-blue-50/30 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-green-50 transition-all mx-auto shadow-sm">
               <MessageSquare size={40} className="text-[#000000] group-hover:text-green-500" />
             </div>
@@ -136,7 +136,7 @@ export default function Home() {
           </a>
 
           <a href="https://www.facebook.com/share/1EmdvU4Jwu/" target="_blank" rel="noopener noreferrer"
-            className="p-10 bg-white border border-blue-50 rounded-[48px] hover:border-blue-100 hover:-translate-y-2 transition-all group text-center shadow-soft block">
+            className="p-10 bg-white/80 backdrop-blur-sm border border-blue-100 rounded-[48px] hover:border-blue-200 hover:-translate-y-2 transition-all group text-center shadow-soft block">
             <div className="w-20 h-20 bg-blue-50/30 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-blue-600 transition-all mx-auto shadow-sm">
               <Globe size={40} className="text-[#000000] group-hover:text-white" />
             </div>
@@ -145,12 +145,12 @@ export default function Home() {
           </a>
 
           <a href="mailto:support@gbmoney.com"
-            className="p-10 bg-white border border-slate-100 rounded-[48px] hover:border-slate-200 hover:-translate-y-2 transition-all group text-center shadow-soft block md:col-span-2 lg:col-span-1">
-            <div className="w-20 h-20 bg-slate-50 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-primary/5 transition-all mx-auto shadow-sm">
-              <Mail size={40} className="text-slate-900 group-hover:text-primary" />
+            className="p-10 bg-white/80 backdrop-blur-sm border border-blue-100 rounded-[48px] hover:border-blue-200 hover:-translate-y-2 transition-all group text-center shadow-soft block md:col-span-2 lg:col-span-1">
+            <div className="w-20 h-20 bg-blue-50/30 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-primary transition-all mx-auto shadow-sm">
+              <Mail size={40} className="text-[#000000] group-hover:text-white" />
             </div>
-            <p className="text-[10px] text-slate-400 uppercase font-black mb-1 tracking-[0.4em]">Email Support</p>
-            <p className="text-slate-900 font-black text-2xl lowercase">support@gbmoney.com</p>
+            <p className="text-[10px] text-[#555555] uppercase font-black mb-1 tracking-[0.4em]">Email Support</p>
+            <p className="text-[#000000] font-black text-2xl lowercase">support@gbmoney.com</p>
           </a>
         </motion.div>
       </section>
