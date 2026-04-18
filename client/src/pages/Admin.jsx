@@ -762,16 +762,17 @@ export default function Admin() {
               <div className="space-y-2">
                  <label className="label">Category</label>
                  <select className="input-field cursor-pointer" value={productForm.category} onChange={e => setProductForm(p => ({ ...p, category: e.target.value }))}>
-                  {categories.length > 0 ? (
-                    categories.map(cat => (
-                      <option key={cat.id} value={cat.name}>{cat.name}</option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="มือ1">มือ1 (Default)</option>
-                      <option value="มือสอง">มือ2 (Default)</option>
-                    </>
-                  )}
+                  {/* Dynamic Categories */}
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                  
+                  {/* Divider if both exist */}
+                  {categories.length > 0 && <option disabled>──────────</option>}
+                  
+                  {/* Legacy/Default Options */}
+                  <option value="มือ1">มือ1 (Default)</option>
+                  <option value="มือสอง">มือ2 (Default)</option>
                 </select>
               </div>
               <div className="space-y-2">
