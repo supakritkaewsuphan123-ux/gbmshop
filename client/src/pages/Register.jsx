@@ -44,9 +44,9 @@ export default function Register() {
       >
         <div className="bg-white border border-slate-100 rounded-[2rem] p-10 shadow-2xl shadow-slate-200/60">
           <div className="text-center mb-10">
-            <div className="text-3xl font-black text-slate-900 mb-1">GB<span className="text-primary">shop</span></div>
-            <h2 className="text-2xl font-black text-slate-900 mt-6 mb-2">สมัครสมาชิก</h2>
-            <p className="text-slate-500 font-medium">เปิดบัญชีและเริ่มซื้อขายได้เลย</p>
+            <div className="text-3xl font-black text-primary mb-1">GB<span>shop</span></div>
+            <h2 className="text-2xl font-black text-slate-800 mt-6 mb-2">สมัครสมาชิก</h2>
+            <p className="text-slate-400 font-medium">เปิดบัญชีและเริ่มซื้อขายได้เลย</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

@@ -110,7 +110,7 @@ export default function Products() {
                 onClick={() => setSelectedCategory(cat)}
                 className={`flex-1 md:px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
                   selectedCategory === cat
-                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-200 scale-[1.02]'
+                    ? 'bg-primary text-white shadow-lg shadow-slate-200 scale-[1.02]'
                     : 'text-slate-500 hover:text-slate-900 hover:bg-white'
                 }`}
               >

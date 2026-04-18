@@ -10,7 +10,7 @@
   body {
     font-family: 'Prompt', 'Inter', -apple-system, sans-serif;
     background-color: #ffffff;
-    color: #1e293b;
+    color: #475569;
     line-height: 1.8;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
@@ -68,9 +68,9 @@
   }
 
   .btn-ghost {
-    @apply text-gray-400 font-medium px-4 py-2 rounded-lg
+    @apply text-slate-400 font-medium px-4 py-2 rounded-lg
            transition-all duration-200 cursor-pointer bg-transparent border-0
-           hover:text-white hover:bg-white/5
+           hover:text-primary hover:bg-primary/5
            active:scale-95;
   }
 
@@ -89,7 +89,7 @@
   }
 
   .label {
-    @apply block text-sm text-gray-400 mb-2 font-medium;
+    @apply block text-sm text-slate-400 mb-2 font-medium;
   }
 
   .badge {
@@ -97,8 +97,8 @@
   }
 
   .nav-link {
-    @apply text-gray-300 font-medium transition-all duration-200
-           hover:text-white relative
+    @apply text-slate-400 font-medium transition-all duration-200
+           hover:text-primary relative
            after:content-[''] after:absolute after:bottom-0 after:left-0
            after:w-0 after:h-0.5 after:bg-primary after:transition-all after:duration-300
            hover:after:w-full;

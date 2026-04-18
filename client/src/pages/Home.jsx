@@ -100,7 +100,7 @@ export default function Home() {
 
             <div className="flex gap-4 justify-center flex-wrap">
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Link to="/products" className="bg-slate-900 text-white font-bold text-lg px-10 py-5 rounded-2xl flex items-center justify-center gap-2 min-w-[240px] shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all">
+                <Link to="/products" className="bg-primary text-white font-bold text-lg px-10 py-5 rounded-3xl flex items-center justify-center gap-2 min-w-[240px] shadow-xl shadow-primary/20 hover:brightness-110 transition-all">
                   เริ่มเลือกสินค้า <ArrowRight size={20} />
                 </Link>
               </motion.div>
@@ -134,18 +134,16 @@ export default function Home() {
             : products.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
         </div>
 
-        {!loading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mt-10"
-          >
-            <Link to="/products" className="btn-outline px-10 py-3 inline-flex items-center gap-2">
-              ดูสินค้าทั้งหมด <ArrowRight size={16} />
-            </Link>
-          </motion.div>
-        )}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="text-center mt-10"
+        >
+          <Link to="/products" className="border-2 border-primary/20 text-primary font-bold px-10 py-3 rounded-2xl inline-flex items-center gap-2 hover:bg-primary/5 transition-all">
+            ดูสินค้าทั้งหมด <ArrowRight size={16} />
+          </Link>
+        </motion.div>
       </section>
 
       {/* ===== CONTACT SECTION ===== */}
