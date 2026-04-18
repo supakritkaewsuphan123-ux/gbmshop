@@ -13,9 +13,9 @@
     font-family: 'Kanit', 'Montserrat', 'Prompt', sans-serif;
     background-color: #82bce8;
     color: #050B18;
-    line-height: 1.5;
+    line-height: 1.6;
     min-height: 100vh;
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -141,17 +141,17 @@
   }
 
   .nav-link {
-    @apply text-navy/70 font-black text-lg uppercase tracking-widest transition-all duration-200
-           hover:text-navy px-4 py-2 relative after:absolute after:bottom-0 after:left-4 after:right-4 
-           after:h-1 after:bg-navy after:scale-x-0 hover:after:scale-x-100 after:transition-transform;
+    @apply text-navy font-black text-xl uppercase tracking-[0.1em] transition-all duration-200
+           hover:text-primary px-6 py-2 relative after:absolute after:bottom-0 after:left-6 after:right-6 
+           after:h-1 after:bg-primary after:scale-x-0 hover:after:scale-x-100 after:transition-transform;
   }
 
   .section-title {
-    @apply text-7xl font-black mb-8 text-navy tracking-tight;
+    @apply text-6xl font-black mb-6 text-navy tracking-tight;
   }
   
   .section-subtitle {
-    @apply text-navy/60 font-bold mb-14 text-2xl;
+    @apply text-navy/60 font-bold mb-10 text-xl;
   }
 
   .shimmer {

@@ -93,8 +93,8 @@ export default function Cart() {
             <ShoppingBag size={32} />
           </div>
           <div>
-            <h1 className="text-8xl font-black text-navy tracking-tighter uppercase leading-none mb-4">Your Shopping Cart</h1>
-            <p className="text-3xl text-navy/60 font-bold tracking-tight">รายการสินค้าที่คุณเลือกซื้อทั้งหมด {items.length} รายการ</p>
+            <h1 className="text-5xl font-black text-navy tracking-tighter uppercase">Your Shopping Cart</h1>
+            <p className="text-xl text-navy/60 font-bold tracking-tight">รายการสินค้าที่คุณเลือกซื้อทั้งหมด {items.length} รายการ</p>
           </div>
         </div>
 
@@ -127,9 +127,9 @@ export default function Cart() {
                       <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90 group-hover:opacity-100" />
                     </div>
                     <div className="flex-1 min-w-0 text-center md:text-left">
-                       <p className="text-xs text-navy/40 font-black uppercase tracking-widest leading-none mb-3">Authenticated Item</p>
-                       <h3 className="text-3xl font-black text-navy truncate leading-tight tracking-tight">{item.name}</h3>
-                       <p className="text-5xl font-black text-navy mt-6 tracking-tighter">฿{item.price.toLocaleString()}</p>
+                       <p className="text-[10px] text-navy/40 font-black uppercase tracking-widest leading-none mb-2">Authenticated Item</p>
+                       <h3 className="text-2xl font-black text-navy truncate leading-tight tracking-tight">{item.name}</h3>
+                       <p className="text-3xl font-black text-navy mt-4 tracking-tighter">฿{item.price.toLocaleString()}</p>
                     </div>
                     <button
                       onClick={() => removeFromCart(item.id)}
@@ -145,20 +145,20 @@ export default function Cart() {
             {/* Summary Section */}
             <div className="lg:col-span-1">
               <div className="bg-white/40 backdrop-blur-xl p-10 rounded-[48px] shadow-glow-sm border border-navy/20 sticky top-32">
-                <h3 className="text-3xl font-black text-navy mb-12 tracking-tight uppercase border-b border-navy/10 pb-6">Order Summary</h3>
-                <div className="space-y-8 mb-16">
-                  <div className="flex justify-between items-center text-navy/40 font-black uppercase text-xs tracking-widest">
+                <h3 className="text-2xl font-black text-navy mb-10 tracking-tight uppercase border-b border-navy/10 pb-4">Order Summary</h3>
+                <div className="space-y-6 mb-12">
+                  <div className="flex justify-between items-center text-navy/40 font-black uppercase text-[10px] tracking-widest">
                     <span>Items Count</span>
                     <span className="text-navy">{items.length} Units</span>
                   </div>
-                  <div className="flex justify-between items-center text-navy/40 font-black uppercase text-xs tracking-widest">
+                  <div className="flex justify-between items-center text-navy/40 font-black uppercase text-[10px] tracking-widest">
                     <span>Shipping Fee</span>
                     <span className="text-green-600">Free</span>
                   </div>
-                  <div className="h-1 w-full bg-navy/10" />
-                  <div className="flex flex-col gap-4">
-                    <span className="text-navy/30 font-black uppercase tracking-widest text-xs">Total Amount</span>
-                    <span className="text-8xl font-black text-navy tracking-tighter">฿{total.toLocaleString()}</span>
+                  <div className="h-0.5 w-full bg-navy/10" />
+                  <div className="flex flex-col gap-2">
+                    <span className="text-navy/30 font-black uppercase tracking-widest text-[10px]">Total Amount</span>
+                    <span className="text-5xl font-black text-navy tracking-tighter">฿{total.toLocaleString()}</span>
                   </div>
                 </div>
                 <button

@@ -107,8 +107,8 @@ export default function Products() {
           <div className="w-16 h-16 bg-white border border-blue-100 rounded-2xl flex items-center justify-center text-primary mb-8 shadow-sm">
              <Globe size={32} />
           </div>
-          <h1 className="text-8xl font-black text-navy mb-8 tracking-tighter uppercase">รายการสินค้า</h1>
-          <p className="text-3xl text-navy/60 font-bold tracking-tight">เลือกซื้อสินค้าคุณภาพที่คัดสรรมาเพื่อคุณโดยเฉพาะ</p>
+          <h1 className="text-6xl font-black text-navy mb-4 tracking-tighter uppercase">รายการสินค้า</h1>
+          <p className="text-2xl text-navy/60 font-bold tracking-tight">เลือกซื้อสินค้าคุณภาพที่คัดสรรมาเพื่อคุณโดยเฉพาะ</p>
         </motion.div>
 
         {/* Category Iconic Banner */}
