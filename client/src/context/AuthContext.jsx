@@ -8,36 +8,39 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const isRefreshing = useRef(false);
 
-  // ✅ 1. Fetch Profile with TIMEOUT Guard (ป้องกันเครื่องค้าง)
+  // ✅ 1. Fetch Profile with TIMEOUT Guard (Improved Resilience)
   const fetchProfile = useCallback(async (sessionUser) => {
     if (!sessionUser) return null;
     
-    // สร้าง Promise ดักเวลา 4 วินาที
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Profile fetch timeout')), 4000)
-    );
-
-    const fetchPromise = (async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url, role, is_banned')
-        .eq('id', sessionUser.id)
-        .single();
-      if (error) throw error;
-      return { ...sessionUser, ...data };
-    })();
+    // Fallback data from Session (Instant availability)
+    const fallbackUser = { 
+      ...sessionUser, 
+      role: sessionUser.app_metadata?.role || 'user', 
+      username: sessionUser.user_metadata?.username || 'user' 
+    };
 
     try {
-      // แข่งกันระหว่างการดึงข้อมูลจริง กับ เวลาที่กำหนด
+      // Create a timeout promise (reduced to 3 seconds for better UX)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+      );
+
+      // Actual fetch promise
+      const fetchPromise = (async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url, role, is_banned')
+          .eq('id', sessionUser.id)
+          .single();
+        if (error) throw error;
+        return { ...sessionUser, ...data };
+      })();
+
+      // Race between fetch and timeout
       return await Promise.race([fetchPromise, timeoutPromise]);
     } catch (err) {
-      console.warn('[AUTH] Profile fetch failed or timeout, using session data:', err.message);
-      // Fallback: ใช้ข้อมูลจาก session ไปก่อนเพื่อให้ระบบไม่ค้าง
-      return { 
-        ...sessionUser, 
-        role: sessionUser.app_metadata?.role || 'user', 
-        username: sessionUser.user_metadata?.username || 'user' 
-      };
+      console.warn('[AUTH] Profile fetch fallback activated:', err.message);
+      return fallbackUser;
     }
   }, []);
 
