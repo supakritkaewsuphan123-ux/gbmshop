@@ -41,18 +41,18 @@ export default function Navbar() {
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
         scrolled
-          ? 'bg-white/40 backdrop-blur-xl shadow-lg py-6 border-b border-navy/10'
-          : 'bg-transparent py-10'
+          ? 'bg-white/40 backdrop-blur-xl shadow-lg py-4 border-b border-navy/10'
+          : 'bg-transparent py-8'
       }`}
     >
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-4 group">
-             <div className="w-16 h-16 bg-primary rounded-[24px] flex items-center justify-center text-white shadow-glow-sm transition-all group-hover:scale-110">
-                <ShieldCheck size={36} fill="white" />
+          <Link to="/" className="flex items-center gap-3 group">
+             <div className="w-13 h-13 bg-primary rounded-[20px] flex items-center justify-center text-white shadow-glow-sm transition-all group-hover:scale-110">
+                <ShieldCheck size={28} fill="white" />
              </div>
-             <span className="text-5xl font-black text-[#EE4D2D] tracking-tighter">GB<span className="text-primary italic">shop</span></span>
+             <span className="text-4xl font-black text-[#EE4D2D] tracking-tighter">GB<span className="text-primary italic">shop</span></span>
           </Link>
 
           {/* Nav Links — Desktop */}
@@ -63,7 +63,7 @@ export default function Navbar() {
                 to={l.to}
                 end={l.to === '/'}
                 className={({ isActive }) =>
-                  `px-8 py-4 rounded-2xl text-2xl font-black uppercase tracking-[0.1em] transition-all ${
+                  `px-6 py-3 rounded-2xl text-xl font-black uppercase tracking-[0.1em] transition-all ${
                     isActive ? 'bg-primary text-white shadow-glow-sm' : 'text-navy hover:text-primary hover:bg-primary/5'
                   }`
                 }
@@ -107,9 +107,9 @@ export default function Navbar() {
                   </button>
                </div>
             ) : (
-               <div className="flex items-center gap-6">
-                  <Link to="/login" className="hidden sm:flex px-8 py-5 text-[#EE4D2D] font-black text-xl tracking-widest uppercase hover:text-primary transition-all">เข้าสู่ระบบ</Link>
-                  <Link to="/register" className="bg-primary text-white py-6 px-12 text-xl font-black uppercase tracking-widest rounded-2xl shadow-glow-sm hover:brightness-110 transition-all">สมัครสมาชิก</Link>
+               <div className="flex items-center gap-4">
+                  <Link to="/login" className="hidden sm:flex px-6 py-4 text-[#EE4D2D] font-black text-lg tracking-widest uppercase hover:text-primary transition-all">เข้าสู่ระบบ</Link>
+                  <Link to="/register" className="bg-primary text-white py-4 px-10 text-base font-black uppercase tracking-widest rounded-2xl shadow-glow-sm hover:brightness-110 transition-all">สมัครสมาชิก</Link>
                </div>
             )}
 
