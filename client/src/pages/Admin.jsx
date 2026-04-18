@@ -18,6 +18,7 @@ import 'chart.js/auto';
 
 const TABS = [
   { id: 'listings', label: 'สินค้า', icon: <Package size={18} /> },
+  { id: 'categories', label: 'หมวดหมู่', icon: <PlusCircle size={18} /> },
   { id: 'orders', label: 'ออเดอร์', icon: <ShoppingCart size={18} /> },
   { id: 'users', label: 'สมาชิก', icon: <Users size={18} /> },
   { id: 'finance', label: 'สถิติการขาย', icon: <BarChart2 size={18} /> },
@@ -61,6 +62,8 @@ export default function Admin() {
   const [rejectModal, setRejectModal] = useState({ open: false, id: null, type: 'invoice', reason: '' });
   const [approveModal, setApproveModal] = useState({ open: false, id: null, type: 'invoice', data: null });
   const [processingIds, setProcessingIds] = useState(new Set());
+  const [categories, setCategories] = useState([]);
+  const [newCatName, setNewCatName] = useState('');
 
   useEffect(() => {
     if (!user || user.role !== 'admin') return;
@@ -97,7 +100,8 @@ export default function Admin() {
     setLoading(true);
     try {
       switch (currentTab) {
-        case 'listings': await loadProducts(); break;
+        case 'listings': await loadProducts(); await loadCategories(); break;
+        case 'categories': await loadCategories(); break;
         case 'orders': await loadOrders(); break;
         case 'users': await loadUsers(); break;
         case 'settings': await loadSettings(); break;
@@ -119,6 +123,32 @@ export default function Admin() {
         if (profiles) profileMap = Object.fromEntries(profiles.map(p => [p.id, p]));
       }
       setProducts(prodData.map(p => ({ ...p, seller_name: profileMap[p.user_id]?.username || 'System' })));
+    }
+  };
+
+  const loadCategories = async () => {
+    const { data, error } = await supabase.from('categories').select('*').order('created_at', { ascending: true });
+    if (!error && data) setCategories(data);
+  };
+
+  const handleAddCategory = async () => {
+    if (!newCatName.trim()) return showToast('กรุณากรอกชื่อหมวดหมู่', 'error');
+    const { error } = await supabase.from('categories').insert([{ name: newCatName.trim() }]);
+    if (error) {
+       showToast(error.message, 'error');
+    } else {
+       showToast('เพิ่มหมวดหมู่สำเร็จ ✅', 'success');
+       setNewCatName('');
+       loadCategories();
+    }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    if (!confirm('ยืนยันลบหมวดหมู่? สินค้าในหมวดหมู่นี้อาจไม่แสดงผล')) return;
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    if (!error) {
+       showToast('ลบหมวดหมู่แล้ว', 'success');
+       loadCategories();
     }
   };
 
@@ -543,6 +573,51 @@ export default function Admin() {
             </motion.div>
           )}
 
+          {tab === 'categories' && (
+            <motion.div key="categories" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-2xl">
+               <div className="flex justify-between items-center mb-8 px-2">
+                <div>
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">จัดการหมวดหมู่</h2>
+                    <p className="text-slate-400 font-bold text-sm">เพิ่มหรือลบหมวดหมู่สินค้าในระบบ</p>
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-100 rounded-[40px] p-10 shadow-soft mb-12">
+                 <div className="flex gap-4">
+                    <input 
+                      type="text" 
+                      className="input-field flex-1" 
+                      placeholder="ชื่อหมวดหมู่ใหม่ เช่น อสังหาริมทรัพย์..." 
+                      value={newCatName}
+                      onChange={e => setNewCatName(e.target.value)}
+                    />
+                    <button onClick={handleAddCategory} className="bg-slate-900 text-white font-black px-10 py-5 rounded-2xl flex items-center gap-3 shadow-soft hover:brightness-110 active:scale-95 transition-all">
+                       <PlusCircle size={22} /> เพิ่ม
+                    </button>
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                 {categories.map(cat => (
+                   <div key={cat.id} className="bg-white border border-slate-100 rounded-[32px] p-8 flex items-center justify-between shadow-sm hover:shadow-soft transition-all">
+                      <div>
+                         <p className="font-black text-slate-900 text-xl tracking-tight">{cat.name}</p>
+                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">ID: {cat.id.toString().slice(0,8)}</p>
+                      </div>
+                      <button onClick={() => handleDeleteCategory(cat.id)} className="w-12 h-12 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                         <Trash2 size={20} />
+                      </button>
+                   </div>
+                 ))}
+                 {categories.length === 0 && (
+                   <div className="text-center py-20 border-2 border-dashed border-slate-100 rounded-[40px] text-slate-300 font-black uppercase tracking-widest">
+                      ยังไม่มีหมวดหมู่สินค้า
+                   </div>
+                 )}
+              </div>
+            </motion.div>
+          )}
+
           {tab === 'users' && (
             <motion.div key="users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 px-2">
@@ -685,8 +760,11 @@ export default function Admin() {
               <div className="space-y-2">
                  <label className="label">Category</label>
                  <select className="input-field cursor-pointer" value={productForm.category} onChange={e => setProductForm(p => ({ ...p, category: e.target.value }))}>
-                  <option value="มือ1">มือ1 (New)</option>
-                  <option value="มือสอง">มือ2 (Used)</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                  <option value="มือ1">มือ1 (Default)</option>
+                  <option value="มือสอง">มือ2 (Default)</option>
                 </select>
               </div>
               <div className="space-y-2">

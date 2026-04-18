@@ -12,6 +12,7 @@ export default function Products() {
   const [filtered, setFiltered] = useState([]); // Display list
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [categories, setCategories] = useState([]); // Dynamic list
   const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
   const [sortBy, setSortBy] = useState('latest');
 
@@ -53,7 +54,13 @@ export default function Products() {
       }
     };
 
+    const fetchCategories = async () => {
+      const { data } = await supabase.from('categories').select('*').order('created_at', { ascending: true });
+      if (data) setCategories(data);
+    };
+
     fetchProducts();
+    fetchCategories();
     return () => { isMounted = false; };
   }, []);
 
@@ -104,56 +111,72 @@ export default function Products() {
           <p className="text-xl text-slate-400 font-bold tracking-tight">เลือกซื้อสินค้าคุณภาพที่คัดสรรมาเพื่อคุณโดยเฉพาะ</p>
         </motion.div>
 
-        {/* Filters & Search */}
-        <div className="space-y-10 mb-16 px-2">
-          <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
-            {/* Category Tabs */}
-            <div className="flex bg-slate-50 border border-slate-100 p-2 rounded-[28px] w-full md:w-auto shadow-sm">
-              {['ทั้งหมด', 'มือ1', 'มือสอง'].map((cat) => (
+        {/* Category Iconic Banner */}
+        <div className="mb-20 overflow-x-auto no-scrollbar pb-4">
+           <div className="flex gap-6 min-w-max px-2">
+              <button
+                onClick={() => setSelectedCategory('ทั้งหมด')}
+                className={`p-6 rounded-[32px] transition-all duration-500 border-2 min-w-[140px] flex flex-col items-center gap-4 ${
+                  selectedCategory === 'ทั้งหมด'
+                    ? 'bg-primary border-primary text-white shadow-glow-sm scale-105'
+                    : 'bg-white border-blue-50/50 text-[#000000] hover:border-blue-100 hover:bg-blue-50/30'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${selectedCategory === 'ทั้งหมด' ? 'bg-white/20' : 'bg-blue-50'}`}>
+                  <Globe size={24} />
+                </div>
+                <span className="text-[11px] font-black uppercase tracking-widest">ทั้งหมด</span>
+              </button>
+
+              {categories.map((cat) => (
                 <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`flex-1 md:px-10 py-4 rounded-[20px] text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${
-                    selectedCategory === cat
-                      ? 'bg-slate-900 text-white shadow-soft scale-[1.02]'
-                      : 'text-slate-400 hover:text-slate-900 hover:bg-white'
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.name)}
+                  className={`p-6 rounded-[32px] transition-all duration-500 border-2 min-w-[140px] flex flex-col items-center gap-4 ${
+                    selectedCategory === cat.name
+                      ? 'bg-primary border-primary text-white shadow-glow-sm scale-105'
+                      : 'bg-white border-blue-50/50 text-[#000000] hover:border-blue-100 hover:bg-blue-50/30'
                   }`}
                 >
-                  {cat === 'มือสอง' ? 'มือ2' : cat}
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${selectedCategory === cat.name ? 'bg-white/20' : 'bg-blue-50'}`}>
+                    <Search size={24} />
+                  </div>
+                  <span className="text-[11px] font-black uppercase tracking-widest">{cat.name}</span>
                 </button>
               ))}
-            </div>
+           </div>
+        </div>
+
+        {/* Search & Sort */}
+        <div className="space-y-10 mb-16 px-2">
+          <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="relative max-w-2xl w-full"
+            >
+              <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300"><Search size={22} /></div>
+              <input
+                type="text"
+                placeholder="ค้นหาสินค้าที่คุณต้องการ..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="input-field pl-16 py-6 text-xl tracking-tight border-blue-50/50 focus:border-primary shadow-soft bg-white/50"
+              />
+            </motion.div>
 
             <div className="flex items-center gap-4 w-full md:w-auto">
-              {/* Sort Selection */}
               <select 
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-white border border-slate-200 rounded-2xl px-6 py-4 text-slate-700 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-slate-900 transition-all cursor-pointer shadow-sm w-full md:w-64 appearance-none text-center"
+                className="bg-white border border-blue-50/50 rounded-2xl px-10 py-5 text-[#000000] text-xs font-black uppercase tracking-widest focus:outline-none focus:border-primary transition-all cursor-pointer shadow-soft w-full md:w-auto appearance-none text-center"
               >
-                <option value="latest">จัดตาม: ล่าสุด</option>
+                <option value="latest">เรียงลำดับ: ล่าสุด</option>
                 <option value="price-low">ราคา: ต่ำ - สูง</option>
                 <option value="price-high">ราคา: สูง - ต่ำ</option>
               </select>
             </div>
           </div>
-
-          {/* Search Input */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="relative max-w-4xl"
-          >
-            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300"><Search size={22} /></div>
-            <input
-              type="text"
-              placeholder="ค้นตามชื่อสินค้าหรือหมวดหมู่..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input-field pl-16 py-6 text-xl tracking-tight border-slate-100 focus:border-slate-900"
-            />
-          </motion.div>
         </div>
 
         {/* Grid */}
