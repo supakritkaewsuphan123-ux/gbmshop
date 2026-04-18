@@ -92,9 +92,9 @@ export default function ProductCard({ product, index = 0 }) {
 
       {/* Info */}
       <div className="p-4 flex flex-col flex-1">
-        <h3 className="font-semibold text-white text-base mb-1 line-clamp-2 leading-snug">{product.name}</h3>
-        <p className="text-gray-500 text-sm mb-3">
-          โดย <span className="text-gray-400">{product.seller_name}</span>
+        <h3 className="font-semibold text-slate-800 text-base mb-1 line-clamp-2 leading-snug">{product.name}</h3>
+        <p className="text-slate-500 text-sm mb-3">
+          โดย <span className="text-slate-600 font-medium">{product.seller_name}</span>
           {product.stock > 0 && (
             <span className="float-right text-green-400 text-xs">สต็อก: {product.stock}</span>
           )}
@@ -109,7 +109,7 @@ export default function ProductCard({ product, index = 0 }) {
                 className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 ${
                   inCart
                     ? 'bg-green-500/20 text-green-400 border border-green-500/40'
-                    : 'bg-white/5 text-gray-400 hover:text-white hover:bg-primary/20 hover:text-primary border border-white/10'
+                    : 'bg-slate-50 text-slate-500 hover:text-white hover:bg-primary border border-slate-100'
                 }`}
                 title={inCart ? 'อยู่ในตะกร้าแล้ว' : 'เพิ่มในตะกร้า'}
               >
@@ -118,7 +118,7 @@ export default function ProductCard({ product, index = 0 }) {
             )}
             <Link
               to={`/products/${product.id}`}
-              className="flex items-center gap-1.5 bg-white/5 hover:bg-primary hover:text-white text-gray-400 border border-white/10 hover:border-primary px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95"
+              className="flex items-center gap-1.5 bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-600 border border-slate-100 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95"
             >
               <Eye size={14} /> ดู
             </Link>

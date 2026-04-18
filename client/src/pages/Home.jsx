@@ -15,49 +15,10 @@ export default function Home() {
   usePageMetadata('หน้าแรก', 'GB Marketplace - ตลาดซื้อขายสินค้าพรีเมียม ปลอดภัย มั่นใจ 100% พร้อมระบบ Wallet อัตโนมัติ');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [typedText, setTypedText] = useState('');
-  const [adminInfo, setAdminInfo] = useState(null);
-  const [contactLoading, setContactLoading] = useState(false);
-  const { user, logout } = useAuth();
-  const { showToast } = useToast();
-  const fullText = 'จำหน่ายของ มือสองสภาพดี';
-
   useEffect(() => {
-    let currentIndex = 0;
-    let isDeleting = false;
-    let timeoutId;
-
-    const type = () => {
-      if (!isDeleting) {
-        if (currentIndex < fullText.length) {
-          setTypedText(fullText.slice(0, currentIndex + 1));
-          currentIndex++;
-          timeoutId = setTimeout(type, 150); // Slower typing
-        } else {
-          // Pause at the end
-          timeoutId = setTimeout(() => {
-            isDeleting = true;
-            type();
-          }, 3000); // 3s delay
-        }
-      } else {
-        if (currentIndex > 0) {
-          setTypedText(fullText.slice(0, currentIndex - 1));
-          currentIndex--;
-          timeoutId = setTimeout(type, 50); // Faster deleting
-        } else {
-          isDeleting = false;
-          timeoutId = setTimeout(type, 1000); // Wait before restart
-        }
-      }
-    };
-
-    type();
     supabase.from('settings').select('*').single()
       .then(({ data }) => setAdminInfo(data))
       .catch(console.error);
-
-    return () => clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
@@ -115,91 +76,44 @@ export default function Home() {
   return (
     <div>
       {/* Hero section */}
-      <section
-        className="relative min-h-[90vh] flex items-center text-center overflow-hidden"
-        style={{
-          background:
-            'linear-gradient(rgba(10,10,12,0.85), rgba(10,10,12,0.98)), url(/assets/home_bg.png) center/cover no-repeat',
-        }}
-      >
-        {/* Extra Home-Specific Decorations */}
+      <section className="relative min-h-[65vh] flex items-center text-center overflow-hidden bg-white">
+        {/* Subtle Decorative Elements */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <motion.div
-            animate={{ 
-              x: [0, 50, 0], 
-              y: [0, 30, 0],
-              scale: [1, 1.1, 1] 
-            }}
-            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-            className="absolute top-[10%] left-[15%] w-64 h-64 bg-primary/10 rounded-full blur-[100px]"
-          />
-          <motion.div
-            animate={{ 
-              x: [0, -40, 0], 
-              y: [0, 60, 0],
-              scale: [1, 1.2, 1] 
-            }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute bottom-[20%] right-[20%] w-72 h-72 bg-blue-500/5 rounded-full blur-[120px]"
-          />
-          <motion.div
-            animate={{ 
-              opacity: [0.1, 0.3, 0.1]
-            }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(255,75,92,0.05)_0%,transparent_70%)]"
-          />
+          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px]" />
+          <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[80px]" />
         </div>
 
         <div className="container mx-auto px-6 relative z-10">
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: 'easeOut' }}
+            transition={{ duration: 0.8 }}
           >
-            <div className="mb-8">
-              <motion.span 
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                whileHover={{ scale: 1.05 }}
-                className="inline-block bg-primary/10 border border-primary/30 text-primary text-sm font-semibold px-6 py-2 rounded-full shadow-glow-sm cursor-default"
-              >
-                🔥 ตลาดซื้อขายมือสองพรีเมียม
-              </motion.span>
+            <div className="mb-6">
+              <span className="inline-block bg-slate-100 text-slate-600 text-xs font-bold px-4 py-1.5 rounded-full tracking-wider uppercase border border-slate-200">
+                Premium Marketplace
+              </span>
             </div>
 
-            <div className="min-h-[160px] md:min-h-[220px] flex items-center justify-center mb-6">
-              <h1 className="text-6xl md:text-8xl font-black text-white leading-tight tracking-tight flex items-center justify-center flex-wrap gap-x-4">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                  {typedText}
-                </span>
-                <motion.span
-                  animate={{ opacity: [1, 0, 1] }}
-                  transition={{ duration: 0.8, repeat: Infinity, ease: "stepEnd" }}
-                  className="inline-block w-4 h-16 md:h-20 bg-primary shadow-glow-sm"
-                />
-              </h1>
-            </div>
+            <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 leading-[1.1] tracking-tight">
+              เลือกซื้อสินค้า <br />
+              <span className="text-primary font-black">คุณภาพดี</span> ในราคาคุ้มค่า
+            </h1>
 
-            <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto font-medium leading-relaxed opacity-80">
-              อัปเกรดคลังสินค้าเพื่อคุณ ขายสินค้ามือสองคุณภาพดี และเครื่องใช้ไฟฟ้าต่างๆ
+            <p className="text-lg text-slate-500 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
+              แหล่งรวมสินค้าพรีเมียม ปลอดภัย มั่นใจ 100% พร้อมระบบ Wallet อัตโนมัติ <br className="hidden md:block" />
+              ช้อปง่าย จ่ายสะดวก กับสินค้าที่ผ่านการคัดสรรมาเพื่อคุณ
             </p>
 
             <div className="flex gap-4 justify-center flex-wrap">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                <Link to="/products" className="btn-primary text-lg px-10 py-5 flex items-center justify-center gap-2 min-w-[240px]">
-                  เลือกสินค้า <ArrowRight size={20} />
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Link to="/products" className="bg-slate-900 text-white font-bold text-lg px-10 py-5 rounded-2xl flex items-center justify-center gap-2 min-w-[240px] shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all">
+                  เริ่มเลือกสินค้า <ArrowRight size={20} />
                 </Link>
               </motion.div>
-              {user ? (
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                  <button onClick={logout} className="btn-outline text-lg px-10 py-5 flex items-center justify-center min-w-[240px]">
-                    ออกจากระบบ
-                  </button>
-                </motion.div>
-              ) : (
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                  <Link to="/register" className="btn-outline text-lg px-10 py-5 flex items-center justify-center min-w-[240px]">
+              {!user && (
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Link to="/register" className="bg-white text-slate-900 border-2 border-slate-100 font-bold text-lg px-10 py-5 rounded-2xl flex items-center justify-center min-w-[240px] hover:bg-slate-50 transition-all">
                     สมัครสมาชิก
                   </Link>
                 </motion.div>
@@ -251,11 +165,11 @@ export default function Home() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="text-4xl font-extrabold text-white mb-4 leading-tight">
+          <h2 className="text-4xl font-extrabold text-slate-900 mb-4 leading-tight">
             ติดต่อเรา
           </h2>
-          <p className="text-gray-400 text-lg">
-            ติดต่อผ่านช่องทางด่วนด้านล่างนี้ได้เลยครับ เราพร้อมช่วยเหลือคุณ 24 ชม.
+          <p className="text-slate-500 text-lg">
+            หากมีข้อสงสัยหรือปัญหาการใช้งาน ติดต่อเราได้ตลอด 24 ชม.
           </p>
         </motion.div>
 
@@ -267,42 +181,42 @@ export default function Home() {
         >
           {/* โทร — แก้เบอร์โทรที่ href="tel:..." และข้อความด้านล่าง */}
           <a href="tel:0829879790"
-            className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-primary/40 hover:bg-primary/5 transition-all group text-center cursor-pointer block">
+            className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-primary/40 hover:bg-primary/5 transition-all group text-center cursor-pointer block shadow-sm">
             <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
               <Phone size={22} className="text-primary" />
             </div>
-            <p className="text-xs text-gray-500 uppercase font-bold mb-1 tracking-widest">Call Center</p>
-            <p className="text-white font-semibold">082-987-9790</p>
+            <p className="text-xs text-slate-400 uppercase font-bold mb-1 tracking-widest">Call Center</p>
+            <p className="text-slate-900 font-semibold">082-987-9790</p>
           </a>
 
           {/* LINE — แก้ลิงก์ไลน์ที่ href="..." */}
           <a href="https://lin.ee/Z1pMLkJ" target="_blank" rel="noopener noreferrer"
-            className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-green-500/40 hover:bg-green-500/5 transition-all group text-center cursor-pointer block">
+            className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-green-500/40 hover:bg-green-500/5 transition-all group text-center cursor-pointer block shadow-sm">
             <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
               <MessageSquare size={22} className="text-green-500" />
             </div>
-            <p className="text-xs text-gray-500 uppercase font-bold mb-1 tracking-widest">LINE Official</p>
-            <p className="text-white font-semibold">@gbmoneyshop</p>
+            <p className="text-xs text-slate-400 uppercase font-bold mb-1 tracking-widest">LINE Official</p>
+            <p className="text-slate-900 font-semibold">@gbmoneyshop</p>
           </a>
 
           {/* Facebook — แก้ลิงก์เฟซบุ๊กที่ href="..." */}
           <a href="https://www.facebook.com/share/1EmdvU4Jwu/" target="_blank" rel="noopener noreferrer"
-            className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-blue-500/40 hover:bg-blue-500/5 transition-all group text-center cursor-pointer block">
+            className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-blue-500/40 hover:bg-blue-500/5 transition-all group text-center cursor-pointer block shadow-sm">
             <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
               <Globe size={22} className="text-blue-500" />
             </div>
-            <p className="text-xs text-gray-500 uppercase font-bold mb-1 tracking-widest">Facebook</p>
-            <p className="text-white font-semibold">GB Money Shop</p>
+            <p className="text-xs text-slate-400 uppercase font-bold mb-1 tracking-widest">Facebook</p>
+            <p className="text-slate-900 font-semibold">GB Money Shop</p>
           </a>
 
           {/* Email — แก้อีเมลที่ href="mailto:..." */}
           <a href="mailto:support@gbmoney.com"
-            className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-purple-500/40 hover:bg-purple-500/5 transition-all group text-center cursor-pointer block">
+            className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-purple-500/40 hover:bg-purple-500/5 transition-all group text-center cursor-pointer block shadow-sm">
             <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
               <Mail size={22} className="text-purple-500" />
             </div>
-            <p className="text-xs text-gray-500 uppercase font-bold mb-1 tracking-widest">Email</p>
-            <p className="text-white font-semibold">support@gbmoney.com</p>
+            <p className="text-xs text-slate-400 uppercase font-bold mb-1 tracking-widest">Email</p>
+            <p className="text-slate-900 font-semibold">support@gbmoney.com</p>
           </a>
         </motion.div>
       </section>

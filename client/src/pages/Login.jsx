@@ -110,17 +110,17 @@ export default function Login() {
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="w-full max-w-md"
       >
-        <div className="bg-surface border border-border rounded-2xl p-8 shadow-card">
+        <div className="bg-white border border-slate-100 rounded-[2rem] p-10 shadow-2xl shadow-slate-200/60">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="text-3xl font-extrabold text-white mb-1">GB<span className="text-primary">money</span></div>
-            <h2 className="text-2xl font-bold text-white mt-4 mb-1">ยินดีต้อนรับกลับ</h2>
-            <p className="text-gray-400 text-sm">เข้าสู่ระบบเพื่อใช้งาน</p>
+          <div className="text-center mb-10">
+            <div className="text-3xl font-black text-slate-900 mb-1">GB<span className="text-primary">shop</span></div>
+            <h2 className="text-2xl font-black text-slate-900 mt-6 mb-2">ยินดีต้อนรับกลับ</h2>
+            <p className="text-slate-500 font-medium">เข้าสู่ระบบเพื่อจัดการสินค้าและ Wallet</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="label">ชื่อผู้ใช้ หรือ อีเมล</label>
+              <label className="label text-slate-700 font-bold">ชื่อผู้ใช้ หรือ อีเมล</label>
               <input
                 type="text" required
                 value={form.identifier}
@@ -142,7 +142,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -193,9 +193,9 @@ export default function Login() {
             </motion.button>
           </form>
 
-          <p className="text-center mt-6 text-sm text-gray-500">
+          <p className="text-center mt-8 text-sm text-slate-500 font-medium">
             ยังไม่มีบัญชี?{' '}
-            <Link to="/register" className="text-primary hover:underline font-medium">สมัครสมาชิกฟรี</Link>
+            <Link to="/register" className="text-primary hover:underline font-bold">สมัครสมาชิกฟรี</Link>
           </p>
         </div>
       </motion.div>

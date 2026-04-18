@@ -42,15 +42,15 @@ export default function Navbar() {
       transition={{ duration: 0.5, ease: 'easeOut' }}
       className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-[#0a0a0c]/95 backdrop-blur-lg shadow-[0_4px_30px_rgba(0,0,0,0.5)] border-b border-primary/10'
-          : 'bg-[#0f0f0f] border-b border-white/5'
+          ? 'bg-white/90 backdrop-blur-xl shadow-sm border-b border-slate-100'
+          : 'bg-white border-b border-slate-50'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-3 items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-1 font-bold text-2xl text-white hover:opacity-90 transition-opacity">
-            GB<span className="text-primary">money</span>
+          <Link to="/" className="flex items-center gap-1 font-bold text-2xl text-slate-900 hover:opacity-90 transition-opacity">
+            GB<span className="text-primary font-black">shop</span>
           </Link>
 
           {/* Center nav links — desktop */}
@@ -75,7 +75,7 @@ export default function Navbar() {
             {user && <NotificationBell />}
             
             {/* Cart */}
-            <Link to="/cart" className="relative p-2 text-gray-300 hover:text-white transition-colors group">
+            <Link to="/cart" className="relative p-2 text-slate-600 hover:text-primary transition-colors group">
               <ShoppingCart size={22} className="group-hover:scale-110 transition-transform" />
               {count > 0 && (
                 <motion.span
@@ -90,8 +90,8 @@ export default function Navbar() {
 
             {user ? (
               <>
-                <span className="text-gray-400 text-sm">
-                  สวัสดี, <span className="text-primary font-semibold">{user.username}</span>
+                <span className="text-slate-500 text-sm">
+                  สวัสดี, <span className="text-slate-900 font-semibold">{user.username}</span>
                 </span>
                 {isAdmin ? (
                   <Link to="/admin" className="btn-outline py-2 px-4 text-sm flex items-center gap-1.5 whitespace-nowrap">
@@ -120,7 +120,7 @@ export default function Navbar() {
 
           {/* Mobile hamburger */}
           <div className="flex md:hidden justify-end">
-            <button onClick={() => setMenuOpen(!menuOpen)} className="text-white p-2">
+            <button onClick={() => setMenuOpen(!menuOpen)} className="text-slate-900 p-2">
               {menuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
@@ -135,7 +135,7 @@ export default function Navbar() {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="md:hidden overflow-hidden bg-surface border-t border-border"
+            className="md:hidden overflow-hidden bg-white border-t border-slate-100"
           >
             <div className="px-4 py-4 flex flex-col gap-3">
               {navLinks.map((l) => (
@@ -146,7 +146,7 @@ export default function Navbar() {
                   onClick={() => setMenuOpen(false)}
                   className={({ isActive }) =>
                     `py-2 px-3 rounded-lg font-medium transition-colors ${
-                      isActive ? 'bg-primary/10 text-primary' : 'text-gray-300 hover:text-white'
+                      isActive ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:text-slate-900'
                     }`
                   }
                 >
@@ -155,7 +155,7 @@ export default function Navbar() {
               ))}
               <div className="border-t border-border pt-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between px-3">
-                  <Link to="/cart" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 py-2 text-gray-300 hover:text-white">
+                  <Link to="/cart" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 py-2 text-slate-600 hover:text-slate-900">
                     <ShoppingCart size={18} /> ตะกร้าสินค้า {count > 0 && <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full">{count}</span>}
                   </Link>
                   {user && <NotificationBell />}

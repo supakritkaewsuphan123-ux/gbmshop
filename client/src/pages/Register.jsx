@@ -42,11 +42,11 @@ export default function Register() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-lg"
       >
-        <div className="bg-surface border border-border rounded-2xl p-8 shadow-card">
-          <div className="text-center mb-8">
-            <div className="text-3xl font-extrabold text-white mb-1">GB<span className="text-primary">money</span></div>
-            <h2 className="text-2xl font-bold text-white mt-4 mb-1">สมัครสมาชิก</h2>
-            <p className="text-gray-400 text-sm">เปิดบัญชีและเริ่มซื้อขายได้เลย</p>
+        <div className="bg-white border border-slate-100 rounded-[2rem] p-10 shadow-2xl shadow-slate-200/60">
+          <div className="text-center mb-10">
+            <div className="text-3xl font-black text-slate-900 mb-1">GB<span className="text-primary">shop</span></div>
+            <h2 className="text-2xl font-black text-slate-900 mt-6 mb-2">สมัครสมาชิก</h2>
+            <p className="text-slate-500 font-medium">เปิดบัญชีและเริ่มซื้อขายได้เลย</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -117,9 +117,9 @@ export default function Register() {
             </motion.button>
           </form>
 
-          <p className="text-center mt-6 text-sm text-gray-500">
+          <p className="text-center mt-8 text-sm text-slate-500 font-medium">
             มีบัญชีแล้ว?{' '}
-            <Link to="/login" className="text-primary hover:underline font-medium">เข้าสู่ระบบ</Link>
+            <Link to="/login" className="text-primary hover:underline font-bold">เข้าสู่ระบบ</Link>
           </p>
         </div>
       </motion.div>

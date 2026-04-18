@@ -9,8 +9,8 @@
 
   body {
     font-family: 'Prompt', 'Inter', -apple-system, sans-serif;
-    background-color: #0a0a0c;
-    color: #ffffff;
+    background-color: #ffffff;
+    color: #1e293b;
     line-height: 1.8;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
@@ -27,7 +27,7 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: #0a0a0c;
+    background: #f8fafc;
   }
 
   ::-webkit-scrollbar-thumb {
@@ -75,15 +75,15 @@
   }
 
   .card {
-    @apply bg-surface border border-border rounded-2xl
-           transition-all duration-300
-           hover:border-primary/40 hover:shadow-card;
+    @apply bg-white border border-slate-100 rounded-2xl
+           transition-all duration-300 shadow-sm
+           hover:border-primary/20 hover:shadow-xl hover:shadow-slate-200/50;
   }
 
   .input-field {
-    @apply w-full bg-surface border border-border rounded-xl px-4 py-3
-           text-white placeholder-gray-500
-           focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20
+    @apply w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3
+           text-slate-900 placeholder-slate-400
+           focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10
            transition-all duration-200
            font-prompt;
   }
@@ -109,15 +109,15 @@
   }
 
   .section-title {
-    @apply text-3xl font-bold mb-2;
+    @apply text-3xl font-bold mb-2 text-slate-800;
   }
 
   .section-subtitle {
-    @apply text-gray-400 mb-8;
+    @apply text-slate-500 mb-8;
   }
 
   .shimmer {
-    background: linear-gradient(90deg, #141419 25%, #1e1e26 50%, #141419 75%);
+    background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%);
     background-size: 200% 100%;
     @apply animate-shimmer;
   }
@@ -131,7 +131,7 @@
   }
 
   .glass {
-    @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl;
+    @apply bg-white/70 backdrop-blur-md border border-white/40 rounded-2xl shadow-sm;
   }
 
   .bright-glass {

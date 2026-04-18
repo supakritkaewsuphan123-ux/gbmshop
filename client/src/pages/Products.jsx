@@ -95,23 +95,23 @@ export default function Products() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-4xl font-extrabold text-white mb-2">ตลาดสินค้า</h1>
-        <p className="text-gray-400">ค้นหาสินค้ามือหนึ่งและมือสองคุณภาพพรีเมียม</p>
+        <h1 className="text-4xl font-extrabold text-slate-900 mb-2">ตลาดสินค้า</h1>
+        <p className="text-slate-500">ค้นหาสินค้ามือหนึ่งและมือสองคุณภาพพรีเมียม</p>
       </motion.div>
 
       {/* Filters & Search */}
       <div className="space-y-6 mb-8">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           {/* Category Tabs */}
-          <div className="flex bg-surface border border-border p-1 rounded-2xl w-full md:w-auto">
+          <div className="flex bg-slate-50 border border-slate-200 p-1.5 rounded-2xl w-full md:w-auto shadow-sm">
             {['ทั้งหมด', 'มือ1', 'มือสอง'].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 className={`flex-1 md:px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
                   selectedCategory === cat
-                    ? 'bg-primary text-white shadow-glow-sm scale-[1.02]'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-200 scale-[1.02]'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-white'
                 }`}
               >
                 {cat === 'มือสอง' ? 'มือ2' : cat}
@@ -124,14 +124,14 @@ export default function Products() {
             <select 
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-surface border border-border rounded-xl px-4 py-2.5 text-gray-300 text-sm font-medium focus:outline-none focus:border-primary/50 transition-all cursor-pointer"
+              className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-700 text-sm font-medium focus:outline-none focus:border-slate-400 transition-all cursor-pointer shadow-sm"
             >
               <option value="latest">เรียงตาม: ล่าสุด</option>
               <option value="price-low">ราคา: ต่ำ - สูง</option>
               <option value="price-high">ราคา: สูง - ต่ำ</option>
             </select>
 
-            <div className="flex items-center gap-2 bg-surface border border-border rounded-xl px-4 py-2.5 text-gray-400 text-sm whitespace-nowrap">
+
               <SlidersHorizontal size={16} />
               <span>{filtered.length} รายการ</span>
             </div>
@@ -176,11 +176,11 @@ export default function Products() {
             exit={{ opacity: 0 }}
             className="text-center py-24 glass rounded-3xl border-dashed border-2 border-white/5"
           >
-            <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
+            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-inner">
               🔍
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">ไม่พบสินค้าที่คุณค้นหา</h3>
-            <p className="text-gray-500 max-w-sm mx-auto">ลองเปลี่ยนหมวดหมู่หรือใช้คำค้นหาอื่นแทน</p>
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">ไม่พบสินค้าที่คุณค้นหา</h3>
+            <p className="text-slate-500 max-w-sm mx-auto">ลองเปลี่ยนหมวดหมู่หรือใช้คำค้นหาอื่นแทน</p>
             <button 
               onClick={() => { setSearch(''); setSelectedCategory('ทั้งหมด'); }}
               className="mt-8 text-primary font-bold hover:underline"
