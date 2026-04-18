@@ -4,11 +4,16 @@ require('dotenv').config();
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 
+let supabase;
 if (!supabaseUrl || !supabaseKey) {
-  console.warn('[Supabase Backend] Missing credentials in .env');
+  console.warn('[Supabase Backend] Missing credentials in .env. Initialization skipped.');
+  supabase = {
+    auth: { resetPasswordForEmail: async () => ({ error: { message: 'Supabase not configured' } }) },
+    storage: { from: () => ({ upload: async () => ({ error: { message: 'Supabase not configured' } }) }) }
+  };
+} else {
+  supabase = createClient(supabaseUrl, supabaseKey);
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
  * Uploads a file buffer to a specified Supabase bucket.
