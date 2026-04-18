@@ -9,7 +9,7 @@
 
   body {
     font-family: 'Prompt', 'Inter', -apple-system, sans-serif;
-    background-color: #050B18;
+    background-color: #111d33;
     color: #EE4D2D;
     line-height: 1.6;
     min-height: 100vh;
@@ -25,14 +25,14 @@
     color: #EE4D2D !important;
   }
 
-  /* Global Background Overrides for Deep Navy Theme */
+  /* Global Background Overrides for Medium Blue Theme */
   .bg-slate-900, .bg-black, .bg-slate-800, .bg-gray-900, .bg-white {
-    background-color: rgba(5, 11, 24, 0.95) !important;
+    background-color: rgba(17, 29, 51, 0.95) !important;
     border: 1px solid rgba(238, 77, 45, 0.15) !important;
   }
 
   .bg-slate-50, .bg-slate-100, .bg-gray-50, .bg-gray-100 {
-    background-color: rgba(10, 25, 47, 0.8) !important;
+    background-color: rgba(17, 33, 61, 0.8) !important;
     backdrop-filter: blur(12px);
     border: 1px solid rgba(238, 77, 45, 0.1) !important;
   }

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 export default function Background() {
   return (
-    <div className="fixed inset-0 w-full h-full bg-[#050B18] z-[-1] overflow-hidden pointer-events-none">
+    <div className="fixed inset-0 w-full h-full bg-[#111d33] z-[-1] overflow-hidden pointer-events-none">
       {/* Animated Diagonal Lines Layer */}
       <motion.div 
         initial={{ backgroundPosition: '0 0' }}

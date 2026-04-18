@@ -18,16 +18,16 @@ export default {
           light: "rgba(238,77,45,0.1)",
         },
         brand: {
-          dark: "#050B18",
-          darker: "#020617",
-          navy: "#0A192F",
+          dark: "#111d33",
+          darker: "#0a0f1d",
+          navy: "#11213d",
         },
         secondary: {
           DEFAULT: "#FB923C",
           light: "#DBEAFE",
         },
-        background: "#050B18",
-        surface: "#0A192F",
+        background: "#111d33",
+        surface: "#11213d",
         border: "rgba(238,77,45,0.1)",
       },
       boxShadow: {
