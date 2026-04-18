@@ -39,7 +39,6 @@ export function AuthProvider({ children }) {
       // Race between fetch and timeout
       return await Promise.race([fetchPromise, timeoutPromise]);
     } catch (err) {
-      console.warn('[AUTH] Profile fetch fallback activated:', err.message);
       return fallbackUser;
     }
   }, []);
@@ -49,18 +48,14 @@ export function AuthProvider({ children }) {
     let isMounted = true;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[AUTH] Event: ${event}`, session ? 'Session found' : 'No session');
-
       // 🛑 STRICT GUARD: Completely bypass for Reset Password page to avoid race conditions
       if (window.location.pathname === '/reset-password') {
-        console.log('[AUTH] Reset Password path detected - PREVENTING GLOBAL OVERRIDE');
         if (isMounted) setLoading(false);
         return;
       }
 
       // Ignore duplicates or recovery events that should be handled by the page
       if (event === 'PASSWORD_RECOVERY') {
-        console.log('[AUTH] PASSWORD_RECOVERY ignored by Context (Handled by Page)');
         if (isMounted) setLoading(false);
         return;
       }
@@ -82,7 +77,6 @@ export function AuthProvider({ children }) {
 
       // ✅ Mismatch Detection & Auto-Refresh
       if (jwtRole !== dbRole && !isRefreshing.current) {
-        console.log('[AUTH] Role mismatch, refreshing session...');
         isRefreshing.current = true;
         await supabase.auth.refreshSession();
         setTimeout(() => { isRefreshing.current = false; }, 5000);
