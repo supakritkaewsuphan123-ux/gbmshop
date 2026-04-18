@@ -62,17 +62,18 @@ export default function Home() {
   return (
     <div className="bg-white">
       {/* ===== FEATURED PRODUCTS (TOP) ===== */}
-      <section className="max-w-7xl mx-auto px-6 pt-32 pb-40">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-10">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="text-left"
-          >
-            <h2 className="text-6xl font-black text-[#000000] mb-6 tracking-tight">สินค้าแนะนำ</h2>
-            <p className="text-2xl text-[#555555] font-bold">เลือกชมสินค้าคุณภาพที่ผ่านการคัดสรรมาเพื่อคุณ</p>
-          </motion.div>
+      <section className="bg-blue-50/40 border-b border-blue-100/50">
+        <div className="max-w-7xl mx-auto px-6 pt-32 pb-40">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-10">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="text-left"
+            >
+              <h2 className="text-6xl font-black text-orange-500 mb-6 tracking-tight">สินค้าแนะนำ</h2>
+              <p className="text-2xl text-orange-400 font-bold">เลือกชมสินค้าคุณภาพที่ผ่านการคัดสรรมาเพื่อคุณ</p>
+            </motion.div>
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
             <Link to="/products" className="text-[#000000] font-black flex items-center gap-3 hover:translate-x-2 transition-transform py-6 px-12 bg-white rounded-[24px] border border-blue-50 shadow-soft">
               ดูทั้งหมด <ArrowRight size={24} className="text-primary" />
