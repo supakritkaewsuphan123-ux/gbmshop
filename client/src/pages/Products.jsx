@@ -132,9 +132,6 @@ export default function Products() {
             </select>
 
 
-              <SlidersHorizontal size={16} />
-              <span>{filtered.length} รายการ</span>
-            </div>
           </div>
         </div>
 
