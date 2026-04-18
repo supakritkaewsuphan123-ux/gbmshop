@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Phone, Mail, MessageSquare, Globe } from 'lucide-react';
+import { ArrowRight, Phone, Mail, MessageSquare, Globe, ShieldCheck, Zap, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import ProductCard from '../components/ProductCard';
@@ -10,19 +10,12 @@ import { useToast } from '../context/ToastContext';
 import { usePageMetadata } from '../hooks/usePageMetadata';
 
 export default function Home() {
-  usePageMetadata('หน้าแรก', 'GB Marketplace - ตลาดซื้อขายสินค้าพรีเมียม ปลอดภัย มั่นใจ 100% พร้อมระบบ Wallet อัตโนมัติ');
+  usePageMetadata('หน้าแรก', 'GBshop Marketplace - ตลาดซื้อขายสินค้าพรีเมียม ปลอดภัย มั่นใจ 100%');
   
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { showToast } = useToast();
-  const [adminInfo, setAdminInfo] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase.from('settings').select('*').single()
-      .then(({ data }) => setAdminInfo(data))
-      .catch(console.error);
-  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -49,7 +42,7 @@ export default function Home() {
           
           const enriched = productsData.map(p => ({
             ...p,
-            seller_name: profileMap[p.user_id]?.username || 'System'
+            seller_name: profileMap[p.user_id]?.username || 'GB Official'
           }));
           if (isMounted) setProducts(enriched);
         } else {
@@ -67,141 +60,97 @@ export default function Home() {
   }, []);
 
   return (
-    <div>
-      {/* Hero section */}
-      <section className="relative min-h-[65vh] flex items-center text-center overflow-hidden bg-white">
-        {/* Subtle Decorative Elements */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px]" />
-          <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[80px]" />
-        </div>
-
-        <div className="container mx-auto px-6 relative z-10">
+    <div className="bg-white">
+      {/* ===== FEATURED PRODUCTS (TOP) ===== */}
+      <section className="max-w-7xl mx-auto px-6 pt-32 pb-40">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-10">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="text-left"
           >
-            <div className="mb-6">
-              <span className="inline-block bg-slate-100 text-slate-600 text-xs font-bold px-4 py-1.5 rounded-full tracking-wider uppercase border border-slate-200">
-                Premium Marketplace
-              </span>
-            </div>
-
-            <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 leading-[1.1] tracking-tight">
-              เลือกซื้อสินค้า <br />
-              <span className="text-primary font-black">คุณภาพดี</span> ในราคาคุ้มค่า
-            </h1>
-
-            <p className="text-lg text-slate-500 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
-              แหล่งรวมสินค้าพรีเมียม ปลอดภัย มั่นใจ 100% พร้อมระบบ Wallet อัตโนมัติ <br className="hidden md:block" />
-              ช้อปง่าย จ่ายสะดวก กับสินค้าที่ผ่านการคัดสรรมาเพื่อคุณ
-            </p>
-
-            <div className="flex gap-4 justify-center flex-wrap">
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Link to="/products" className="bg-primary text-white font-bold text-lg px-10 py-5 rounded-3xl flex items-center justify-center gap-2 min-w-[240px] shadow-xl shadow-primary/20 hover:brightness-110 transition-all">
-                  เริ่มเลือกสินค้า <ArrowRight size={20} />
-                </Link>
-              </motion.div>
-              {!user && (
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Link to="/register" className="bg-white text-slate-900 border-2 border-slate-100 font-bold text-lg px-10 py-5 rounded-2xl flex items-center justify-center min-w-[240px] hover:bg-slate-50 transition-all">
-                    สมัครสมาชิก
-                  </Link>
-                </motion.div>
-              )}
-            </div>
+            <h2 className="text-6xl font-black text-slate-900 mb-6 tracking-tight">สินค้าแนะนำ</h2>
+            <p className="text-2xl text-slate-400 font-bold">เลือกชมสินค้าคุณภาพที่ผ่านการคัดสรรมาเพื่อคุณ</p>
+          </motion.div>
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
+            <Link to="/products" className="text-slate-900 font-black flex items-center gap-3 hover:translate-x-2 transition-transform py-6 px-12 bg-white rounded-[24px] border border-slate-100 shadow-soft">
+              ดูทั้งหมด <ArrowRight size={24} />
+            </Link>
           </motion.div>
         </div>
-      </section>
 
-      {/* ===== FEATURED PRODUCTS ===== */}
-      <section className="max-w-7xl mx-auto px-6 pb-24 border-b border-slate-100">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-10"
-        >
-          <h2 className="section-title">สินค้าแนะนำ</h2>
-          <p className="section-subtitle">สินค้ามือสองคุณภาพดีที่ลงขายล่าสุด</p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
             : products.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
         </div>
+      </section>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="text-center mt-10"
-        >
-          <Link to="/products" className="border-2 border-primary/20 text-primary font-bold px-10 py-3 rounded-2xl inline-flex items-center gap-2 hover:bg-primary/5 transition-all">
-            ดูสินค้าทั้งหมด <ArrowRight size={16} />
-          </Link>
-        </motion.div>
+      {/* ===== TRUST SECTION ===== */}
+      <section className="bg-slate-50/30 py-40 border-y border-slate-50">
+         <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-24">
+            <div className="text-center group">
+               <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-slate-900 mx-auto mb-8 shadow-soft border border-slate-50 group-hover:bg-primary group-hover:text-white transition-all"><ShieldCheck size={36} /></div>
+               <h4 className="text-2xl font-black text-slate-900 mb-3 uppercase tracking-tighter">ปลอดภัย 100%</h4>
+               <p className="text-slate-400 font-bold leading-relaxed">ตรวจสอบความปลอดภัยทุกออเดอร์ มั่นใจได้ในทุกคำสั่งซื้อ</p>
+            </div>
+            <div className="text-center group">
+               <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-slate-900 mx-auto mb-8 shadow-soft border border-slate-50 group-hover:bg-primary group-hover:text-white transition-all"><Zap size={36} /></div>
+               <h4 className="text-2xl font-black text-slate-900 mb-3 uppercase tracking-tighter">จัดส่งว่องไว</h4>
+               <p className="text-slate-400 font-bold leading-relaxed">ระบบยืนยันออเดอร์รวดเร็ว พร้อมแจ้งเตือนทันทีเมื่อมีการเปลี่ยนแปลง</p>
+            </div>
+            <div className="text-center group">
+               <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-slate-900 mx-auto mb-8 shadow-soft border border-slate-50 group-hover:bg-primary group-hover:text-white transition-all"><MessageSquare size={36} /></div>
+               <h4 className="text-2xl font-black text-slate-900 mb-3 uppercase tracking-tighter">ดูแลตลอด 24 ชม.</h4>
+               <p className="text-slate-400 font-bold leading-relaxed">ทีมงานแอดมินพร้อมซัพพอร์ตและแก้ไขปัญหาให้คุณได้ทุกเวลา</p>
+            </div>
+         </div>
       </section>
 
       {/* ===== CONTACT SECTION ===== */}
-      <section className="max-w-7xl mx-auto px-6 py-24">
+      <section className="max-w-7xl mx-auto px-6 py-40">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-12"
+          className="text-center mb-20"
         >
-          <h2 className="text-4xl font-extrabold text-slate-900 mb-4 leading-tight">
-            ติดต่อเรา
-          </h2>
-          <p className="text-slate-500 text-lg">
-            หากมีข้อสงสัยหรือปัญหาการใช้งาน ติดต่อเราได้ตลอด 24 ชม.
-          </p>
+          <h2 className="text-6xl font-black text-slate-900 mb-6 tracking-tight">ช่องทางติดต่อ</h2>
+          <p className="text-2xl text-slate-400 font-bold">เลือกช่องทางที่คุณสะดวกเพื่อสอบถามข้อมูลเพิ่มเติม</p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-5xl mx-auto"
         >
-          <a href="tel:0829879790"
-            className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-primary/40 hover:bg-primary/5 transition-all group text-center cursor-pointer block shadow-sm">
-            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
-              <Phone size={22} className="text-primary" />
-            </div>
-            <p className="text-xs text-slate-400 uppercase font-bold mb-1 tracking-widest">Call Center</p>
-            <p className="text-slate-900 font-semibold">082-987-9790</p>
-          </a>
-
           <a href="https://lin.ee/Z1pMLkJ" target="_blank" rel="noopener noreferrer"
-            className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-green-500/40 hover:bg-green-500/5 transition-all group text-center cursor-pointer block shadow-sm">
-            <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
-              <MessageSquare size={22} className="text-green-500" />
+            className="p-10 bg-white border border-slate-100 rounded-[48px] hover:border-slate-200 hover:-translate-y-2 transition-all group text-center shadow-soft block">
+            <div className="w-20 h-20 bg-slate-50 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-green-50 transition-all mx-auto shadow-sm">
+              <MessageSquare size={40} className="text-slate-900 group-hover:text-green-500" />
             </div>
-            <p className="text-xs text-slate-400 uppercase font-bold mb-1 tracking-widest">LINE Official</p>
-            <p className="text-slate-900 font-semibold">@gbmoneyshop</p>
+            <p className="text-[10px] text-slate-400 uppercase font-black mb-1 tracking-[0.4em]">LINE Official</p>
+            <p className="text-slate-900 font-black text-2xl">@gbmoneyshop</p>
           </a>
 
           <a href="https://www.facebook.com/share/1EmdvU4Jwu/" target="_blank" rel="noopener noreferrer"
-            className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-blue-500/40 hover:bg-blue-500/5 transition-all group text-center cursor-pointer block shadow-sm">
-            <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
-              <Globe size={22} className="text-blue-500" />
+            className="p-10 bg-white border border-slate-100 rounded-[48px] hover:border-slate-200 hover:-translate-y-2 transition-all group text-center shadow-soft block">
+            <div className="w-20 h-20 bg-slate-50 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-blue-50 transition-all mx-auto shadow-sm">
+              <Globe size={40} className="text-slate-900 group-hover:text-blue-500" />
             </div>
-            <p className="text-xs text-slate-400 uppercase font-bold mb-1 tracking-widest">Facebook</p>
-            <p className="text-slate-900 font-semibold">GB Money Shop</p>
+            <p className="text-[10px] text-slate-400 uppercase font-black mb-1 tracking-[0.4em]">Facebook</p>
+            <p className="text-slate-900 font-black text-2xl">GB Money Shop</p>
           </a>
 
           <a href="mailto:support@gbmoney.com"
-            className="p-6 bg-white border border-slate-100 rounded-2xl hover:border-purple-500/40 hover:bg-purple-500/5 transition-all group text-center cursor-pointer block shadow-sm">
-            <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform mx-auto">
-              <Mail size={22} className="text-purple-500" />
+            className="p-10 bg-white border border-slate-100 rounded-[48px] hover:border-slate-200 hover:-translate-y-2 transition-all group text-center shadow-soft block md:col-span-2 lg:col-span-1">
+            <div className="w-20 h-20 bg-slate-50 rounded-[28px] flex items-center justify-center mb-10 group-hover:bg-primary/5 transition-all mx-auto shadow-sm">
+              <Mail size={40} className="text-slate-900 group-hover:text-primary" />
             </div>
-            <p className="text-xs text-slate-400 uppercase font-bold mb-1 tracking-widest">Email</p>
-            <p className="text-slate-900 font-semibold">support@gbmoney.com</p>
+            <p className="text-[10px] text-slate-400 uppercase font-black mb-1 tracking-[0.4em]">Email Support</p>
+            <p className="text-slate-900 font-black text-2xl lowercase">support@gbmoney.com</p>
           </a>
         </motion.div>
       </section>

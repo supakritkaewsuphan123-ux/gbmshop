@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
     const fetchPromise = (async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, balance, avatar_url, role, is_banned')
+        .select('id, username, avatar_url, role, is_banned')
         .eq('id', sessionUser.id)
         .single();
       if (error) throw error;

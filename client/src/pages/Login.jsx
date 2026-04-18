@@ -1,202 +1,103 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogIn, Eye, EyeOff } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Eye, EyeOff, LogIn, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usePageMetadata } from '../hooks/usePageMetadata';
 
 export default function Login() {
-  usePageMetadata('เข้าสู่ระบบ', 'เข้าสู่ระบบ GB Marketplace เพื่อจัดการสินค้าและ Wallet ของคุณอย่างปลอดภัย');
+  usePageMetadata('เข้าสู่ระบบ', 'เข้าสู่ระบบ GBshop Marketplace เพื่อเริ่มต้นช้อปสินค้าพรีเมียม');
   const [form, setForm] = useState({ identifier: '', password: '' });
-  const [showPass, setShowPass] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login, user, loading: authLoading } = useAuth();
+  const [searchParams] = useSearchParams();
+  
+  const { login } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
-  const from = location.state?.from?.pathname || '/';
-
-  // Safe navigation AFTER context flushes the state
-  useEffect(() => {
-    if (!authLoading && user) {
-      const targetPath = user.role === 'admin' ? '/admin' : from;
-      navigate(targetPath, { replace: true });
-    }
-  }, [user, authLoading, navigate, from]);
-
-  // Persistent State from localStorage
-  const [failCount, setFailCount] = useState(() => {
-    const saved = localStorage.getItem('loginFailCount');
-    return saved ? parseInt(saved, 10) : 0;
-  });
-  const [lockedUntil, setLockedUntil] = useState(() => {
-    const saved = localStorage.getItem('loginLockedUntil');
-    return saved ? parseInt(saved, 10) : 0;
-  });
-  
-  const [timeLeft, setTimeLeft] = useState(0);
-
-  // Countdown timer logic (Real-time update)
-  useEffect(() => {
-    const updateTimer = () => {
-      const remaining = Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000));
-      setTimeLeft(remaining);
-      
-      if (remaining <= 0 && lockedUntil !== 0) {
-        setLockedUntil(0);
-        localStorage.removeItem('loginLockedUntil');
-      }
-    };
-
-    updateTimer(); // Initial call
-
-    if (lockedUntil > Date.now()) {
-      const interval = setInterval(updateTimer, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [lockedUntil]);
-
-  const isLocked = timeLeft > 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isLocked) return;
-    
     setLoading(true);
-    const cleanIdentifier = form.identifier.toLowerCase().trim();
-    
     try {
-      await login(cleanIdentifier, form.password.trim());
-      
-      // Success: Clear everything
-      showToast('เข้าสู่ระบบสำเร็จ! 🎉', 'success');
-      setFailCount(0);
-      setLockedUntil(0);
-      localStorage.removeItem('loginFailCount');
-      localStorage.removeItem('loginLockedUntil');
-      setLoading(false);
+      await login(form.identifier, form.password);
+      showToast('ยินดีต้อนรับกลับมาครับ! ✨', 'success');
+      const redirectTo = searchParams.get('redirect') || '/';
+      navigate(redirectTo);
     } catch (err) {
-      const msg = err.message || '';
-      
-      // Increment fail count
-      const newFailCount = failCount + 1;
-      setFailCount(newFailCount);
-      localStorage.setItem('loginFailCount', newFailCount);
-
-      // Check threshold (More than 5 attempts) OR server-side lockout message
-      if (newFailCount > 5 || msg.includes('รอ') || msg.includes('บ่อยเกินไป')) {
-        const lockDuration = 60 * 1000; // 60 seconds
-        const lockTimestamp = Date.now() + lockDuration;
-        
-        setLockedUntil(lockTimestamp);
-        localStorage.setItem('loginLockedUntil', lockTimestamp);
-        
-        showToast('คุณพยายามผิดเกิน 5 ครั้ง ระบบล็อกชั่วคราว 60 วินาที 🔒', 'error');
-      } else {
-        showToast(`${msg} (ผิดครั้งที่ ${newFailCount}/5)`, 'error');
-      }
-      
-      setLoading(false);
-    }
+      showToast(err.message, 'error');
+    } finally { setLoading(false); }
   };
 
-
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 py-20 bg-white">
       <motion.div
-        initial={{ opacity: 0, y: 30, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="w-full max-w-md"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-lg"
       >
-        <div className="bg-white border border-slate-100 rounded-[2rem] p-10 shadow-2xl shadow-slate-200/60">
-          {/* Header */}
-          <div className="text-center mb-10">
-            <div className="text-3xl font-black text-primary mb-1">GB<span>shop</span></div>
-            <h2 className="text-2xl font-black text-slate-800 mt-6 mb-2">ยินดีต้อนรับกลับ</h2>
-            <p className="text-slate-400 font-medium">เข้าสู่ระบบเพื่อจัดการสินค้าและ Wallet</p>
+        <div className="bg-white border border-slate-100 rounded-[56px] p-16 shadow-soft relative overflow-hidden">
+          <div className="text-center mb-14">
+            <div className="w-16 h-16 bg-slate-50 flex items-center justify-center text-slate-900 mx-auto mb-8 rounded-2xl shadow-sm border border-slate-50">
+              <ShieldCheck size={32} />
+            </div>
+            <h2 className="text-5xl font-black text-slate-900 mb-2 tracking-tighter">Login</h2>
+            <p className="text-slate-400 font-bold tracking-tight">เข้าใช้งานบัญชี GBshop ของคุณ</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="label text-slate-700 font-bold">ชื่อผู้ใช้ หรือ อีเมล</label>
-              <input
-                type="text" required
-                value={form.identifier}
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="space-y-2">
+              <label className="label">Username or Email</label>
+              <input type="text" required value={form.identifier}
                 onChange={(e) => setForm((p) => ({ ...p, identifier: e.target.value }))}
-                className="input-field"
-                placeholder="ชื่อผู้ใช้ หรือ email@example.com"
-              />
+                className="input-field py-5" placeholder="yourname@example.com" />
             </div>
-            <div>
-              <label className="label">รหัสผ่าน</label>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center mb-2 px-1">
+                <label className="label mb-0">Password</label>
+                <Link to="/forgot-password" size="sm" className="text-[10px] text-slate-400 font-black uppercase tracking-widest hover:text-primary transition-all">Forgot?</Link>
+              </div>
               <div className="relative">
-                <input
-                  type={showPass ? 'text' : 'password'} required
+                <input 
+                  type={showPwd ? "text" : "password"} 
+                  required 
                   value={form.password}
                   onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                  className="input-field pr-11"
-                  placeholder="••••••••"
+                  className="input-field py-5 pr-14" 
+                  placeholder="••••••••" 
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                <button 
+                  type="button" 
+                  onClick={() => setShowPwd(!showPwd)}
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-900 transition-all"
                 >
-                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
-            
-            <div className="flex justify-end -mt-2">
-              <Link to="/forgot-password" size={14} className="text-primary hover:text-primary-hover text-sm font-medium transition-colors">
-                ลืมรหัสผ่าน?
-              </Link>
-            </div>
-
-            {/* ✅ Lockout Warning */}
-            {isLocked && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-center">
-                <p className="text-red-400 text-sm font-bold">🔒 บัญชีถูกล็อคชั่วคราว</p>
-                <p className="text-red-300 text-xs mt-1">กรุณารอ <span className="font-mono font-bold">{timeLeft}</span> วินาที</p>
-              </div>
-            )}
-
-            {/* ✅ Attempt Counter */}
-            {failCount > 0 && !isLocked && (
-              <p className="text-xs text-center text-orange-400">
-                พยายามผิด {failCount}/5 ครั้ง {failCount === 5 ? '⚠️ ครั้งสุดท้ายแล้ว! ระวังโดนล็อก' : failCount >= 3 && '⚠️ เหลืออีก ' + (5 - failCount) + ' ครั้ง'}
-              </p>
-            )}
 
             <motion.button
-              type="submit"
-              disabled={loading || isLocked}
-              whileHover={{ scale: isLocked ? 1 : 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              className={`btn-primary w-full py-3.5 text-base flex items-center justify-center gap-2 ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+              type="submit" disabled={loading}
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              className="bg-slate-900 text-white font-black w-full py-6 text-xl rounded-2xl shadow-soft hover:brightness-110 active:scale-95 transition-all mt-6"
             >
-              {isLocked ? (
-                <>🔒 รอ {timeLeft} วินาที</>
-              ) : loading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                  </svg>
-                  กำลังเข้าสู่ระบบ...
-                </span>
-              ) : (
-                <><LogIn size={18} /> เข้าสู่ระบบ</>
-              )}
+              {loading ? 'AUTHENTICATING...' : <><LogIn size={22} className="inline mr-2" /> เข้าสู่ระบบ</>}
             </motion.button>
           </form>
 
-          <p className="text-center mt-8 text-sm text-slate-500 font-medium">
-            ยังไม่มีบัญชี?{' '}
-            <Link to="/register" className="text-primary hover:underline font-bold">สมัครสมาชิกฟรี</Link>
+          <p className="text-center mt-12 text-sm text-slate-400 font-bold">
+            ยังไม่มีบัญชีสมาชิกเว็บเรา?{' '}
+            <Link to="/register" className="text-slate-900 hover:text-primary font-black ml-1 transition-all underline underline-offset-8">สมัครสมาชิก</Link>
           </p>
+        </div>
+        
+        <div className="mt-12 text-center flex items-center justify-center gap-6">
+           <Link to="/" className="text-[10px] text-slate-300 font-black uppercase tracking-widest hover:text-slate-500 transition-all">Home</Link>
+           <span className="w-1 h-1 bg-slate-100 rounded-full" />
+           <Link to="/help" className="text-[10px] text-slate-300 font-black uppercase tracking-widest hover:text-slate-500 transition-all">Help Center</Link>
         </div>
       </motion.div>
     </div>

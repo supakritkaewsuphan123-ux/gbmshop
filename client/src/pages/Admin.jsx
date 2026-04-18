@@ -3,33 +3,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { PageLoader, TableRowSkeleton } from '../components/Spinner';
+import { PageLoader } from '../components/Spinner';
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
 import { supabase } from '../lib/supabase';
 import {
-  Package, ShoppingCart, Wallet, BarChart2, Settings,
-  PlusCircle, Trash2, Pencil, Eye, Check, X as XIcon, Upload, Users, Clock,
+  Package, ShoppingCart, BarChart2, Settings,
+  PlusCircle, Trash2, Pencil, Eye, Check, X as XIcon, Users, Clock, Globe
 } from 'lucide-react';
 import { getImageUrl } from '../lib/urlHelper';
-import { Line } from 'react-chartjs-2';
 import FinancialOverview from '../components/Finance/FinancialOverview';
-import { validateImageFile, validateVideoFile, generateSafeFilename, sanitizeText, validatePrice, validateStock } from '../lib/security';
+import { validateImageFile, validateVideoFile, generateSafeFilename, validatePrice, validateStock } from '../lib/security';
 import 'chart.js/auto';
-import {
-  Chart as ChartJS, CategoryScale, LinearScale, PointElement,
-  LineElement, Title, Tooltip, Legend, Filler
-} from 'chart.js';
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 const TABS = [
-  { id: 'listings', label: 'สินค้า', icon: <Package size={16} /> },
-  { id: 'orders', label: 'ออเดอร์', icon: <ShoppingCart size={16} /> },
-  { id: 'users', label: 'สมาชิก', icon: <Users size={16} /> },
-  { id: 'topups', label: 'เติมเงิน', icon: <Wallet size={16} /> },
-  { id: 'finance', label: 'การเงิน', icon: <BarChart2 size={16} /> },
-  { id: 'settings', label: 'ตั้งค่า', icon: <Settings size={16} /> },
+  { id: 'listings', label: 'สินค้า', icon: <Package size={18} /> },
+  { id: 'orders', label: 'ออเดอร์', icon: <ShoppingCart size={18} /> },
+  { id: 'users', label: 'สมาชิก', icon: <Users size={18} /> },
+  { id: 'finance', label: 'สถิติการขาย', icon: <BarChart2 size={18} /> },
+  { id: 'settings', label: 'ตั้งค่าร้านค้า', icon: <Settings size={18} /> },
 ];
 
 export default function Admin() {
@@ -40,16 +32,14 @@ export default function Admin() {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
-  const [topups, setTopups] = useState([]);
   const [userStats, setUserStats] = useState({ total: 0, admin: 0, banned: 0 });
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('all');
   const [stats, setStats] = useState(null);
-  const [salesData, setSalesData] = useState(null);
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
-  const [uploadStatus, setUploadStatus] = useState(''); // New: To show what's happening
-  const [approveForm, setApproveForm] = useState({ carrier: 'Flash', tracking: '' }); // New: For tracking info
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [approveForm, setApproveForm] = useState({ carrier: 'Flash', tracking: '' });
   const [slipModal, setSlipModal] = useState({ open: false, src: '' });
   const [addProductModal, setAddProductModal] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
@@ -60,25 +50,20 @@ export default function Admin() {
     stock: 1, 
     category: 'มือ1',
     description: '', 
-    image: null
+    image: null,
+    additional_images: [],
+    videos: []
   });
   const [submitting, setSubmitting] = useState(false);
   const [qrFile, setQrFile] = useState(null);
   const [currentQr, setCurrentQr] = useState('');
-  const [pendingDeleteQr, setPendingDeleteQr] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [rejectModal, setRejectModal] = useState({ open: false, id: null, type: 'invoice', reason: '' });
-  const [approveModal, setApproveModal] = useState({ open: false, id: null, type: 'topup', data: null });
+  const [approveModal, setApproveModal] = useState({ open: false, id: null, type: 'invoice', data: null });
   const [processingIds, setProcessingIds] = useState(new Set());
-  const scrollRef = useRef({});
 
   useEffect(() => {
     if (!user || user.role !== 'admin') return;
-    
-    const topupChannel = supabase
-      .channel('admin-global-topups')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'topups' }, () => loadTopups())
-      .subscribe();
 
     const invoiceChannel = supabase
       .channel('admin-global-invoices')
@@ -86,7 +71,6 @@ export default function Admin() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(topupChannel);
       supabase.removeChannel(invoiceChannel);
     };
   }, [user]);
@@ -105,11 +89,9 @@ export default function Admin() {
     loadTabData(urlTab || tab);
   }, [user, authLoading, searchParams, tab]);
 
-  // Track which tabs have been loaded to prevent redundant fetches
   const [loadedTabs, setLoadedTabs] = useState(new Set());
 
   const loadTabData = async (currentTab) => {
-    // If already loaded this session, skip fetching unless it's a forced refresh
     if (loadedTabs.has(currentTab)) return;
 
     setLoading(true);
@@ -118,7 +100,6 @@ export default function Admin() {
         case 'listings': await loadProducts(); break;
         case 'orders': await loadOrders(); break;
         case 'users': await loadUsers(); break;
-        case 'topups': await loadTopups(); break;
         case 'settings': await loadSettings(); break;
         case 'finance': await loadFinance(); break;
       }
@@ -195,11 +176,6 @@ export default function Admin() {
     }
   };
 
-  const loadTopups = async () => {
-    const { data: topupData } = await supabase.from('topups').select('*, profiles:user_id(username)').order('created_at', { ascending: false });
-    if (topupData) setTopups(topupData.map(t => ({ ...t, username: t.profiles?.username || 'Unknown' })));
-  };
-
   const loadFinance = async () => {
     const { data } = await supabase.from('invoices').select('total_price, created_at, method').eq('status', 'completed');
     const totalRevenue = data?.reduce((sum, o) => sum + (o.total_price || 0), 0) || 0;
@@ -266,22 +242,6 @@ export default function Admin() {
     finally { setProcessingIds(prev => { const n = new Set(prev); n.delete(id); return n; }); }
   };
 
-  const updateTopupStatus = async (id, status, reason = '') => {
-    if (status === 'rejected' && !reason.trim()) return showToast('กรุณาระบุเหตุผล', 'error');
-    setProcessingIds(prev => new Set(prev).add(id));
-    try {
-      const { data, error } = await supabase.rpc('process_topup_status', { p_topup_id: id, p_status: status, p_reason: reason || null });
-      if (error) throw error;
-      if (data?.success) {
-        showToast(status === 'completed' ? 'อนุมัติแล้ว ✅' : 'ปฏิเสธแล้ว ❌', 'success');
-        setApproveModal({ open: false, id: null, type: 'topup', data: null });
-        setRejectModal({ open: false, id: null, type: 'topup', reason: '' });
-        loadTopups(); loadUsers();
-      }
-    } catch (e) { showToast(e.message, 'error'); }
-    finally { setProcessingIds(prev => { const n = new Set(prev); n.delete(id); return n; }); }
-  };
-
   const deleteProduct = async (id) => {
     if (!confirm('ยืนยันลบ?')) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
@@ -297,6 +257,7 @@ export default function Admin() {
     }); 
     setAddProductModal(true); 
   };
+
   const openEditModal = (p) => { 
     setEditProduct(p); 
     setProductForm({ 
@@ -310,53 +271,28 @@ export default function Admin() {
   };
 
   const submitProduct = async () => {
-    // ✅ Validate ก่อนส่ง
     if (!productForm.name?.trim()) return showToast('กรุณากรอกชื่อสินค้า', 'error');
     if (!validatePrice(productForm.price)) return showToast('ราคาต้องเป็นตัวเลขบวกที่ถูกต้อง', 'error');
     if (!validateStock(productForm.stock)) return showToast('จำนวนสต็อกไม่ถูกต้อง', 'error');
 
-    // ✅ Validate ไฟล์ภาพหลัก
-    if (productForm.image) {
-      const check = validateImageFile(productForm.image, { maxSizeMB: 10 });
-      if (!check.valid) return showToast(check.error, 'error');
-    }
-
-    // ✅ Validate รูปเพิ่มเติม
-    if (productForm.additional_images?.length > 0) {
-      for (const f of Array.from(productForm.additional_images)) {
-        const check = validateImageFile(f, { maxSizeMB: 10 });
-        if (!check.valid) return showToast(`รูปเพิ่มเติม: ${check.error}`, 'error');
-      }
-    }
-
-    // ✅ Validate วิดีโอ
-    if (productForm.videos?.length > 0) {
-      for (const f of Array.from(productForm.videos)) {
-        const check = validateVideoFile(f, { maxSizeMB: 50 });
-        if (!check.valid) return showToast(`วิดีโอ: ${check.error}`, 'error');
-      }
-    }
-
     setSubmitting(true);
     setUploadStatus('กำลังเริ่มต้น...');
     try {
-      // 1. จัดการรูปภาพหน้าปก
       let imageUrl = editProduct?.image_url || '';
       if (productForm.image) {
         setUploadStatus('กำลังอัปโหลดรูปภาพหลัก...');
         const file = productForm.image;
-        const filePath = generateSafeFilename(file, 'products'); // ✅ UUID filename
+        const filePath = generateSafeFilename(file, 'products');
         await supabase.storage.from('product-images').upload(filePath, file);
         const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(filePath);
         imageUrl = publicUrl;
       }
 
-      // 2. จัดการรูปเพิ่มเติม
       let additionalImages = editProduct?.images ? (typeof editProduct.images === 'string' ? JSON.parse(editProduct.images) : editProduct.images) : [];
       if (productForm.additional_images?.length > 0) {
         setUploadStatus(`กำลังอัปโหลดรูปภาพเพิ่มเติม (${productForm.additional_images.length} ไฟล์)...`);
         const uploadPromises = Array.from(productForm.additional_images).map(async (file) => {
-          const filePath = generateSafeFilename(file, 'products/extra'); // ✅ UUID
+          const filePath = generateSafeFilename(file, 'products/extra');
           await supabase.storage.from('product-images').upload(filePath, file);
           const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(filePath);
           return publicUrl;
@@ -365,12 +301,11 @@ export default function Admin() {
         additionalImages = [...additionalImages, ...newImages];
       }
 
-      // 3. จัดการวิดีโอ
       let videos = editProduct?.videos ? (typeof editProduct.videos === 'string' ? JSON.parse(editProduct.videos) : editProduct.videos) : [];
       if (productForm.videos?.length > 0) {
-        setUploadStatus(`กำลังอัปโหลดวิดีโอ (${productForm.videos.length} ไฟล์)... โปรดรอครู่เดียว`);
+        setUploadStatus(`กำลังอัปโหลดวิดีโอ (${productForm.videos.length} ไฟล์)...`);
         const videoPromises = Array.from(productForm.videos).map(async (file) => {
-          const filePath = generateSafeFilename(file, 'products/video'); // ✅ UUID
+          const filePath = generateSafeFilename(file, 'products/video');
           await supabase.storage.from('product-images').upload(filePath, file);
           const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(filePath);
           return publicUrl;
@@ -434,387 +369,401 @@ export default function Admin() {
   if (authLoading || loading) return <PageLoader />;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-r from-primary/20 to-surface border border-primary/20 rounded-2xl p-6 mb-8 flex items-center justify-between">
-        <div><h1 className="text-3xl font-extrabold text-white">🛡️ Admin Dashboard</h1><p className="text-gray-400 mt-1">Management System</p></div>
-        {stats && <div className="hidden md:flex gap-6 text-center">
-          <div><p className="text-primary text-2xl font-extrabold">฿{(stats.revenue?.total || 0).toLocaleString()}</p><p className="text-gray-500 text-xs">รายได้รวม</p></div>
-          <div><p className="text-white text-2xl font-extrabold">{stats.orders?.total || 0}</p><p className="text-gray-500 text-xs">ออเดอร์</p></div>
-        </div>}
-      </motion.div>
-
-      {/* Nav */}
-      <div className="flex gap-1 bg-surface border border-border rounded-2xl p-1.5 mb-6 overflow-x-auto">
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === t.id ? 'bg-primary text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>{t.icon} {t.label}</button>
-        ))}
-      </div>
-
-      <AnimatePresence mode="wait">
-        {tab === 'listings' && (
-          <motion.div key="listings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <div className="flex justify-between items-center mb-5"><h2 className="text-xl font-bold">สินค้า ({products.length})</h2><button onClick={openAddModal} className="btn-primary py-2 px-4 text-sm flex items-center gap-2"><PlusCircle size={16} /> เพิ่มสินค้า</button></div>
-            <div className="bg-surface border border-border rounded-2xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full">
-              <thead className="border-b border-border"><tr>{['#', 'ชื่อสินค้า', 'ผู้ขาย', 'ราคา', 'สต็อก', 'จัดการ'].map(h => <th key={h} className="text-left px-5 py-3 text-sm text-gray-500">{h}</th>)}</tr></thead>
-              <tbody>{products.map(p => (
-                <tr key={p.id} className="border-b border-border last:border-0 hover:bg-white/5 whitespace-nowrap">
-                  <td className="px-5 py-3 text-sm text-gray-500">#{p.id}</td>
-                  <td className="px-5 py-3 text-sm font-medium"><div className="flex items-center gap-2"><img src={getImageUrl(p.image_url, 'product-images')} className="w-8 h-8 rounded object-cover" />{p.name}</div></td>
-                  <td className="px-5 py-3 text-sm text-gray-400">{p.seller_name}</td>
-                  <td className="px-5 py-3 text-primary font-bold">฿{p.price?.toLocaleString()}</td>
-                  <td className="px-5 py-3 text-sm text-gray-400">{p.stock}</td>
-                  <td className="px-5 py-3"><div className="flex gap-2"><button onClick={() => openEditModal(p)} className="p-1.5 hover:bg-blue-500/10 text-blue-400 rounded"><Pencil size={14} /></button><button onClick={() => deleteProduct(p.id)} className="p-1.5 hover:bg-red-500/10 text-red-400 rounded"><Trash2 size={14} /></button></div></td>
-                </tr>
-              ))}</tbody>
-            </table></div></div>
-          </motion.div>
-        )}
-
-        {tab === 'orders' && (
-          <motion.div key="orders" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-xl font-bold">ออเดอร์ ({orders.length})</h2>
-              <button 
-                onClick={() => exportToCSV(orders.map(o => ({ 
-                  ID: o.id, 
-                  Buyer: o.buyer_name, 
-                  Total: o.total_price, 
-                  Method: o.method, 
-                  Status: o.status, 
-                  Date: o.created_at 
-                })), 'orders_report')}
-                className="bg-white/5 border border-white/10 text-gray-400 px-4 py-2 rounded-xl text-xs font-bold hover:bg-white/10 hover:text-white transition-all flex items-center gap-2"
-              >
-                📥 โหลดรายงาน (CSV)
-              </button>
+    <div className="bg-white min-h-screen">
+      <div className="max-w-7xl mx-auto px-6 py-20">
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-slate-100 rounded-[40px] p-10 mb-12 shadow-soft flex flex-col md:flex-row items-center justify-between gap-8">
+          <div>
+            <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tighter uppercase">🛡️ Admin Dashboard</h1>
+            <p className="text-slate-400 font-bold">ระบบจัดการหลังบ้าน GBshop มินิมอลสไตล์</p>
+          </div>
+          {stats && <div className="flex gap-12">
+            <div className="text-right">
+               <p className="text-[10px] text-slate-300 font-black uppercase tracking-widest mb-1">Total Revenue</p>
+               <p className="text-slate-900 text-3xl font-black tracking-tight">฿{(stats.revenue?.total || 0).toLocaleString()}</p>
             </div>
-            <div className="bg-surface border border-border rounded-2xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full">
-              <thead className="border-b border-border"><tr>{['#', 'สินค้า', 'ผู้ซื้อ', 'วิธี', 'สถานะ', 'จัดการ'].map(h => <th key={h} className="text-left px-5 py-3 text-sm text-gray-500">{h}</th>)}</tr></thead>
-              <tbody>{orders.map(o => (
-                <tr key={o.id} className="border-b border-border last:border-0 hover:bg-white/5 align-top">
-                  <td className="px-5 py-4 text-sm text-gray-500">#{o.id}</td>
-                  <td className="px-5 py-4 text-sm"><p className="font-medium text-white">{o.items?.map(i => i.name).join(', ')}</p><p className="text-primary font-bold">฿{o.total_price?.toLocaleString()}</p></td>
-                  <td className="px-5 py-4 text-sm font-medium">{o.buyer_name}</td>
-                  <td className="px-5 py-4">
-                    {/* ข้อมูลการจัดส่ง / นัดรับ */}
-                    <div className="text-xs space-y-1.5 min-w-[180px]">
-                      {o.method === 'meetup' ? (
-                        <div className="bg-purple-500/10 border border-purple-500/20 p-2 rounded-lg">
-                          <p className="text-purple-400 font-bold mb-1 flex items-center gap-1">🤝 นัดรับสินค้า</p>
-                          <div className="text-gray-300 space-y-0.5">
-                            <p className="flex gap-1"><span className="text-gray-500">📍</span> {o.meet_location || 'ไม่ระบุสถานที่'}</p>
-                            {(o.meet_date || o.meet_time) && (
-                              <p className="flex gap-1"><span className="text-gray-500">⏰</span> {o.meet_date} {o.meet_time}</p>
-                            )}
-                            {o.meet_note && (
-                              <div className="mt-1 pt-1 border-t border-purple-500/10 text-[10px] text-gray-400 italic">
-                                "{o.meet_note}"
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : o.method === 'cod' ? (
-                        <div className="bg-pink-500/10 border border-pink-500/20 p-2 rounded-lg">
-                          <p className="text-pink-400 font-bold mb-1 flex items-center gap-1">🚚 เก็บเงินปลายทาง (COD)</p>
-                          <div className="text-gray-300 space-y-0.5">
-                            <p className="font-semibold text-white">{o.shipping_name || 'ไม่ระบุชื่อ'}</p>
-                            <p className="flex gap-1"><span className="text-gray-500">📞</span> {o.shipping_phone || '-'}</p>
-                            <p className="mt-1 bg-black/20 p-1.5 rounded text-[10px] leading-relaxed text-gray-400 border border-white/5">
-                              🏠 {o.shipping_address || 'ไม่ระบุที่อยู่'}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-blue-500/10 border border-blue-500/20 p-2 rounded-lg">
-                          <p className="text-blue-400 font-bold mb-1 flex items-center gap-1">💳 โอนเงิน / QR Code</p>
-                          {o.slip_url && (
-                            <button onClick={() => setSlipModal({ open: true, src: getImageUrl(o.slip_url, 'payment_slips') })} 
-                              className="mt-1 flex items-center gap-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 py-1 px-2 rounded-md transition-all border border-blue-500/30">
-                              <Eye size={12} /> ตรวจสอบสลิป
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4"><StatusBadge status={o.status} /></td>
-                  <td className="px-5 py-4">
-                    {!['completed', 'rejected'].includes(o.status) ? (
-                      <div className="flex flex-col gap-1.5 min-w-[120px]">
-                        {/* ปุ่มเตรียมของ (แสดงเฉพาะสถานะที่ยังไม่ processing) */}
-                        {o.status !== 'processing' && (
-                          <button
-                            onClick={() => setProcessingStatus(o.id)}
-                            disabled={processingIds.has(o.id)}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/40 text-xs font-bold border border-yellow-500/20 transition-all"
-                          >
-                            <Clock size={12} /> เตรียมของ
-                          </button>
-                        )}
-                        {/* ปุ่มอนุมัติ */}
-                        <button
-                          onClick={() => setApproveModal({ open: true, id: o.id, type: 'invoice', data: o })}
-                          disabled={processingIds.has(o.id)}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/40 text-xs font-bold border border-green-500/20 transition-all"
-                        >
-                          <Check size={12} /> อนุมัติ
-                        </button>
-                        {/* ปุ่มปฏิเสธ */}
-                        <button
-                          onClick={() => setRejectModal({ open: true, id: o.id, type: 'invoice', reason: '', data: o })}
-                          disabled={processingIds.has(o.id)}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/40 text-xs font-bold border border-red-500/20 transition-all"
-                        >
-                          <XIcon size={12} /> ปฏิเสธ
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-gray-500 text-xs">เสร็จสิ้น</span>
-                    )}
-                  </td>
-                </tr>
-              ))}</tbody>
-            </table></div></div>
-          </motion.div>
-        )}
+            <div className="text-right border-l border-slate-50 pl-12">
+               <p className="text-[10px] text-slate-300 font-black uppercase tracking-widest mb-1">Total Orders</p>
+               <p className="text-slate-900 text-3xl font-black tracking-tight">{stats.orders?.total || 0}</p>
+            </div>
+          </div>}
+        </motion.div>
 
-        {tab === 'users' && (
-          <motion.div key="users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-              <div>
-                <h2 className="text-xl font-bold">จัดการสมาชิก ({users.length})</h2>
-                <div className="flex gap-4 mt-1">
-                  <span className="text-xs text-gray-500">ทั้งหมด: <span className="text-white">{userStats.total}</span></span>
-                  <span className="text-xs text-gray-500">แอดมิน: <span className="text-red-400">{userStats.admin}</span></span>
-                  <span className="text-xs text-gray-500">โดนแบน: <span className="text-orange-400">{userStats.banned}</span></span>
+        {/* Navigation */}
+        <div className="flex gap-3 bg-slate-50 p-3 rounded-[32px] mb-12 overflow-x-auto no-scrollbar border border-slate-100 shadow-sm max-w-fit mx-auto md:mx-0">
+          {TABS.map(t => (
+            <button 
+              key={t.id} 
+              onClick={() => setTab(t.id)} 
+              className={`flex items-center gap-3 px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                tab === t.id ? 'bg-slate-900 text-white shadow-soft' : 'text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </div>
+
+        <AnimatePresence mode="wait">
+          {tab === 'listings' && (
+            <motion.div key="listings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <div className="flex justify-between items-center mb-8 px-2">
+                <div>
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">สินค้าในระบบ</h2>
+                    <p className="text-slate-400 font-bold text-sm">อัปเดตและจัดการสินค้าทั้งหมด {products.length} รายการ</p>
                 </div>
+                <button onClick={openAddModal} className="bg-slate-900 text-white font-black px-10 py-5 rounded-2xl flex items-center gap-3 shadow-soft hover:brightness-110 active:scale-95 transition-all">
+                  <PlusCircle size={22} /> เพิ่มสินค้าใหม่
+                </button>
               </div>
               
-              <div className="flex gap-2 w-full md:w-auto">
-                <input 
-                  type="text" 
-                  placeholder="ค้นหาชื่อผู้ใช้..." 
-                  className="bg-surface border border-border rounded-xl px-4 py-2 text-sm outline-none focus:border-primary/50 w-full"
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                />
-                <select 
-                  className="bg-surface border border-border rounded-xl px-3 py-2 text-sm outline-none cursor-pointer"
-                  value={userRoleFilter}
-                  onChange={(e) => setUserRoleFilter(e.target.value)}
+              <div className="bg-white border border-slate-100 rounded-[40px] overflow-hidden shadow-soft">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-slate-50">
+                      <tr>{['#', 'สินค้า', 'ผู้ลงประกาศ', 'ราคา', 'สต็อก', 'จัดการ'].map(h => 
+                        <th key={h} className="text-left px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none border-b border-slate-100">{h}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {products.map(p => (
+                        <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-8 py-6 text-xs text-slate-300 font-bold font-mono">#{p.id.toString().slice(0,5)}</td>
+                          <td className="px-8 py-6">
+                            <div className="flex items-center gap-4">
+                              <img src={p.image_url} className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-sm" />
+                              <span className="font-black text-slate-900 tracking-tight leading-tight">{p.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-8 py-6 text-sm text-slate-500 font-bold">{p.seller_name}</td>
+                          <td className="px-8 py-6 text-slate-900 font-black text-lg">฿{p.price?.toLocaleString()}</td>
+                          <td className="px-8 py-6">
+                            <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${p.stock > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                              {p.stock} units
+                            </span>
+                          </td>
+                          <td className="px-8 py-6">
+                            <div className="flex gap-3">
+                              <button onClick={() => openEditModal(p)} className="w-11 h-11 bg-slate-50 text-slate-400 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-100 rounded-xl transition-all flex items-center justify-center"><Pencil size={18} /></button>
+                              <button onClick={() => deleteProduct(p.id)} className="w-11 h-11 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100 rounded-xl transition-all flex items-center justify-center"><Trash2 size={18} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {tab === 'orders' && (
+            <motion.div key="orders" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <div className="flex justify-between items-center mb-8 px-2">
+                <div>
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">รายการสั่งซื้อ</h2>
+                    <p className="text-slate-400 font-bold text-sm">ตรวจสอบและอนุมัติออเดอร์จากลูกค้า</p>
+                </div>
+                <button 
+                  onClick={() => exportToCSV(orders.map(o => ({ ID: o.id, Buyer: o.buyer_name, Total: o.total_price, Method: o.method, Status: o.status, Date: o.created_at })), 'orders_report')}
+                  className="bg-white text-slate-900 border border-slate-200 font-black px-8 py-4 rounded-2xl text-[10px] uppercase tracking-widest flex items-center gap-3 shadow-sm hover:bg-slate-50 transition-all"
                 >
-                  <option value="all">ทั้งหมด</option>
-                  <option value="admin">Admin</option>
-                  <option value="user">User</option>
-                  <option value="banned">โดนแบน</option>
+                  📥 Export CSV
+                </button>
+              </div>
+              
+              <div className="bg-white border border-slate-100 rounded-[40px] overflow-hidden shadow-soft">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-slate-50">
+                      <tr>{['ID', 'รายการสินค้า', 'ผู้ซื้อ', 'นัดรับ/จัดส่ง/ชำระ', 'สถานะ', 'จัดการ'].map(h => 
+                        <th key={h} className="text-left px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none border-b border-slate-100">{h}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {orders.map(o => (
+                        <tr key={o.id} className="hover:bg-slate-50/50 transition-colors align-top">
+                          <td className="px-8 py-8 text-[10px] text-slate-300 font-black font-mono">#{o.id.toString().slice(0,8)}</td>
+                          <td className="px-8 py-8">
+                            <div className="space-y-2">
+                              <p className="font-black text-slate-900 line-clamp-2 tracking-tight">{o.items?.map(i => i.name).join(', ')}</p>
+                              <p className="text-primary font-black text-xl">฿{o.total_price?.toLocaleString()}</p>
+                            </div>
+                          </td>
+                          <td className="px-8 py-8">
+                             <p className="font-black text-slate-900">{o.buyer_name}</p>
+                             <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Buyer Account</p>
+                          </td>
+                          <td className="px-8 py-8 min-w-[260px]">
+                            <div className="text-xs space-y-3">
+                              {o.method === 'meetup' ? (
+                                <div className="bg-slate-50 border border-slate-100 p-5 rounded-[24px] shadow-sm">
+                                  <p className="text-slate-900 font-black mb-2 flex items-center gap-2 uppercase text-[10px] tracking-widest"><Globe size={14} /> นัดรับสินค้า</p>
+                                  <p className="text-slate-600 font-bold leading-relaxed">{o.meet_location}</p>
+                                  <div className="flex items-center gap-2 mt-2 text-slate-400 font-bold text-[10px]">
+                                     <Clock size={12} /> {o.meet_date} @ {o.meet_time}
+                                  </div>
+                                </div>
+                              ) : o.method === 'cod' ? (
+                                <div className="bg-slate-50 border border-slate-100 p-5 rounded-[24px] shadow-sm">
+                                  <p className="text-slate-900 font-black mb-2 uppercase text-[10px] tracking-widest">🚚 เก็บเงินปลายทาง</p>
+                                  <p className="text-slate-900 font-black">{o.shipping_name}</p>
+                                  <p className="text-slate-500 font-bold mt-1">{o.shipping_phone}</p>
+                                </div>
+                              ) : (
+                                <div className="bg-slate-900 p-5 rounded-[24px] shadow-glow">
+                                  <p className="text-white font-black mb-3 uppercase text-[10px] tracking-widest opacity-60">💳 โอนเงินผ่านธนาคาร</p>
+                                  {o.slip_url && (
+                                    <button onClick={() => setSlipModal({ open: true, src: o.slip_url })} className="bg-white/10 hover:bg-white/20 text-white font-black px-6 py-3 rounded-xl text-[10px] flex items-center justify-center gap-2 transition-all w-full">
+                                      <Eye size={14} /> ดูหลักฐานการโอน
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-8 py-8"><StatusBadge status={o.status} /></td>
+                          <td className="px-8 py-8">
+                            {!['completed', 'rejected'].includes(o.status) ? (
+                              <div className="flex flex-col gap-3">
+                                {o.status !== 'processing' && (
+                                  <button onClick={() => setProcessingStatus(o.id)} className="w-full py-4 bg-slate-100 text-slate-900 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-transparent hover:border-slate-200 transition-all">เตรียมสินค้า</button>
+                                )}
+                                <button onClick={() => setApproveModal({ open: true, id: o.id, type: 'invoice', data: o })} className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-soft hover:brightness-110 transition-all">อนุมัติ</button>
+                                <button onClick={() => setRejectModal({ open: true, id: o.id, type: 'invoice', reason: '', data: o })} className="w-full py-4 bg-red-50 text-red-500 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-transparent hover:border-red-100 transition-all">ปฏิเสธ</button>
+                              </div>
+                            ) : <span className="text-slate-200 text-[10px] font-black uppercase tracking-[0.3em] block py-2 text-center">Finished</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {tab === 'users' && (
+            <motion.div key="users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 px-2">
+                <div>
+                   <h2 className="text-3xl font-black text-slate-900 tracking-tight">สมาชิกในระบบ</h2>
+                   <p className="text-slate-400 font-bold text-sm">จัดการสิทธิ์และการเข้าถึงของผู้ใช้งาน</p>
+                </div>
+                <div className="relative w-full md:w-80">
+                  <input 
+                    type="text" 
+                    placeholder="ค้นหาด้วยชื่อผู้ใช้..." 
+                    className="input-field py-5 pr-12 text-sm"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                  />
+                  <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300"><Users size={20} /></div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-100 rounded-[40px] overflow-hidden shadow-soft">
+                <table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr>{['สมาชิก', 'บทบาท', 'วันที่เข้าร่วม', 'จัดการ'].map(h => 
+                      <th key={h} className="text-left px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none border-b border-slate-100">{h}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {users.filter(u => u.username?.toLowerCase().includes(userSearch.toLowerCase())).map(u => (
+                      <tr key={u.id} className={`hover:bg-slate-50/50 transition-colors ${u.is_banned ? 'opacity-40 grayscale' : ''}`}>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-5">
+                            <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center font-black text-slate-400 text-sm shadow-inner border border-slate-50">
+                              {u.username?.slice(0,1).toUpperCase()}
+                            </div>
+                            <div>
+                               <p className="font-black text-slate-900 tracking-tight">{u.username}</p>
+                               <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">{u.email?.slice(0,15)}...</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${u.role === 'admin' ? 'bg-slate-900 text-white shadow-soft' : 'bg-slate-100 text-slate-400'}`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 text-xs text-slate-400 font-black">{new Date(u.created_at).toLocaleDateString('th-TH')}</td>
+                        <td className="px-8 py-6">
+                          <div className="flex gap-3">
+                             <button 
+                              onClick={() => handleRoleChange(u.id, u.role)}
+                              disabled={u.id === user.id}
+                              className="w-11 h-11 bg-slate-50 text-slate-400 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-100 rounded-xl transition-all flex items-center justify-center"
+                            ><User size={18} /></button>
+                            <button 
+                              onClick={() => handleBanUser(u.id, u.is_banned)}
+                              disabled={u.id === user.id}
+                              className={`w-11 h-11 rounded-xl transition-all flex items-center justify-center ${u.is_banned ? 'bg-green-100 text-green-500 shadow-glow-sm' : 'bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100'}`}
+                            >{u.is_banned ? <Check size={18} /> : <Trash2 size={18} />}</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+
+          {tab === 'finance' && (
+            <motion.div key="finance" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <FinancialOverview />
+            </motion.div>
+          )}
+
+          {tab === 'settings' && (
+            <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto md:mx-0">
+               <div className="bg-white border border-slate-100 rounded-[48px] p-12 shadow-soft space-y-12">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 mb-10 flex items-center gap-4">
+                    <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-900 border border-slate-100 shadow-sm"><Settings size={22} /></div>
+                    ตั้งค่าพิกัดร้านค้า
+                  </h3>
+                  <div className="space-y-10">
+                    <div className="space-y-3">
+                      <label className="label">เบอร์ติดต่อ / พร้อมเพย์</label>
+                      <input className="input-field" placeholder="0xx-xxx-xxxx" value={settings.promptpay_number || ''} onChange={e => setSettings(p => ({ ...p, promptpay_number: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="label">รูปภาพคิวอาร์โค้ด (QR Payment)</label>
+                      <div className="mt-4 p-8 border-2 border-dashed border-slate-100 rounded-[32px] bg-slate-50/50 flex flex-col items-center">
+                        {currentQr ? (
+                          <div className="relative group w-52 h-52 bg-white rounded-[24px] overflow-hidden shadow-soft border border-slate-100 p-4 mb-4">
+                            <img src={currentQr} className="w-full h-full object-contain" />
+                            <button onClick={deleteQr} className="absolute inset-0 bg-red-600/90 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-[2px]">
+                               <Trash2 size={32} className="mb-2" />
+                               <span className="text-[10px] font-black uppercase tracking-widest">Remove QR</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-slate-200 mb-6 shadow-sm"><Globe size={32} /></div>
+                        )}
+                        <div className="flex flex-col md:flex-row gap-3 w-full max-w-sm">
+                          <label className="flex-1 bg-white border border-slate-200 text-slate-400 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest cursor-pointer text-center hover:bg-slate-50 transition-all overflow-hidden relative">
+                             {qrFile ? qrFile.name : 'Select QR Image'}
+                             <input type="file" className="hidden" onChange={e => setQrFile(e.target.files[0])} />
+                          </label>
+                          <button onClick={uploadQr} className="bg-slate-900 text-white font-black px-10 py-4 rounded-2xl text-[10px] uppercase tracking-widest shadow-soft hover:brightness-110 active:scale-95 transition-all">Upload</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="pt-10 border-t border-slate-50">
+                  <button onClick={saveSettings} className="bg-slate-900 text-white font-black w-full py-6 text-xl rounded-2xl shadow-soft hover:shadow-glow transition-all">บันทึกข้อมูลร้านค้า</button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Modals — Clean White Style */}
+        <Modal isOpen={slipModal.open} onClose={() => setSlipModal({ open: false, src: '' })} title="Evidence of Transfer">
+           <div className="p-2">
+            <img src={slipModal.src} className="w-full rounded-[32px] border border-slate-100 shadow-soft" />
+           </div>
+        </Modal>
+
+        <Modal isOpen={addProductModal} onClose={() => setAddProductModal(false)} title={editProduct ? `Edit Product` : 'Create New Product'} maxWidth="max-w-xl">
+          <div className="space-y-8 p-4">
+            <div className="grid grid-cols-2 gap-6">
+              <div className="col-span-2 space-y-2">
+                 <label className="label">Product Name</label>
+                 <input className="input-field" placeholder="Item Name..." value={productForm.name} onChange={e => setProductForm(p => ({ ...p, name: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                 <label className="label">Price (THB)</label>
+                 <input type="number" className="input-field" placeholder="0.00" value={productForm.price} onChange={e => setProductForm(p => ({ ...p, price: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                 <label className="label">Category</label>
+                 <select className="input-field cursor-pointer" value={productForm.category} onChange={e => setProductForm(p => ({ ...p, category: e.target.value }))}>
+                  <option value="มือ1">มือ1 (New)</option>
+                  <option value="มือสอง">มือ2 (Used)</option>
                 </select>
               </div>
-            </div>
-
-            <div className="bg-surface border border-border rounded-2xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full">
-              <thead className="border-b border-border"><tr>{['ชื่อผู้ใช้', 'บทบาท', 'ยอดเงิน', 'สถานะ', 'จัดการ'].map(h => <th key={h} className="text-left px-5 py-3 text-sm text-gray-500">{h}</th>)}</tr></thead>
-              <tbody>{users
-                .filter(u => {
-                  const matchesSearch = u.username?.toLowerCase().includes(userSearch.toLowerCase());
-                  const matchesRole = userRoleFilter === 'all' 
-                    || (userRoleFilter === 'admin' && u.role === 'admin')
-                    || (userRoleFilter === 'user' && u.role === 'user')
-                    || (userRoleFilter === 'banned' && u.is_banned);
-                  return matchesSearch && matchesRole;
-                })
-                .map(u => (
-                <tr key={u.id} className={`border-b border-border last:border-0 hover:bg-white/5 ${u.is_banned ? 'opacity-60 grayscale' : ''}`}>
-                  <td className="px-5 py-4 text-sm font-medium">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary border border-primary/20">
-                        {u.username?.slice(0, 2).toUpperCase()}
-                      </div>
-                      {u.username}
-                      {u.is_banned && <span className="text-[10px] bg-red-500/20 text-red-500 px-1.5 py-0.5 rounded">Banned</span>}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <button 
-                      onClick={() => handleRoleChange(u.id, u.role)}
-                      disabled={processingIds.has(u.id) || u.id === user.id}
-                      className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold transition-all ${
-                        u.role === 'admin' ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                      }`}
-                    >
-                      {u.role}
-                    </button>
-                  </td>
-                  <td className="px-5 py-4 text-primary font-bold">฿{(u.balance || 0).toLocaleString()}</td>
-                  <td className="px-5 py-4 text-xs text-gray-500">{new Date(u.created_at).toLocaleDateString('th-TH')}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => handleBanUser(u.id, u.is_banned)}
-                        disabled={processingIds.has(u.id) || u.id === user.id}
-                        className={`p-1.5 rounded transition-all ${
-                          u.is_banned ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
-                        }`}
-                        title={u.is_banned ? 'Unban' : 'Ban'}
-                      >
-                        {u.is_banned ? <Check size={14} /> : <XIcon size={14} />}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}</tbody>
-            </table></div></div>
-          </motion.div>
-        )}
-
-        {tab === 'topups' && (
-          <motion.div key="topups" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <h2 className="text-xl font-bold mb-5">เติมเงิน ({topups.length})</h2>
-            <div className="bg-surface border border-border rounded-2xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full">
-              <thead className="border-b border-border"><tr>{['#', 'ผู้ใช้', 'ยอด', 'หลักฐาน', 'สถานะ', 'จัดการ'].map(h => <th key={h} className="text-left px-5 py-3 text-sm text-gray-500">{h}</th>)}</tr></thead>
-              <tbody>{topups.map(t => (
-                <tr key={t.id} className="border-b border-border last:border-0 hover:bg-white/5">
-                  <td className="px-5 py-4 text-sm text-gray-500">#{t.id}</td>
-                  <td className="px-5 py-4 text-sm font-medium">{t.username}</td>
-                  <td className="px-5 py-4 text-primary font-bold">฿{t.amount.toLocaleString()}</td>
-                  <td className="px-5 py-4">{t.slip_image && <button onClick={() => setSlipModal({ open: true, src: getImageUrl(t.slip_image, 'payment-slips') })} className="text-blue-400 text-xs hover:underline">ดูสลิป</button>}</td>
-                  <td className="px-5 py-4"><StatusBadge status={t.status} /></td>
-                  <td className="px-5 py-4">{t.status === 'pending' ? (
-                    <div className="flex gap-2">
-                      <button onClick={() => setApproveModal({ open: true, id: t.id, type: 'topup', data: t })} className="p-1.5 bg-green-500/20 text-green-400 rounded hover:bg-green-500/40"><Check size={14} /></button>
-                      <button onClick={() => setRejectModal({ open: true, id: t.id, type: 'topup', reason: '' })} className="p-1.5 bg-red-500/20 text-red-400 rounded hover:bg-red-500/40"><XIcon size={14} /></button>
-                    </div>
-                  ) : <span className="text-gray-500 text-xs">เสร็จสิ้น</span>}</td>
-                </tr>
-              ))}</tbody>
-            </table></div></div>
-          </motion.div>
-        )}
-
-        {tab === 'finance' && (
-          <motion.div key="finance" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="flex justify-end mb-4">
-              <button 
-                onClick={async () => {
-                  const { data } = await supabase.from('invoices').select('id, total_price, method, status, created_at').eq('status', 'completed');
-                  exportToCSV(data, 'finance_report');
-                }}
-                className="btn-outline px-4 py-2 text-xs flex items-center gap-2"
-              >
-                📊 โหลดสถิติการเงิน (CSV)
-              </button>
-            </div>
-            <FinancialOverview />
-          </motion.div>
-        )}
-        {tab === 'settings' && (
-          <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="bg-surface border border-border rounded-2xl p-6">
-              <h3 className="text-lg font-bold text-primary mb-4">Payment Methods</h3>
-              <div className="space-y-4">
-                <div><label className="label">พร้อมเพย์</label><input className="input-field" value={settings.promptpay_number || ''} onChange={e => setSettings(p => ({ ...p, promptpay_number: e.target.value }))} /></div>
-                <div><label className="label">QR Scan</label>{currentQr && <img src={getImageUrl(currentQr, 'system')} className="w-32 h-32 mb-2 rounded border" />}<div className="flex gap-2"><input type="file" className="input-field text-sm" onChange={e => setQrFile(e.target.files[0])} /><button onClick={uploadQr} className="btn-outline px-4">Upload</button><button onClick={deleteQr} className="text-red-400 p-2"><Trash2 size={16} /></button></div></div>
+              <div className="space-y-2">
+                <label className="label">Stock</label>
+                <input type="number" min="0" className="input-field" value={productForm.stock} onChange={e => setProductForm(p => ({ ...p, stock: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <label className="label">Condition (%)</label>
+                <input type="number" min="1" max="100" className="input-field" value={productForm.condition_percent} onChange={e => setProductForm(p => ({ ...p, condition_percent: e.target.value }))} />
               </div>
             </div>
-            <button onClick={saveSettings} className="btn-primary py-3 px-8">💾 Save Settings</button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            
+            <div className="space-y-2">
+              <label className="label">General Description</label>
+              <textarea rows={5} className="input-field resize-none" placeholder="Provide details about the item..." value={productForm.description} onChange={e => setProductForm(p => ({ ...p, description: e.target.value }))} />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                 <label className="label">Primary Image</label>
+                 <label className="block w-full bg-slate-50 border border-slate-100 px-6 py-4 rounded-2xl text-xs font-black text-slate-400 cursor-pointer text-center truncate italic">
+                    {productForm.image ? productForm.image.name : 'Select Image...'}
+                    <input type="file" accept="image/*" className="hidden" onChange={e => setProductForm(p => ({ ...p, image: e.target.files[0] || null }))} />
+                 </label>
+              </div>
+              <div className="space-y-2">
+                 <label className="label">Extra Photos</label>
+                 <label className="block w-full bg-slate-50 border border-slate-100 px-6 py-4 rounded-2xl text-xs font-black text-slate-400 cursor-pointer text-center truncate italic">
+                    {productForm.additional_images?.length > 0 ? `${productForm.additional_images.length} files selected` : 'Choose Files...'}
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={e => setProductForm(p => ({ ...p, additional_images: e.target.files }))} />
+                 </label>
+              </div>
+            </div>
 
-      {/* Modals */}
-      <Modal isOpen={slipModal.open} onClose={() => setSlipModal({ open: false, src: '' })} title="Slip Verification"><img src={slipModal.src} className="w-full rounded-xl" /></Modal>
-      {/* Add/Edit Product Modal */}
-      <Modal isOpen={addProductModal} onClose={() => setAddProductModal(false)} title={editProduct ? `แก้ไขสินค้า #${editProduct.id}` : 'เพิ่มสินค้าใหม่'} maxWidth="max-w-lg">
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="label">ชื่อสินค้า</label>
-              <input className="input-field" value={productForm.name} onChange={e => setProductForm(p => ({ ...p, name: e.target.value }))} /></div>
-            <div><label className="label">ราคา (฿)</label>
-              <input type="number" className="input-field" value={productForm.price} onChange={e => setProductForm(p => ({ ...p, price: e.target.value }))} /></div>
-            <div><label className="label">สภาพสินค้า (%)</label>
-              <input type="number" min="1" max="100" className="input-field" value={productForm.condition_percent} onChange={e => setProductForm(p => ({ ...p, condition_percent: e.target.value }))} /></div>
-            <div><label className="label">จำนวน (ชิ้น)</label>
-              <input type="number" min="1" className="input-field" value={productForm.stock} onChange={e => setProductForm(p => ({ ...p, stock: e.target.value }))} /></div>
-            <div>
-              <label className="label">หมวดหมู่</label>
-              <select className="input-field" value={productForm.category} onChange={e => setProductForm(p => ({ ...p, category: e.target.value }))}>
-                <option value="มือ1">มือ1 (ใหม่)</option>
-                <option value="มือสอง">มือ2</option>
-              </select>
+            <div className="pt-6">
+              <button 
+                onClick={submitProduct} 
+                disabled={submitting} 
+                className="bg-slate-900 text-white font-black w-full py-6 text-xl rounded-2xl shadow-soft hover:brightness-110 active:scale-95 transition-all"
+              >
+                {submitting ? 'PROCESSING...' : 'SAVE PRODUCT CHANGES'}
+              </button>
+              {uploadStatus && <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest text-center mt-4">Status: {uploadStatus}</p>}
             </div>
           </div>
-          <div><label className="label">คำอธิบาย</label>
-            <textarea rows={3} className="input-field resize-none" value={productForm.description} onChange={e => setProductForm(p => ({ ...p, description: e.target.value }))} /></div>
-          
-          <div><label className="label">รูปหน้าปก (หลัก) {editProduct && '(เว้นว่างถ้าไม่ต้องการเปลี่ยน)'}</label>
-            <input type="file" accept="image/*" className="input-field text-sm" onChange={e => setProductForm(p => ({ ...p, image: e.target.files[0] || null }))} /></div>
+        </Modal>
 
-          <div className="space-y-1">
-            <label className="label">รูปภาพเพิ่มเติม <span className="text-gray-500 font-normal italic">(ไม่บังคับ)</span></label>
-            <input type="file" accept="image/*" multiple className="input-field text-sm" onChange={e => setProductForm(p => ({ ...p, additional_images: e.target.files }))} />
+        {/* Reject/Approve Modals updated to same style */}
+        <Modal isOpen={rejectModal.open} onClose={() => setRejectModal({ open: false, id: null, type: 'invoice', reason: '' })} title="State Rejection Reason">
+          <div className="space-y-6 p-4">
+            <textarea rows={4} className="input-field resize-none px-6 py-6" placeholder="Reason for rejection (e.g. invalid slip, item out of stock)..." value={rejectModal.reason} onChange={e => setRejectModal(p => ({ ...p, reason: e.target.value }))} />
+            <button onClick={() => updateOrderStatus(rejectModal.id, 'reject', rejectModal.reason)} className="bg-red-500 text-white font-black w-full py-5 text-lg rounded-2xl shadow-soft hover:brightness-110 transition-all uppercase tracking-widest">Confirm Rejection</button>
           </div>
+        </Modal>
 
-          <div className="space-y-1">
-            <label className="label">วิดีโอตัวอย่างสินค้า <span className="text-gray-500 font-normal italic">(ไม่บังคับ)</span></label>
-            <input type="file" accept="video/*" multiple className="input-field text-sm" onChange={e => setProductForm(p => ({ ...p, videos: e.target.files }))} />
-          </div>
-
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={submitProduct} disabled={submitting} className="btn-primary w-full py-4 text-lg font-bold shadow-glow-sm">
-            {submitting ? uploadStatus || '⏳ กำลังบันทึกข้อมูล...' : (editProduct ? '💾 บันทึกการแก้ไข' : '➕ เพิ่มสินค้าเข้าสู่ระบบ')}
-          </motion.button>
-        </div>
-      </Modal>
-      <Modal isOpen={approveModal.open} onClose={() => setApproveModal({ open: false, id: null })} title={approveModal.type === 'invoice' ? "ยืนยันการจัดส่งสินค้า" : "ยืนยันการอนุมัติ"}>
-        <div className="p-4 space-y-4">
-          {approveModal.type === 'invoice' && (
-            <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 space-y-4">
-              <p className="text-sm text-gray-400">ระบุข้อมูลการจัดส่งเพื่อให้ลูกค้าตรวจสอบ</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">บริษัทขนส่ง</label>
-                  <select className="input-field" value={approveForm.carrier} onChange={e => setApproveForm(p => ({ ...p, carrier: e.target.value }))}>
+        <Modal isOpen={approveModal.open} onClose={() => setApproveModal({ open: false, id: null })} title="Confirm Fulfillment">
+          <div className="space-y-8 p-4">
+            <div className="bg-slate-50 p-8 rounded-[32px] space-y-6 border border-slate-100">
+               <div className="space-y-2">
+                  <label className="label">Courier Service</label>
+                  <select className="input-field cursor-pointer" value={approveForm.carrier} onChange={e => setApproveForm(p => ({ ...p, carrier: e.target.value }))}>
                     <option value="Flash">Flash Express</option>
                     <option value="Kerry">Kerry Express</option>
                     <option value="J&T">J&T Express</option>
-                    <option value="EMS">ไปรษณีย์ไทย (EMS)</option>
-                    <option value="Meetup">นัดรับเรียบร้อย</option>
+                    <option value="EMS">Thailand Post (EMS)</option>
+                    <option value="Meetup">Self-Delivery / Meetup</option>
                   </select>
-                </div>
-                <div>
-                  <label className="label">เลขพัสดุ (ถ้ามี)</label>
-                  <input className="input-field" placeholder="TH..." value={approveForm.tracking} onChange={e => setApproveForm(p => ({ ...p, tracking: e.target.value }))} />
-                </div>
-              </div>
+               </div>
+               <div className="space-y-2">
+                  <label className="label">Tracking Number</label>
+                  <input className="input-field px-6 py-5" placeholder="TH0123456789..." value={approveForm.tracking} onChange={e => setApproveForm(p => ({ ...p, tracking: e.target.value }))} />
+               </div>
             </div>
-          )}
-          <p className="text-center py-2">{approveModal.type === 'topup' ? 'ยืนยันการอนุมัติยอดเติมเงิน?' : 'คุณตรวจสอบสินค้าและส่งมอบเรียบร้อยแล้วใช่หรือไม่?'}</p>
-          <div className="flex gap-3">
-            <button onClick={() => setApproveModal({ open: false })} className="btn-outline flex-1 py-3">ยกเลิก</button>
-            <button 
-              onClick={() => approveModal.type === 'invoice' ? updateOrderStatus(approveModal.id, 'approve') : updateTopupStatus(approveModal.id, 'completed')} 
-              className="btn-primary flex-1 py-3 bg-green-600 shadow-glow-sm shadow-green-500/20"
-            >
-              ยืนยันดำเนินการ
-            </button>
+            <button onClick={() => updateOrderStatus(approveModal.id, 'approve')} className="bg-slate-900 text-white font-black w-full py-6 text-xl rounded-2xl shadow-soft hover:brightness-110 transition-all uppercase tracking-widest">Approve & Ship</button>
           </div>
-        </div>
-      </Modal>
-      <Modal isOpen={rejectModal.open} onClose={() => setRejectModal({ open: false, id: null })} title="ปฏิเสธรายการ">
-        <div className="space-y-4 p-4">
-          {rejectModal.type === 'invoice' && rejectModal.data?.method === 'wallet' && (
-            <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-lg text-red-400 text-xs flex items-center gap-2">
-              ⚠️ การปฏิเสธจะทำการคืนเงิน ฿{rejectModal.data.total_price.toLocaleString()} เข้า Wallet ลูกค้าอัตโนมัติ
-            </div>
-          )}
-          <textarea className="input-field h-32" placeholder="ระบุเหตุผลที่ลูกค้าจะได้รับทราบ (เช่น สินค้าหมด, ชำรุด...)" value={rejectModal.reason} onChange={e => setRejectModal(p => ({ ...p, reason: e.target.value }))} />
-          <div className="flex gap-3">
-            <button onClick={() => setRejectModal({ open: false })} className="btn-outline flex-1 py-3">ยกเลิก</button>
-            <button onClick={() => rejectModal.type === 'invoice' ? updateOrderStatus(rejectModal.id, 'reject', rejectModal.reason) : updateTopupStatus(rejectModal.id, 'rejected', rejectModal.reason)} className="btn-primary flex-1 py-3 bg-red-600 shadow-glow-sm shadow-red-500/20">
-              ยืนยันปฏิเสธ
-            </button>
-          </div>
-        </div>
-      </Modal>
+        </Modal>
+      </div>
     </div>
   );
 }

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal, Globe } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/Spinner';
 import { usePageMetadata } from '../hooks/usePageMetadata';
 
 export default function Products() {
-  usePageMetadata('ตลาดสินค้า', 'รวมสินค้าพรีเมียมคุณภาพดี ราคาคุ้มค่า พร้อมระบบตรวจสอบสินค้าและระบบวอลเล็ทที่ปลอดภัย 100%');
+  usePageMetadata('ตลาดสินค้า', 'รวมสินค้าพรีเมียมคุณภาพดี ราคาคุ้มค่า ทันสมัยที่สุด');
   const [allProducts, setAllProducts] = useState([]); // Master list
   const [filtered, setFiltered] = useState([]); // Display list
   const [loading, setLoading] = useState(true);
@@ -88,114 +88,118 @@ export default function Products() {
   }, [search, allProducts, sortBy, selectedCategory]);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h1 className="text-4xl font-extrabold text-slate-900 mb-2">ตลาดสินค้า</h1>
-        <p className="text-slate-500">ค้นหาสินค้ามือหนึ่งและมือสองคุณภาพพรีเมียม</p>
-      </motion.div>
+    <div className="bg-white min-h-screen">
+      <div className="max-w-7xl mx-auto px-6 py-24">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-16"
+        >
+          <div className="w-16 h-16 bg-slate-50 border border-slate-50 rounded-2xl flex items-center justify-center text-slate-900 mb-8 shadow-sm">
+             <Globe size={32} />
+          </div>
+          <h1 className="text-6xl font-black text-slate-900 mb-4 tracking-tighter">รายการสินค้า</h1>
+          <p className="text-xl text-slate-400 font-bold tracking-tight">เลือกซื้อสินค้าคุณภาพที่คัดสรรมาเพื่อคุณโดยเฉพาะ</p>
+        </motion.div>
 
-      {/* Filters & Search */}
-      <div className="space-y-6 mb-8">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          {/* Category Tabs */}
-          <div className="flex bg-slate-50 border border-slate-200 p-1.5 rounded-2xl w-full md:w-auto shadow-sm">
-            {['ทั้งหมด', 'มือ1', 'มือสอง'].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`flex-1 md:px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-                  selectedCategory === cat
-                    ? 'bg-primary text-white shadow-lg shadow-slate-200 scale-[1.02]'
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-white'
-                }`}
+        {/* Filters & Search */}
+        <div className="space-y-10 mb-16 px-2">
+          <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
+            {/* Category Tabs */}
+            <div className="flex bg-slate-50 border border-slate-100 p-2 rounded-[28px] w-full md:w-auto shadow-sm">
+              {['ทั้งหมด', 'มือ1', 'มือสอง'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`flex-1 md:px-10 py-4 rounded-[20px] text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${
+                    selectedCategory === cat
+                      ? 'bg-slate-900 text-white shadow-soft scale-[1.02]'
+                      : 'text-slate-400 hover:text-slate-900 hover:bg-white'
+                  }`}
+                >
+                  {cat === 'มือสอง' ? 'มือ2' : cat}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              {/* Sort Selection */}
+              <select 
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="bg-white border border-slate-200 rounded-2xl px-6 py-4 text-slate-700 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-slate-900 transition-all cursor-pointer shadow-sm w-full md:w-64 appearance-none text-center"
               >
-                {cat === 'มือสอง' ? 'มือ2' : cat}
-              </button>
-            ))}
+                <option value="latest">จัดตาม: ล่าสุด</option>
+                <option value="price-low">ราคา: ต่ำ - สูง</option>
+                <option value="price-high">ราคา: สูง - ต่ำ</option>
+              </select>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            {/* Sort Selection */}
-            <select 
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-700 text-sm font-medium focus:outline-none focus:border-slate-400 transition-all cursor-pointer shadow-sm"
-            >
-              <option value="latest">เรียงตาม: ล่าสุด</option>
-              <option value="price-low">ราคา: ต่ำ - สูง</option>
-              <option value="price-high">ราคา: สูง - ต่ำ</option>
-            </select>
-
-
-          </div>
+          {/* Search Input */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="relative max-w-4xl"
+          >
+            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300"><Search size={22} /></div>
+            <input
+              type="text"
+              placeholder="ค้นตามชื่อสินค้าหรือหมวดหมู่..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input-field pl-16 py-6 text-xl tracking-tight border-slate-100 focus:border-slate-900"
+            />
+          </motion.div>
         </div>
 
-        {/* Search Input */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="relative max-w-2xl"
-        >
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
-            type="text"
-            placeholder="ค้นหาตามชื่อสินค้าหรือรายละเอียด..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input-field pl-12 py-4 text-lg"
-          />
-        </motion.div>
-      </div>
-
-      {/* Grid */}
-      <AnimatePresence mode="wait">
-        {loading ? (
-          <motion.div 
-            key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
-          >
-            {Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
-          </motion.div>
-        ) : filtered.length === 0 ? (
-          <motion.div
-            key="empty"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-center py-24 glass rounded-3xl border-dashed border-2 border-white/5"
-          >
-            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-inner">
-              🔍
-            </div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-2">ไม่พบสินค้าที่คุณค้นหา</h3>
-            <p className="text-slate-500 max-w-sm mx-auto">ลองเปลี่ยนหมวดหมู่หรือใช้คำค้นหาอื่นแทน</p>
-            <button 
-              onClick={() => { setSearch(''); setSelectedCategory('ทั้งหมด'); }}
-              className="mt-8 text-primary font-bold hover:underline"
+        {/* Grid */}
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div 
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10"
             >
-              รีเซ็ตการค้นหาทั้งหมด
-            </button>
-          </motion.div>
-        ) : (
-          <motion.div 
-            key="grid"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
-          >
-            {filtered.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+            </motion.div>
+          ) : filtered.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center py-40 bg-white rounded-[48px] border-2 border-dashed border-slate-100"
+            >
+              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-10 text-5xl shadow-inner">
+                 <Search size={40} className="text-slate-200" />
+              </div>
+              <h3 className="text-4xl font-black text-slate-900 mb-4 tracking-tight uppercase">ไม่พบสินค้า</h3>
+              <p className="text-slate-400 font-bold mb-10 max-w-md mx-auto">ไม่มีสินค้าที่คุณเลือกในขณะนี้ ลองเปลี่ยนคำค้นหาหรือหมวดหมู่ใหม่ครับ</p>
+              <button 
+                onClick={() => { setSearch(''); setSelectedCategory('ทั้งหมด'); }}
+                className="bg-slate-900 text-white font-black px-12 py-5 rounded-2xl shadow-soft hover:brightness-110 active:scale-95 transition-all"
+              >
+                รีเซ็ตการค้นหาของฉัน
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="grid"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10"
+            >
+              {filtered.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

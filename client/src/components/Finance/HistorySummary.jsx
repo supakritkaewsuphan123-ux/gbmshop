@@ -26,8 +26,8 @@ export default function HistorySummary({ invoices: propInvoices }) {
   }, [propInvoices]);
 
   const processInvoices = (invoices) => {
-    // Filter paid invoices
-    const filtered = (invoices || []).filter(inv => inv.status === 'paid');
+    // Filter completed invoices
+    const filtered = (invoices || []).filter(inv => inv.status === 'completed');
     
     // Group by daily/monthly/yearly
     const dailyMap = {};
@@ -57,7 +57,7 @@ export default function HistorySummary({ invoices: propInvoices }) {
       const { data: invoices, error } = await supabase
         .from('invoices')
         .select('created_at, total_price, status')
-        .eq('status', 'paid');
+        .eq('status', 'completed');
       
       if (error) throw error;
       processInvoices(invoices);
@@ -77,16 +77,16 @@ export default function HistorySummary({ invoices: propInvoices }) {
   const currentData = data[activeTab] || [];
 
   return (
-    <div className="bg-surface border border-border rounded-3xl overflow-hidden mt-8">
-      <div className="flex border-b border-border bg-black/20 p-2">
+    <div className="bg-white border border-slate-100 rounded-[40px] overflow-hidden mt-8 shadow-soft">
+      <div className="flex border-b border-slate-50 bg-slate-50/50 p-3 gap-2">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3.5 text-xs font-black uppercase tracking-widest rounded-2xl transition-all ${
               activeTab === tab.id 
-                ? 'bg-primary text-white shadow-glow-sm' 
-                : 'text-gray-500 hover:text-white hover:bg-white/5'
+                ? 'bg-primary text-white shadow-glow' 
+                : 'text-slate-400 hover:text-slate-600 hover:bg-white'
             }`}
           >
             {tab.icon} {tab.label}
@@ -94,19 +94,19 @@ export default function HistorySummary({ invoices: propInvoices }) {
         ))}
       </div>
 
-      <div className="p-6">
+      <div className="p-10">
          {loading ? (
-           <div className="py-10 text-center text-gray-500 italic animate-pulse">กำลังสรุปข้อมูลรายได้...</div>
+            <div className="py-20 text-center text-slate-300 font-bold animate-pulse">กำลังสรุปข้อมูลรายได้...</div>
          ) : (
            <table className="w-full text-left border-collapse">
              <thead>
-               <tr className="text-gray-500 text-[10px] uppercase tracking-widest border-b border-white/5">
-                 <th className="pb-4 font-bold">ช่วงเวลา</th>
-                 <th className="pb-4 font-bold text-center">ออเดอร์</th>
-                 <th className="pb-4 font-bold text-right">รายได้สุทธิ</th>
+               <tr className="text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-50">
+                 <th className="pb-6 font-black">ช่วงเวลา</th>
+                 <th className="pb-6 font-black text-center">จำนวนออเดอร์</th>
+                 <th className="pb-6 font-black text-right">รายได้ (NET)</th>
                </tr>
              </thead>
-             <tbody className="divide-y divide-white/5">
+             <tbody className="divide-y divide-slate-50">
                 {currentData.length > 0 ? (
                   currentData.map((row, idx) => (
                     <motion.tr 
@@ -114,24 +114,24 @@ export default function HistorySummary({ invoices: propInvoices }) {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="group hover:bg-white/[0.02]"
+                      className="group hover:bg-slate-50/50 transition-colors"
                     >
-                      <td className="py-4 font-medium text-white">
+                      <td className="py-5 font-bold text-slate-800">
                         {row.date || row.month || row.year}
                       </td>
-                      <td className="py-4 text-center">
-                        <span className="bg-white/10 px-2 py-0.5 rounded text-xs font-bold text-gray-300">
+                      <td className="py-5 text-center">
+                        <span className="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black text-slate-500">
                           {row.count}
                         </span>
                       </td>
-                      <td className="py-4 text-right font-black text-primary">
+                      <td className="py-5 text-right font-black text-primary text-lg">
                         {formatCurrency(row.revenue)}
                       </td>
                     </motion.tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="3" className="py-10 text-center text-gray-500 italic">ไม่มีข้อมูลสำหรับช่วงเวลานี้</td>
+                    <td colSpan="3" className="py-20 text-center text-slate-300 italic font-medium">ยังไม่มีข้อมูลสำหรับช่วงเวลานี้</td>
                   </tr>
                 )}
              </tbody>
@@ -139,9 +139,9 @@ export default function HistorySummary({ invoices: propInvoices }) {
          )}
       </div>
 
-      <div className="bg-black/20 p-4 border-t border-border flex justify-between items-center text-[10px] text-gray-500 italic uppercase">
-         <span>⚠️ ข้อมูลสรุปเฉพาะรายการที่ชำระเงินสำเร็จ (Paid) เท่านั้น</span>
-         <span className="text-primary font-bold">Invoices Source</span>
+      <div className="bg-slate-50/50 p-5 px-10 border-t border-slate-50 flex justify-between items-center text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">
+         <span>⚠️ สรุปยอดเฉพาะรายการที่แอดมินยืนยันผล (Completed)</span>
+         <span className="text-primary">Source: Invoices Database</span>
       </div>
     </div>
   );

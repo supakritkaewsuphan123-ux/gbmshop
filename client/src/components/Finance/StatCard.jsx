@@ -4,28 +4,28 @@ import { motion } from 'framer-motion';
 export default function StatCard({ label, value, icon, color, subValueToday, subValueMonth }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="bg-surface border border-border p-5 rounded-2xl hover:border-primary/50 transition-all duration-300"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white border border-slate-100 p-6 rounded-[32px] shadow-soft hover:shadow-glow-sm hover:border-primary/20 transition-all duration-500 group"
     >
-      <div className="flex items-center gap-4 mb-4">
-        <div className={`p-3 rounded-xl ${color} bg-opacity-10 text-xl`}>
+      <div className="flex items-center gap-4 mb-6">
+        <div className={`w-14 h-14 rounded-2xl ${color} flex items-center justify-center shadow-soft group-hover:scale-110 transition-transform duration-500`}>
           {icon}
         </div>
         <div>
-          <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider">{label}</h3>
-          <p className="text-2xl font-black text-white">{value}</p>
+          <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none mb-2">{label}</h3>
+          <p className="text-2xl font-black text-slate-900 leading-none tracking-tight">{value}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 pt-4 border-t border-white/5">
+      <div className="grid grid-cols-2 gap-4 pt-5 border-t border-slate-50">
         <div>
-          <p className="text-gray-500 text-[10px] uppercase font-bold">วันนี้</p>
-          <p className="text-sm font-bold text-white">{subValueToday}</p>
+          <p className="text-slate-400 text-[9px] uppercase font-black tracking-widest mb-1">ความเคลื่อนไหววันนี้</p>
+          <p className="text-sm font-black text-slate-700">{subValueToday}</p>
         </div>
         <div>
-          <p className="text-gray-500 text-[10px] uppercase font-bold">เดือนนี้</p>
-          <p className="text-sm font-bold text-white">{subValueMonth}</p>
+          <p className="text-slate-400 text-[9px] uppercase font-black tracking-widest mb-1">ยอดสะสมเดือนนี้</p>
+          <p className="text-sm font-black text-slate-700">{subValueMonth}</p>
         </div>
       </div>
     </motion.div>

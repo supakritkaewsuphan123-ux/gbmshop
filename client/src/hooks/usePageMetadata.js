@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 export function usePageMetadata(title, description) {
   useEffect(() => {
     // อัปเดต Title
-    const baseTitle = 'GB Marketplace';
+    const baseTitle = 'GBshop Marketplace';
     document.title = title ? `${title} | ${baseTitle}` : baseTitle;
 
     // อัปเดต Description
@@ -18,7 +18,7 @@ export function usePageMetadata(title, description) {
       metaDescription.name = 'description';
       document.head.appendChild(metaDescription);
     }
-    metaDescription.content = description || 'ตลาดซื้อขายเงินและสินค้าในเกมที่ปลอดภัยที่สุด พร้อมระบบ Wallet และการันตีจากแอดมิน 100%';
+    metaDescription.content = description || 'GBshop ตลาดซื้อขายสินค้าพรีเมียมที่ปลอดภัยที่สุด พร้อมระบบการจัดการออเดอร์ที่ทันสมัยและการันตีคุณภาพ 100%';
 
     // อัปเดต Open Graph (Facebook/Line)
     const updateOG = (property, content) => {
@@ -32,7 +32,7 @@ export function usePageMetadata(title, description) {
     };
 
     updateOG('og:title', title ? `${title} | ${baseTitle}` : baseTitle);
-    updateOG('og:description', description || 'ตลาดซื้อขายสินค้าพรีเมียม ปลอดภัย มั่นใจ 100%');
+    updateOG('og:description', description || 'GBshop ตลาดซื้อขายสินค้าพรีเมียม ปลอดภัย มั่นใจ 100%');
     
   }, [title, description]);
 }

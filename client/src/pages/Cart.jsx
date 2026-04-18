@@ -1,17 +1,12 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowRight, MapPin, Truck, Phone, User, CheckCircle2, QrCode, Zap, Globe } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import Modal from '../components/Modal';
 import { supabase } from '../lib/supabase';
-
-function getImageUrl(img) {
-  if (!img) return 'https://via.placeholder.com/80?text=?';
-  return img; // Supabase public URLs are already full links
-}
 
 export default function Cart() {
   const { items, removeFromCart, clearCart, total } = useCart();
@@ -21,89 +16,54 @@ export default function Cart() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [step, setStep] = useState('menu');
-  const [meetForm, setMeetForm] = useState({ date: '', time: '', location: '', contact: '', note: '' });
-  const [codForm, setCodForm] = useState({ 
-    name: '', 
-    phone: '', 
-    houseNo: '', 
-    street: '',
-    district: '',
-    amphure: '',
-    province: '',
-    zip: ''
-  });
-  const [codErrors, setCodErrors] = useState({});
-  const [walletInfo, setWalletInfo] = useState(null);
+  const [adminSettings, setAdminSettings] = useState(null);
   const [placing, setPlacing] = useState(false);
 
-  // Auto-validate items in cart
+  const [meetForm, setMeetForm] = useState({ date: '', time: '', location: '', contact: '', note: '' });
+  const [codForm, setCodForm] = useState({ name: '', phone: '', houseNo: '', street: '', district: '', amphure: '', province: '', zip: '' });
+
   useEffect(() => {
+    loadSettings();
     if (items.length > 0) {
-      const validateItems = async () => {
-        try {
-          const { data, error } = await supabase.from('products').select('id');
-          if (error) throw error;
-          const validIds = new Set(data.map(p => p.id));
-          items.forEach(item => {
-            if (!validIds.has(item.id)) {
-              removeFromCart(item.id);
-            }
-          });
-        } catch (e) {
-          console.error('Failed to validate cart items:', e);
-        }
-      };
-      validateItems();
+      validateCartItems();
     }
   }, []);
 
-  const openCheckout = () => {
-    if (!user) { showToast('กรุณาเข้าสู่ระบบก่อน', 'error'); navigate('/login'); return; }
-    setStep('menu'); setModalOpen(true);
+  const loadSettings = async () => {
+    const { data } = await supabase.from('settings').select('*').single();
+    if (data) setAdminSettings(data);
   };
 
-  const showWalletStep = async () => {
-    setWalletInfo(user); setStep('wallet');
+  const validateCartItems = async () => {
+    try {
+      const { data, error } = await supabase.from('products').select('id');
+      if (error) throw error;
+      const validIds = new Set(data.map(p => p.id));
+      items.forEach(item => {
+        if (!validIds.has(item.id)) removeFromCart(item.id);
+      });
+    } catch (e) { console.error('Cart validation failed', e); }
+  };
+
+  const openCheckout = () => {
+    if (!user) { showToast('กรุณาเข้าสู่ระบบก่อนชำระเงิน', 'error'); navigate('/login'); return; }
+    setStep('menu');
+    setModalOpen(true);
   };
 
   const placeOrder = async (method) => {
     setPlacing(true);
-    const itemIds = items.map((p) => p.id);
-    let payload = { 
-      items: itemIds, 
-      method,
-      user_id: user.id,
-      status: 'pending'
-    };
-
-    if (method === 'meetup') {
-      if (!meetForm.date || !meetForm.time || !meetForm.location || !meetForm.contact) {
-        showToast('กรุณากรอกข้อมูลนัดรับให้ครบ', 'error'); setPlacing(false); return;
-      }
-      payload = { ...payload, meet_date: meetForm.date, meet_time: meetForm.time, meet_location: meetForm.location, meet_note: `ติดต่อ: ${meetForm.contact}\n${meetForm.note}` };
-    }
-    if (method === 'cod') {
-      if (!codForm.name || !codForm.phone || !codForm.houseNo || !codForm.district || !codForm.amphure || !codForm.province || !codForm.zip) {
-        showToast('กรุณากรอกข้อมูลจัดส่งให้ครบทุกช่อง', 'error'); setPlacing(false); return;
-      }
-      if (codForm.phone.replace(/[^0-9]/g, '').length !== 10) {
-        showToast('เบอร์โทรศัพท์ต้องครบ 10 หลัก', 'error'); setPlacing(false); return;
-      }
-      const fullAddress = `${codForm.houseNo} ${codForm.street} ต.${codForm.district} อ.${codForm.amphure} จ.${codForm.province} ${codForm.zip}`;
-      payload = { ...payload, shipping_name: codForm.name, shipping_phone: codForm.phone, shipping_address: fullAddress };
-    }
+    const itemIds = items.map(p => p.id);
+    const idempotencyKey = crypto.randomUUID();
 
     try {
-      // ✅ Idempotency Key: ป้องกันกดซ้ำ / Double Submit
-      const idempotencyKey = crypto.randomUUID();
-
       const { data, error } = await supabase.rpc('handle_purchase', {
         p_user_id: user.id,
         p_item_ids: itemIds,
         p_method: method,
-        p_shipping_name: (method === 'cod') ? codForm.name : null,
-        p_shipping_phone: (method === 'cod') ? codForm.phone : null,
-        p_shipping_address: (method === 'cod') ? `${codForm.houseNo} ${codForm.street} ต.${codForm.district} อ.${codForm.amphure} จ.${codForm.province} ${codForm.zip}` : null,
+        p_shipping_name: (method === 'cod' || method === 'qr') ? (codForm.name || user.username) : null,
+        p_shipping_phone: (method === 'cod' || method === 'qr') ? codForm.phone : null,
+        p_shipping_address: (method === 'cod' || method === 'qr') ? `${codForm.houseNo} ${codForm.street} ต.${codForm.district} อ.${codForm.amphure} จ.${codForm.province} ${codForm.zip}` : null,
         p_meet_date: (method === 'meetup') ? meetForm.date : null,
         p_meet_time: (method === 'meetup') ? meetForm.time : null,
         p_meet_location: (method === 'meetup') ? meetForm.location : null,
@@ -114,187 +74,224 @@ export default function Cart() {
       if (error) throw error;
       if (data && !data.success) throw new Error(data.message);
 
-      showToast('สั่งซื้อสำเร็จ! ✅ ระบบตัดสต็อกและยอดเงินเรียบร้อย', 'success');
-      clearCart(); 
+      showToast('สั่งซื้อสำเร็จ! 🎉 ยืนยันคำสั่งซื้อแล้ว', 'success');
+      clearCart();
       setModalOpen(false);
-      navigate('/order-success', { state: { order: { ...payload, total, invoice_id: data.invoice_id } } });
+      navigate('/my-orders');
     } catch (e) {
       showToast(e.message, 'error');
-    } finally { setPlacing(false); }
+    } finally {
+      setPlacing(false);
+    }
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
-      <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-4xl font-extrabold mb-8">
-        🛒 ตะกร้าสินค้า
-      </motion.h1>
+    <div className="bg-white min-h-screen">
+      <div className="max-w-7xl mx-auto px-6 py-20">
+        <div className="flex items-center gap-6 mb-16">
+          <div className="w-16 h-16 bg-slate-50 border border-slate-50 rounded-2xl flex items-center justify-center text-slate-900 shadow-sm">
+            <ShoppingBag size={32} />
+          </div>
+          <div>
+            <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase">Your Shopping Cart</h1>
+            <p className="text-slate-400 font-bold tracking-tight">รายการสินค้าที่คุณเลือกซื้อทั้งหมด {items.length} รายการ</p>
+          </div>
+        </div>
 
-      {items.length === 0 ? (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-24 text-gray-500">
-          <ShoppingBag size={64} className="mx-auto mb-4 opacity-30" />
-          <p className="text-xl font-semibold text-gray-400 mb-2">ตะกร้าของคุณว่างเปล่า</p>
-          <p className="text-sm mb-8">ไปเลือกดูสินค้าก่อนนะครับ</p>
-          <Link to="/products" className="btn-primary px-8 py-3 inline-flex items-center gap-2">
-            เลือกสินค้า <ArrowRight size={16} />
-          </Link>
-        </motion.div>
-      ) : (
-        <>
-          <div className="bg-surface border border-border rounded-2xl overflow-hidden mb-6">
-            <AnimatePresence>
-              {items.map((item) => (
-                <motion.div
-                  key={item.id}
-                  layout
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="flex items-center gap-4 p-4 border-b border-border last:border-0"
-                >
-                  <img src={getImageUrl(item.image)} alt={item.name}
-                    className="w-20 h-20 rounded-xl object-cover bg-white flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white truncate">{item.name}</h3>
-                    <p className="text-primary font-bold text-xl">฿{item.price.toLocaleString()}</p>
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                    onClick={() => removeFromCart(item.id)}
-                    className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+        {items.length === 0 ? (
+          <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-40 bg-white border-2 border-dashed border-slate-100 rounded-[56px]">
+            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-10 text-slate-200">
+              <ShoppingBag size={48} />
+            </div>
+            <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight uppercase">Your Cart is Empty</h2>
+            <p className="text-slate-400 font-bold mb-12 max-w-sm mx-auto">เลือกช้อปสินค้าพรีเมียมในตลาดของเราเพื่อเริ่มต้นประสบการณ์ใหม่</p>
+            <Link to="/products" className="bg-slate-900 text-white font-black px-12 py-5 rounded-2xl shadow-soft hover:brightness-110 active:scale-95 transition-all inline-flex items-center gap-3">
+              ช้อปสินค้าตอนนี้ <ArrowRight size={22} className="group-hover:translate-x-1" />
+            </Link>
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
+            {/* List Section */}
+            <div className="lg:col-span-3 space-y-6">
+              <AnimatePresence>
+                {items.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="bg-white p-8 rounded-[40px] shadow-soft border border-slate-50 flex flex-col md:flex-row items-center gap-8 group hover:border-slate-200 transition-all"
                   >
-                    <Trash2 size={18} />
-                  </motion.button>
+                    <div className="w-32 h-32 flex-shrink-0 rounded-[28px] overflow-hidden border border-slate-100 shadow-sm">
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    </div>
+                    <div className="flex-1 min-w-0 text-center md:text-left">
+                       <p className="text-[10px] text-slate-300 font-black uppercase tracking-widest leading-none mb-2">Authenticated Item</p>
+                       <h3 className="text-2xl font-black text-slate-900 truncate leading-tight tracking-tight">{item.name}</h3>
+                       <p className="text-3xl font-black text-slate-900 mt-4 tracking-tighter">฿{item.price.toLocaleString()}</p>
+                    </div>
+                    <button
+                      onClick={() => removeFromCart(item.id)}
+                      className="w-14 h-14 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100 rounded-2xl transition-all flex items-center justify-center"
+                    >
+                      <Trash2 size={24} />
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+
+            {/* Summary Section */}
+            <div className="lg:col-span-1">
+              <div className="bg-white p-10 rounded-[48px] shadow-soft border border-slate-50 sticky top-32">
+                <h3 className="text-2xl font-black text-slate-900 mb-10 tracking-tight uppercase border-b border-slate-50 pb-4">Order Summary</h3>
+                <div className="space-y-6 mb-12">
+                  <div className="flex justify-between items-center text-slate-400 font-black uppercase text-[10px] tracking-widest">
+                    <span>Items Count</span>
+                    <span className="text-slate-900">{items.length} Units</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-400 font-black uppercase text-[10px] tracking-widest">
+                    <span>Shipping Fee</span>
+                    <span className="text-green-500">Free</span>
+                  </div>
+                  <div className="h-0.5 w-full bg-slate-50" />
+                  <div className="flex flex-col gap-2">
+                    <span className="text-slate-300 font-black uppercase tracking-widest text-[10px]">Total Amount</span>
+                    <span className="text-5xl font-black text-slate-900 tracking-tighter">฿{total.toLocaleString()}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={openCheckout}
+                  className="bg-slate-900 text-white w-full py-6 text-xl font-black rounded-2xl shadow-soft hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-3"
+                >
+                  ชำระเงิน <ArrowRight size={24} />
+                </button>
+                <p className="text-center text-slate-300 font-bold text-[10px] uppercase tracking-widest mt-6">Secure Checkout Guaranteed</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Checkout Modal — Matching High-End Minimalist White Style */}
+        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Secure Checkout Session">
+          <div className="p-4">
+            <AnimatePresence mode="wait">
+              {step === 'menu' && (
+                <motion.div key="menu" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-4">
+                  <p className="text-center text-slate-400 font-bold text-sm mb-6">เลือกช่องทางการชำระเงินที่สะดวกที่สุดสำหรับออเดอร์นี้</p>
+                  
+                  <button onClick={() => setStep('qr')} className="group flex items-center justify-between p-8 bg-white border border-slate-100 rounded-[32px] hover:border-slate-900 transition-all shadow-sm">
+                    <div className="flex items-center gap-6">
+                      <div className="w-16 h-16 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-soft">
+                        <QrCode size={32} />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-black text-slate-900 text-xl leading-tight">โอนเงิน / QR Code</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Direct Bank Transfer</p>
+                      </div>
+                    </div>
+                    <Zap size={24} className="text-slate-900 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all" />
+                  </button>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <button onClick={() => setStep('meetup')} className="flex flex-col items-center justify-center p-10 bg-slate-50 border border-transparent hover:border-slate-200 hover:bg-white rounded-[40px] transition-all group">
+                       <div className="w-14 h-14 bg-white rounded-2xl mb-6 flex items-center justify-center text-slate-900 shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all"><MapPin size={28} /></div>
+                       <p className="font-black text-slate-900 text-sm tracking-tight uppercase">นัดรับสินค้า</p>
+                       <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-2">Meetup</p>
+                    </button>
+                    <button onClick={() => setStep('cod')} className="flex flex-col items-center justify-center p-10 bg-slate-50 border border-transparent hover:border-slate-200 hover:bg-white rounded-[40px] transition-all group">
+                       <div className="w-14 h-14 bg-white rounded-2xl mb-6 flex items-center justify-center text-slate-900 shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all"><Truck size={28} /></div>
+                       <p className="font-black text-slate-900 text-sm tracking-tight uppercase">เก็บเงินปลายทาง</p>
+                       <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-2">COD</p>
+                    </button>
+                  </div>
                 </motion.div>
-              ))}
+              )}
+
+              {step === 'qr' && (
+                <motion.div key="qr" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10">
+                  <button onClick={() => setStep('menu')} className="text-[10px] font-black text-slate-400 hover:text-slate-900 mb-4 flex items-center gap-2 uppercase tracking-widest">← Back to Options</button>
+                  <div className="bg-slate-50 border border-slate-100 rounded-[48px] p-12 text-center shadow-inner">
+                    {adminSettings?.promptpay_qr ? (
+                      <div className="bg-white p-4 rounded-[32px] border border-slate-100 inline-block shadow-soft mb-10">
+                        <img src={adminSettings.promptpay_qr} className="w-56 h-56 object-contain" alt="QR Pay" />
+                      </div>
+                    ) : (
+                      <div className="w-56 h-56 mx-auto bg-white rounded-[32px] flex items-center justify-center mb-10 border border-slate-100 shadow-sm"><QrCode size={64} className="text-slate-200" /></div>
+                    )}
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-2 leading-none">PromptPay Destination</p>
+                    <p className="font-black text-slate-900 text-4xl tracking-tighter">{adminSettings?.promptpay_number || '08x-xxx-xxxx'}</p>
+                    <div className="h-0.5 w-16 bg-slate-200 mx-auto my-8" />
+                    <p className="text-[11px] text-slate-900 font-black uppercase tracking-[0.2em] mb-2 leading-none">Checkout Value</p>
+                    <p className="text-5xl text-slate-900 font-black tracking-tighter">฿{total.toLocaleString()}</p>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2"><label className="label">Receiver Name</label><input type="text" className="input-field" placeholder="Full Name..." value={codForm.name} onChange={e => setCodForm(p => ({...p, name: e.target.value}))} /></div>
+                      <div className="space-y-2"><label className="label">Phone Line</label><input type="text" className="input-field" placeholder="08x-xxx-xxxx" value={codForm.phone} onChange={e => setCodForm(p => ({...p, phone: e.target.value}))} /></div>
+                    </div>
+                  </div>
+                  <button onClick={() => placeOrder('qr')} disabled={placing} className="bg-slate-900 text-white w-full py-6 text-xl font-black rounded-2xl shadow-soft hover:brightness-110 active:scale-95 transition-all">
+                    {placing ? 'PLACING ORDER...' : 'โอนเงินแล้ว (แจ้งสลิปออเดอร์)'}
+                  </button>
+                </motion.div>
+              )}
+
+              {step === 'meetup' && (
+                <motion.div key="meetup" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10">
+                  <button onClick={() => setStep('menu')} className="text-[10px] font-black text-slate-400 mb-8 flex items-center gap-2 uppercase tracking-widest">← Back to Options</button>
+                  <div className="flex items-center gap-4 mb-4">
+                     <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-900 shadow-sm border border-slate-100"><MapPin size={24} /></div>
+                     <div>
+                        <h4 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Meetup Details</h4>
+                        <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">การนัดรับสินค้าจริง</p>
+                     </div>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2"><label className="label">Date select</label><input type="date" className="input-field" value={meetForm.date} onChange={e => setMeetForm(p => ({ ...p, date: e.target.value }))} /></div>
+                      <div className="space-y-2"><label className="label">Appox Time</label><input type="time" className="input-field" value={meetForm.time} onChange={e => setMeetForm(p => ({ ...p, time: e.target.value }))} /></div>
+                    </div>
+                    <div className="space-y-2"><label className="label">Meeting Point</label><input type="text" className="input-field" placeholder="ห้างเซ็นทรัล, หน้าสถานี BTS, มหาลัย..." value={meetForm.location} onChange={e => setMeetForm(p => ({ ...p, location: e.target.value }))} /></div>
+                    <div className="space-y-2"><label className="label">Contact Detail</label><input type="text" className="input-field" placeholder="FB Name / Line ID / Phone" value={meetForm.contact} onChange={e => setMeetForm(p => ({ ...p, contact: e.target.value }))} /></div>
+                    <button onClick={() => {
+                      if(!meetForm.location || !meetForm.contact) return showToast('กรุณากรอกสถานที่และข้อมูลติดต่อ', 'error');
+                      placeOrder('meetup');
+                    }} disabled={placing} className="bg-slate-900 text-white w-full py-6 text-xl font-black rounded-2xl shadow-glow transition-all">CONFIRM MEETUP ORDER</button>
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 'cod' && (
+                <motion.div key="cod" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10">
+                  <button onClick={() => setStep('menu')} className="text-[10px] font-black text-slate-400 mb-8 flex items-center gap-2 uppercase tracking-widest">← Back to Options</button>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-900 shadow-sm border border-slate-100"><Truck size={24} /></div>
+                    <div>
+                        <h4 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Shipping Destination</h4>
+                        <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">ชำระเงินปลายทาง</p>
+                    </div>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2"><label className="label">Full Name</label><input type="text" className="input-field" value={codForm.name} onChange={e => setCodForm(p => ({...p, name: e.target.value}))} /></div>
+                      <div className="space-y-2"><label className="label">Phone Line</label><input type="text" className="input-field" value={codForm.phone} onChange={e => setCodForm(p => ({...p, phone: e.target.value}))} /></div>
+                      <div className="col-span-2 space-y-2"><label className="label">Home Address Detail</label><input type="text" className="input-field" placeholder="บ้านเลขที่, หมู่บ้าน, ซอย, ถนน..." value={codForm.houseNo} onChange={e => setCodForm(p => ({...p, houseNo: e.target.value}))} /></div>
+                      <div className="space-y-2"><label className="label">District</label><input type="text" className="input-field" value={codForm.amphure} onChange={e => setCodForm(p => ({...p, amphure: e.target.value}))} /></div>
+                      <div className="space-y-2"><label className="label">Province</label><input type="text" className="input-field" value={codForm.province} onChange={e => setCodForm(p => ({...p, province: e.target.value}))} /></div>
+                    </div>
+                    <button onClick={() => {
+                      if(!codForm.name || !codForm.phone || !codForm.houseNo) return showToast('กรุณากรอกข้อมูลที่อยู่ให้ครบถ้วน', 'error');
+                      placeOrder('cod');
+                    }} disabled={placing} className="bg-slate-900 text-white w-full py-6 text-xl font-black rounded-2xl shadow-glow transition-all">PLACE COD ORDER</button>
+                  </div>
+                </motion.div>
+              )}
             </AnimatePresence>
           </div>
-
-          <div className="bg-surface border border-border rounded-2xl p-6">
-            <div className="flex justify-between items-center text-lg mb-6">
-              <span className="text-gray-400">ยอดรวม ({items.length} รายการ)</span>
-              <span className="text-primary font-extrabold text-3xl">฿{total.toLocaleString()}</span>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-              onClick={openCheckout}
-              className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2"
-            >
-              ดำเนินการชำระเงิน <ArrowRight size={20} />
-            </motion.button>
-          </div>
-        </>
-      )}
-
-      {/* Checkout Modal */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="เลือกวิธีชำระเงิน">
-        {step === 'menu' && (
-          <div className="flex flex-col gap-3">
-            <button onClick={() => setStep('meetup')} className="btn-outline py-3">🤝 นัดรับสินค้า (Meetup)</button>
-            <button onClick={() => setStep('cod')} className="btn-outline py-3">🚚 เก็บเงินปลายทาง (COD)</button>
-            <button onClick={showWalletStep} className="btn-primary py-3 bg-purple-600 border-purple-600 hover:bg-purple-700">💳 GB Wallet</button>
-          </div>
-        )}
-        {step === 'meetup' && (
-          <div className="space-y-4">
-            <button onClick={() => setStep('menu')} className="btn-ghost text-sm">← กลับ</button>
-            <h4 className="font-semibold">🤝 นัดรับสินค้า</h4>
-            {[
-              { label: 'วันที่', type: 'date', key: 'date' },
-              { label: 'เวลา', type: 'time', key: 'time' },
-              { label: 'สถานที่', type: 'text', key: 'location', placeholder: 'BTS สยาม' },
-              { label: 'ติดต่อ', type: 'text', key: 'contact', placeholder: 'Line / เบอร์โทร' },
-              { label: 'หมายเหตุ', type: 'text', key: 'note', placeholder: '(ไม่บังคับ)' },
-            ].map(f => (
-              <div key={f.key}>
-                <label className="label">{f.label}</label>
-                <input type={f.type} placeholder={f.placeholder} className="input-field"
-                  value={meetForm[f.key]} onChange={(e) => setMeetForm(p => ({ ...p, [f.key]: e.target.value }))} />
-              </div>
-            ))}
-            <button onClick={() => placeOrder('meetup')} disabled={placing} className="btn-primary w-full py-3">
-              {placing ? 'กำลังส่ง...' : 'ยืนยัน'}
-            </button>
-          </div>
-        )}
-        {step === 'cod' && (
-          <div className="space-y-4">
-            <button onClick={() => setStep('menu')} className="btn-ghost text-sm">← กลับ</button>
-            <h4 className="font-semibold">🚚 เก็บเงินปลายทาง</h4>
-            {[
-              { label: 'ชื่อ-นามสกุล', key: 'name', placeholder: 'ชื่อผู้รับ' },
-              { label: 'เบอร์โทร', key: 'phone', placeholder: '08x-xxx-xxxx' },
-            ].map(f => (
-              <div key={f.key}>
-                <label className="label">{f.label} <span className="text-red-400">*</span></label>
-                <input type="text" placeholder={f.placeholder}
-                  className={`input-field ${codErrors[f.key] ? 'border-red-500 focus:border-red-500' : ''}`}
-                  value={codForm[f.key]} onChange={(e) => {
-                    setCodForm(p => ({ ...p, [f.key]: e.target.value }));
-                    if (e.target.value) setCodErrors(p => ({ ...p, [f.key]: false }));
-                  }} />
-                {codErrors[f.key] && <p className="text-red-400 text-xs mt-1">⚠️ กรุณากรอก{f.label}</p>}
-              </div>
-            ))}
-            <div>
-              <label className="label">ที่อยู่จัดส่ง <span className="text-red-400">*</span></label>
-              <div className="grid grid-cols-2 gap-2">
-                <input type="text" placeholder="บ้านเลขที่ / ซอย" className="input-field" 
-                  value={codForm.houseNo} onChange={(e) => setCodForm(p => ({ ...p, houseNo: e.target.value }))} />
-                <input type="text" placeholder="ถนน (ถ้ามี)" className="input-field" 
-                  value={codForm.street} onChange={(e) => setCodForm(p => ({ ...p, street: e.target.value }))} />
-                <input type="text" placeholder="แขวง / ตำบล" className="input-field" 
-                  value={codForm.district} onChange={(e) => setCodForm(p => ({ ...p, district: e.target.value }))} />
-                <input type="text" placeholder="เขต / อำเภอ" className="input-field" 
-                  value={codForm.amphure} onChange={(e) => setCodForm(p => ({ ...p, amphure: e.target.value }))} />
-                <input type="text" placeholder="จังหวัด" className="input-field" 
-                  value={codForm.province} onChange={(e) => setCodForm(p => ({ ...p, province: e.target.value }))} />
-                <input type="text" placeholder="รหัสไปรษณีย์" className="input-field" 
-                  value={codForm.zip} onChange={(e) => setCodForm(p => ({ ...p, zip: e.target.value }))} />
-              </div>
-            </div>
-            <button onClick={() => {
-              const errors = {
-                name: !codForm.name,
-                phone: !codForm.phone || codForm.phone.replace(/[^0-9]/g, '').length !== 10,
-                address: !codForm.houseNo || !codForm.district || !codForm.amphure || !codForm.province || !codForm.zip,
-              };
-              setCodErrors(errors);
-              if (Object.values(errors).some(Boolean)) {
-                showToast('กรุณากรอกข้อมูลให้ครบถ้วนและเบอร์โทรครบ 10 หลัก', 'error');
-                return;
-              }
-              placeOrder('cod');
-            }} disabled={placing} className="btn-primary w-full py-3">
-              {placing ? 'กำลังส่ง...' : 'ยืนยัน COD'}
-            </button>
-          </div>
-        )}
-        {step === 'wallet' && walletInfo && (
-          <div className="space-y-4">
-            {/* แบนเนอร์แจ้งเตือนรับหน้าร้านเท่านั้น */}
-            <div className="bg-red-500/15 border border-red-500/50 rounded-xl px-4 py-3 flex items-start gap-3">
-              <span className="text-red-400 text-xl mt-0.5">🚫</span>
-              <div>
-                <p className="text-red-400 font-bold text-sm">รับสินค้าหน้าร้านเท่านั้น</p>
-                <p className="text-red-300/80 text-xs mt-0.5">การชำระด้วย GB Wallet ไม่รองรับการจัดส่ง กรุณานัดรับสินค้าที่ร้านโดยตรง</p>
-              </div>
-            </div>
-            <div className="bg-surface-hover rounded-xl p-5 text-center border border-border">
-              <p className="text-gray-400 text-sm mb-1">ยอดคงเหลือ</p>
-              <p className="text-4xl font-extrabold text-primary">฿{(walletInfo.balance || 0).toLocaleString()}</p>
-              <p className="text-gray-500 text-sm mt-1">ยอดสั่งซื้อ: ฿{total.toLocaleString()}</p>
-              {walletInfo.balance >= total
-                ? <p className="text-green-400 text-sm mt-2">✅ ยอดเงินเพียงพอ</p>
-                : <p className="text-red-400 text-sm mt-2">❌ ยอดไม่พอ ต้องการอีก ฿{(total - walletInfo.balance).toLocaleString()}</p>}
-            </div>
-            <button onClick={() => placeOrder('wallet')} disabled={placing || walletInfo.balance < total} className="btn-primary w-full py-3">
-              {placing ? 'กำลังส่ง...' : 'ยืนยันชำระ'}
-            </button>
-            <button onClick={() => setStep('menu')} className="btn-ghost w-full">กลับ</button>
-          </div>
-        )}
-      </Modal>
+        </Modal>
+      </div>
     </div>
   );
 }

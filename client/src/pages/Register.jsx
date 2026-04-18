@@ -1,11 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Upload, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, UserPlus, ShieldPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { usePageMetadata } from '../hooks/usePageMetadata';
 
 export default function Register() {
+  usePageMetadata('สมัครสมาชิก', 'สมัครสมาชิก GBshop Marketplace เพื่อเริ่มต้นซื้อขายสินค้าพรีเมียม');
   const [form, setForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
   const [showPwd, setShowPwd] = useState(false);
   const [showConfirmPwd, setShowConfirmPwd] = useState(false);
@@ -14,8 +16,6 @@ export default function Register() {
   const { register } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
-
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +27,7 @@ export default function Register() {
     setLoading(true);
     try {
       await register(form.username, form.email, form.password);
-      showToast('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ 🎉', 'success');
+      showToast('สมัครสมาชิกสำเร็จ! 👋 พร้อมเข้าใช้งานแล้วครับ', 'success');
       navigate('/login');
     } catch (err) {
       showToast(err.message, 'error');
@@ -35,91 +35,95 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen flex items-center justify-center px-4 py-20 bg-white">
       <motion.div
-        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        initial={{ opacity: 0, y: 30, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-lg"
       >
-        <div className="bg-white border border-slate-100 rounded-[2rem] p-10 shadow-2xl shadow-slate-200/60">
-          <div className="text-center mb-10">
-            <div className="text-3xl font-black text-primary mb-1">GB<span>shop</span></div>
-            <h2 className="text-2xl font-black text-slate-800 mt-6 mb-2">สมัครสมาชิก</h2>
-            <p className="text-slate-400 font-medium">เปิดบัญชีและเริ่มซื้อขายได้เลย</p>
+        <div className="bg-white border border-slate-100 rounded-[56px] p-16 shadow-soft relative overflow-hidden">
+          <div className="text-center mb-12 relative z-10">
+            <div className="w-16 h-16 bg-slate-50 border border-slate-50 flex items-center justify-center text-slate-900 mx-auto mb-8 rounded-2xl shadow-sm">
+              <ShieldPlus size={32} />
+            </div>
+            <h2 className="text-5xl font-black text-slate-900 mb-2 tracking-tighter">Register</h2>
+            <p className="text-slate-400 font-bold tracking-tight">เข้าร่วมครอบครัว GBshop </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-
-
-            <div>
-              <label className="label">ชื่อผู้ใช้ (Username)</label>
-              <input type="text" required value={form.username}
-                onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
-                className="input-field" placeholder="ชื่อเล่นหรือชื่อจริง" />
-            </div>
-
-            <div>
-              <label className="label">อีเมล</label>
-              <input type="email" required value={form.email}
-                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                className="input-field" placeholder="example@email.com" />
-            </div>
-
-            <div>
-              <label className="label">รหัสผ่าน</label>
-              <div className="relative">
-                <input 
-                  type={showPwd ? "text" : "password"} 
-                  required 
-                  value={form.password}
-                  onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                  className="input-field pr-12" 
-                  placeholder="••••••••" 
-                />
-                <button 
-                  type="button" 
-                  onClick={() => setShowPwd(!showPwd)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-primary transition-colors focus:outline-none"
-                >
-                  {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+          <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+            <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-2">
+                <label className="label">Username</label>
+                <input type="text" required value={form.username}
+                  onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
+                  className="input-field py-5" placeholder="เช่น gbmoney_shop" />
               </div>
-            </div>
 
-            <div>
-              <label className="label">ยืนยันรหัสผ่านอีกครั้ง</label>
-              <div className="relative">
-                <input 
-                  type={showConfirmPwd ? "text" : "password"} 
-                  required 
-                  value={form.confirmPassword}
-                  onChange={(e) => setForm((p) => ({ ...p, confirmPassword: e.target.value }))}
-                  className="input-field pr-12" 
-                  placeholder="••••••••" 
-                />
-                <button 
-                  type="button" 
-                  onClick={() => setShowConfirmPwd(!showConfirmPwd)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-primary transition-colors focus:outline-none"
-                >
-                  {showConfirmPwd ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+              <div className="space-y-2">
+                <label className="label">Email Address</label>
+                <input type="email" required value={form.email}
+                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                  className="input-field py-5" placeholder="example@email.com" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="label">Password</label>
+                  <div className="relative">
+                    <input 
+                      type={showPwd ? "text" : "password"} 
+                      required 
+                      value={form.password}
+                      onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                      className="input-field py-5 pr-12" 
+                      placeholder="••••••••" 
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPwd(!showPwd)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-900 transition-all"
+                    >
+                      {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="label">Confirm</label>
+                  <div className="relative">
+                    <input 
+                      type={showConfirmPwd ? "text" : "password"} 
+                      required 
+                      value={form.confirmPassword}
+                      onChange={(e) => setForm((p) => ({ ...p, confirmPassword: e.target.value }))}
+                      className="input-field py-5 pr-12" 
+                      placeholder="••••••••" 
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-900 transition-all"
+                    >
+                      {showConfirmPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
             <motion.button
               type="submit" disabled={loading}
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-              className="btn-primary w-full py-3.5 text-base flex items-center justify-center gap-2 mt-4"
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              className="bg-slate-900 text-white font-black w-full py-6 text-xl rounded-2xl shadow-soft hover:brightness-110 active:scale-95 transition-all mt-8"
             >
-              {loading ? 'กำลังสร้างบัญชี...' : <><UserPlus size={18} /> สร้างบัญชีใหม่</>}
+              {loading ? 'CREATING ACCOUNT...' : <><UserPlus size={22} className="inline mr-2" /> สมัครสมาชิก</>}
             </motion.button>
           </form>
 
-          <p className="text-center mt-8 text-sm text-slate-500 font-medium">
-            มีบัญชีแล้ว?{' '}
-            <Link to="/login" className="text-primary hover:underline font-bold">เข้าสู่ระบบ</Link>
+          <p className="text-center mt-12 text-sm text-slate-400 font-bold">
+            หากมีบัญชีอยู่แล้ว?{' '}
+            <Link to="/login" className="text-slate-900 hover:text-primary font-black ml-1 transition-all underline underline-offset-8">เข้าสู่ระบบได้ที่นี่</Link>
           </p>
         </div>
       </motion.div>

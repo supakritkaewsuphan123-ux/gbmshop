@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { PageLoader } from '../components/Spinner';
 import StatusBadge from '../components/StatusBadge';
 import { supabase } from '../lib/supabase';
+import { ShoppingBag, Box, Truck, MapPin, CheckCircle2, QrCode, Clipboard, ArrowLeft, Clock, History } from 'lucide-react';
 
 export default function MyOrders() {
   const { user, loading: authLoading } = useAuth();
@@ -19,7 +20,7 @@ export default function MyOrders() {
     if (user) loadInvoices();
   }, [user, authLoading]);
 
-  // ⚡ Real-time: อัปเดตสถานะออเดอร์และหลอดสถานะทันที
+  // Real-time updates
   useEffect(() => {
     if (!user) return;
 
@@ -30,7 +31,6 @@ export default function MyOrders() {
         { event: 'UPDATE', schema: 'public', table: 'invoices', filter: `user_id=eq.${user.id}` },
         (payload) => {
           const updated = payload.new;
-          // อัปเดตสถานะและเลขพัสดุทันทีโดยไม่ต้องโหลดใหม่
           setInvoices(prev =>
             prev.map(inv =>
               inv.id === updated.id
@@ -55,17 +55,16 @@ export default function MyOrders() {
       
       if (error) throw error;
 
-      // For each invoice, fetch product names/prices since they are stored as IDs
       const enrichedInvoices = await Promise.all(data.map(async (inv) => {
         if (!inv.items || inv.items.length === 0) return { ...inv, products: [], total_price: 0 };
         
         const { data: products } = await supabase
           .from('products')
-          .select('id, name, price')
+          .select('id, name, price, image_url')
           .in('id', inv.items);
         
         const total = products?.reduce((sum, p) => sum + p.price, 0) || 0;
-        return { ...inv, items: products || [], total_price: total };
+        return { ...inv, items: products || [], total_price: inv.total_price || total };
       }));
 
       setInvoices(enrichedInvoices);
@@ -75,7 +74,6 @@ export default function MyOrders() {
 
   const uploadSlip = async (invoiceId, file) => {
     try {
-      // 1. Upload Slip Image
       const fileExt = file.name.split('.').pop();
       const fileName = `${invoiceId}-${Math.random()}.${fileExt}`;
       const filePath = `slips/${fileName}`;
@@ -90,12 +88,11 @@ export default function MyOrders() {
         .from('payment-slips')
         .getPublicUrl(filePath);
 
-      // 2. Update Invoice
       const { error: updateError } = await supabase
         .from('invoices')
         .update({ 
           slip_url: publicUrl,
-          status: 'pending' // Reset to pending for admin review
+          status: 'pending' 
         })
         .eq('id', invoiceId);
 
@@ -109,167 +106,172 @@ export default function MyOrders() {
   if (authLoading || loading) return <PageLoader />;
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
-      <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-4xl font-extrabold mb-8">
-        📦 รายการสั่งซื้อ
-      </motion.h1>
-
-      {invoices.length === 0 ? (
-        <div className="text-center py-20 text-gray-500">
-          <p className="text-4xl mb-4">📭</p>
-          <p className="text-xl text-gray-400">ยังไม่มีรายการสั่งซื้อ</p>
+    <div className="bg-white min-h-screen">
+      <div className="max-w-5xl mx-auto px-6 py-20">
+        <div className="flex items-center gap-6 mb-16">
+          <div className="w-16 h-16 bg-slate-50 border border-slate-50 rounded-2xl flex items-center justify-center text-slate-900 shadow-sm">
+            <History size={32} />
+          </div>
+          <div>
+          <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase">ออเดอร์ของฉัน</h1>
+          <p className="text-slate-400 font-bold tracking-tight">ติดตามสถานะและตรวจสอบประวัติการสั่งซื้อของคุณ</p>
+          </div>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {invoices.map((inv, i) => (
-            <motion.div
-              key={inv.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-              className="bg-surface border border-border rounded-2xl overflow-hidden"
-            >
-              <div className="flex items-center justify-between p-5 border-b border-border">
-                <div>
-                  <h3 className="font-bold text-white">ออเดอร์ #{inv.id}</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">{new Date(inv.created_at).toLocaleString('th-TH')}</p>
-                </div>
-                <StatusBadge status={inv.status} />
-              </div>
 
-              {/* 📊 Order Progress Tube (หลอดสถานะ) */}
-              {inv.status !== 'rejected' && (
-                <div className="px-5 pt-6 pb-2">
-                  <div className="relative flex justify-between">
-                    {/* Background Line */}
-                    <div className="absolute top-4 left-0 w-full h-1 bg-white/5 rounded-full z-0" />
-                    {/* Progress Fill */}
-                    <div 
-                      className="absolute top-4 left-0 h-1 bg-primary rounded-full z-0 transition-all duration-1000" 
-                      style={{ 
-                        width: inv.status === 'completed' ? '100%' 
-                          : inv.status === 'processing' ? '50%' 
-                          : '10%'
-                      }} 
-                    />
-
-                    {[
-                      { 
-                        id: 'confirmed', 
-                        label: 'ยืนยันออเดอร์', 
-                        active: true 
-                      },
-                      { 
-                        id: 'shipping', 
-                        label: 'เตรียมของ', 
-                        active: inv.status === 'processing' || inv.status === 'completed' 
-                      },
-                      { 
-                        id: 'delivered', 
-                        label: 'ส่งสำเร็จ', 
-                        active: inv.status === 'completed' 
-                      }
-                    ].map((step) => (
-                      <div key={step.id} className="relative z-10 flex flex-col items-center gap-2">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center border-4 border-surface transition-all duration-500 ${step.active ? 'bg-primary shadow-[0_0_12px_rgba(var(--primary-rgb),0.6)] scale-110' : 'bg-gray-800'}`}>
-                          <div className={`w-2.5 h-2.5 rounded-full ${step.active ? 'bg-white' : 'bg-gray-700'}`} />
-                        </div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${step.active ? 'text-primary' : 'text-gray-600'}`}>{step.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="p-5">
-                {/* 🚚 Tracking Info Box */}
-                {inv.tracking_number && (
-                  <div className="mb-6 p-4 bg-gradient-to-r from-primary/20 to-primary/5 border border-primary/30 rounded-2xl shadow-glow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-black text-primary uppercase tracking-widest">ข้อมูลการจัดส่ง</p>
-                      <span className="text-[10px] px-2 py-0.5 bg-primary/20 text-primary rounded-md font-bold uppercase">{inv.shipping_carrier}</span>
+        {invoices.length === 0 ? (
+          <div className="text-center py-40 border-2 border-dashed border-slate-100 rounded-[56px] bg-white">
+            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-10 text-slate-200 shadow-inner">
+              <ShoppingBag size={48} />
+            </div>
+            <p className="text-4xl font-black text-slate-900 tracking-tight uppercase mb-4">ยังไม่มีรายการสั่งซื้อ</p>
+            <p className="text-slate-400 font-bold mb-10">คุณยังไม่มีรายการสั่งซื้อในขณะนี้ครับ</p>
+            <button onClick={() => navigate('/products')} className="bg-slate-900 text-white font-black px-12 py-5 rounded-2xl shadow-soft hover:brightness-110 active:scale-95 transition-all">เริ่มช้อปสินค้าตอนนี้</button>
+          </div>
+        ) : (
+          <div className="space-y-10">
+            {invoices.map((inv, i) => (
+              <motion.div
+                key={inv.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05, duration: 0.8 }}
+                className="bg-white border border-slate-100 rounded-[48px] overflow-hidden shadow-soft hover:border-slate-200 transition-all"
+              >
+                <div className="flex flex-col md:flex-row items-center justify-between p-10 border-b border-slate-50 bg-slate-50/20 gap-6">
+                  <div>
+                    <p className="text-[10px] text-slate-300 font-black uppercase tracking-widest leading-none mb-2">รหัสคำสั่งซื้อ</p>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tighter">GB-#{inv.id.toString().slice(0,12).toUpperCase()}</h3>
+                    <div className="flex items-center gap-2 mt-2 text-slate-400 font-bold text-xs">
+                       <Clock size={12} /> {new Date(inv.created_at).toLocaleString('th-TH')}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xl font-mono font-bold text-white tracking-wider">{inv.tracking_number}</p>
+                  </div>
+                  <StatusBadge status={inv.status} />
+                </div>
+
+                {/* Status Progress Tube */}
+                {inv.status !== 'rejected' && (
+                  <div className="px-10 pt-10 pb-6">
+                    <div className="relative flex justify-between">
+                      <div className="absolute top-5 left-0 w-full h-1.5 bg-slate-50 rounded-full z-0" />
+                      <div 
+                        className="absolute top-5 left-0 h-1.5 bg-slate-900 rounded-full z-0 transition-all duration-1000 shadow-glow-sm" 
+                        style={{ 
+                          width: inv.status === 'completed' ? '100%' 
+                            : inv.status === 'processing' ? '50%' 
+                            : '5%'
+                        }} 
+                      />
+
+                      {[
+                        { id: 'confirmed', label: 'อนุมัติแล้ว', active: true, icon: <CheckCircle2 size={16} /> },
+                        { id: 'shipping', label: 'กำลังเตรียมของ', active: ['processing', 'completed'].includes(inv.status), icon: <Box size={16} /> },
+                        { id: 'delivered', label: 'ส่งสำเร็จ', active: inv.status === 'completed', icon: <Truck size={16} /> }
+                      ].map((step) => (
+                        <div key={step.id} className="relative z-10 flex flex-col items-center gap-3">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border-4 border-white transition-all duration-700 ${step.active ? 'bg-slate-900 text-white shadow-soft scale-110' : 'bg-slate-50 text-slate-200'}`}>
+                            {step.icon}
+                          </div>
+                          <span className={`text-[10px] font-black uppercase tracking-widest ${step.active ? 'text-slate-900' : 'text-slate-300'}`}>{step.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-10">
+                  {/* Tracking Info Box */}
+                  {inv.tracking_number && (
+                    <div className="mb-10 p-8 bg-slate-900 rounded-[32px] shadow-glow flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="flex flex-col items-center md:items-start">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 leading-none">ข้อมูลการติดตามพัสดุ</p>
+                        <div className="flex items-center gap-3">
+                           <span className="text-white text-3xl font-black tracking-tighter uppercase">{inv.tracking_number}</span>
+                           <span className="bg-white/10 text-white text-[10px] px-3 py-1 rounded-lg font-black uppercase tracking-widest">{inv.shipping_carrier}</span>
+                        </div>
+                      </div>
                       <button 
                         onClick={() => {
                           navigator.clipboard.writeText(inv.tracking_number);
                           showToast('คัดลอกเลขพัสดุแล้ว 📋', 'success');
                         }}
-                        className="text-[10px] text-primary hover:underline font-bold"
-                      >คัดลอก</button>
+                        className="bg-white text-slate-900 font-black px-8 py-4 rounded-xl text-xs uppercase tracking-widest shadow-soft hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
+                      ><Clipboard size={14} /> คัดลอก</button>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-2 italic">* นำเลขนี้ไปเช็คสถานะในแอป {inv.shipping_carrier} ได้เลยครับ</p>
-                  </div>
-                )}
-                {inv.items?.map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm py-1.5">
-                    <span className="text-gray-300">📦 {item.name}</span>
-                    <span className="text-primary font-semibold">฿{item.price.toLocaleString()}</span>
-                  </div>
-                ))}
+                  )}
 
-                <div className="flex justify-between pt-4 mt-2 border-t border-border font-bold">
-                  <span className="text-gray-400">ยอดรวม</span>
-                  <span className="text-primary text-xl">฿{inv.total_price.toLocaleString()}</span>
+                  <div className="space-y-4 mb-10">
+                    <p className="text-[10px] text-slate-300 font-black uppercase tracking-widest leading-none mb-2">Order Items</p>
+                    {inv.items?.map((item) => (
+                      <div key={item.id} className="flex justify-between items-center py-4 border-b border-slate-50 last:border-0">
+                        <div className="flex items-center gap-4">
+                           <div className="w-12 h-12 bg-slate-50 rounded-xl overflow-hidden border border-slate-100">
+                              <img src={item.image_url} alt="prod" className="w-full h-full object-cover" />
+                           </div>
+                           <span className="text-slate-900 font-black text-lg tracking-tight leading-none truncate max-w-[200px] md:max-w-sm">{item.name}</span>
+                        </div>
+                        <span className="text-slate-900 font-black text-xl tracking-tighter">฿{item.price?.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-between items-end pt-8 mt-4 border-t border-slate-50">
+                    <div>
+                        <p className="text-[10px] text-slate-300 font-black uppercase tracking-widest leading-none mb-1">Total Bill</p>
+                        <p className="text-4xl text-slate-900 font-black tracking-tighter">฿{inv.total_price.toLocaleString()}</p>
+                    </div>
+                    {inv.method === 'meetup' ? (
+                       <div className="text-right">
+                          <p className="text-[10px] text-purple-400 font-black uppercase tracking-widest mb-1 leading-none">Meetup Location</p>
+                          <p className="text-slate-900 font-black">📍 {inv.meet_location}</p>
+                       </div>
+                    ) : inv.method === 'cod' ? (
+                       <div className="text-right">
+                          <p className="text-[10px] text-pink-400 font-black uppercase tracking-widest mb-1 leading-none">Shipping To</p>
+                          <p className="text-slate-900 font-black">{inv.shipping_name}</p>
+                       </div>
+                    ) : null}
+                  </div>
+
+                  {/* Slip upload for QR orders */}
+                  {(inv.status === 'pending_payment' || inv.status === 'rejected') && inv.method === 'qr' && (
+                    <div className={`mt-12 rounded-[32px] p-8 border ${inv.status === 'rejected' ? 'bg-red-50/50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+                      <p className={`text-xl font-black mb-6 flex items-center gap-3 ${inv.status === 'rejected' ? 'text-red-500' : 'text-slate-900'}`}>
+                        {inv.status === 'rejected' ? '❌ ถูกปฏิเสธ: กรุณาแก้ไขสลิป' : <><QrCode size={24} /> แจ้งหลักฐานการโอนเงิน</>}
+                      </p>
+                      
+                      {inv.status === 'rejected' && inv.rejection_reason && (
+                        <div className="mb-6 p-6 bg-red-50 rounded-2xl border border-red-100 text-sm text-red-600 font-bold">
+                          <strong>เหตุผลจากแอดมิน:</strong> {inv.rejection_reason}
+                        </div>
+                      )}
+
+                      <div className="flex flex-col md:flex-row gap-4 items-center">
+                         <label className="flex-1 w-full bg-white border border-slate-200 text-slate-400 px-8 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest cursor-pointer text-center relative overflow-hidden italic truncate">
+                            {inv.slip_url ? 'SLIP UPLOADED. CLICK TO CHANGE' : 'SELECT PAYMENT SLIP IMAGE'}
+                            <input type="file" accept="image/jpeg,image/png" className="hidden"
+                               onChange={(e) => e.target.files[0] && uploadSlip(inv.id, e.target.files[0])} />
+                         </label>
+                         <button className="bg-slate-900 text-white font-black px-12 py-5 rounded-2xl shadow-soft hover:brightness-110 active:scale-95 transition-all text-sm uppercase tracking-widest">Update Slip</button>
+                      </div>
+                      
+                      {inv.status === 'rejected' && (
+                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] text-center mt-6">เมื่อแก้สลิปแล้ว แอดมินจะตรวจสอบใหม่อีกครั้งภายใน 24 ชม.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {inv.status === 'rejected' && inv.method !== 'qr' && inv.rejection_reason && (
+                    <div className="mt-12 bg-red-50 border border-red-100 rounded-[32px] p-8">
+                       <p className="text-xl font-black text-red-500 mb-4 flex items-center gap-2">❌ Order Rejected</p>
+                       <p className="text-sm text-red-600 font-bold leading-relaxed">{inv.rejection_reason}</p>
+                    </div>
+                  )}
                 </div>
-
-                {/* Meetup info */}
-                {inv.method === 'meetup' && inv.meet_location && (
-                  <div className="mt-4 bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 text-sm">
-                    <p className="font-semibold text-purple-400 mb-2">🤝 ข้อมูลนัดรับ</p>
-                    <p className="text-gray-300">📍 {inv.meet_location}</p>
-                    <p className="text-gray-300">🗓️ {inv.meet_date} {inv.meet_time}</p>
-                    {inv.meet_note && <p className="text-gray-400 mt-1">{inv.meet_note}</p>}
-                  </div>
-                )}
-
-                {/* COD info */}
-                {inv.method === 'cod' && inv.shipping_name && (
-                  <div className="mt-4 bg-pink-500/10 border border-pink-500/30 rounded-xl p-4 text-sm">
-                    <p className="font-semibold text-pink-400 mb-2">🚚 ที่อยู่จัดส่ง</p>
-                    <p className="text-gray-300">{inv.shipping_name} · {inv.shipping_phone}</p>
-                    <p className="text-gray-400">{inv.shipping_address}</p>
-                  </div>
-                )}
-
-                {/* Slip upload for QR orders */}
-                {(inv.status === 'pending_payment' || inv.status === 'rejected') && inv.method === 'qr' && (
-                  <div className={`mt-4 rounded-xl p-4 border ${inv.status === 'rejected' ? 'bg-red-500/5 border-red-500/30' : 'bg-primary/5 border-primary/30'}`}>
-                    <p className={`font-semibold mb-3 ${inv.status === 'rejected' ? 'text-red-400' : 'text-primary'}`}>
-                      {inv.status === 'rejected' ? '❌ ถูกปฏิเสธ: แก้ไขสลิปชำระเงิน' : '📎 อัปโหลดสลิปชำระเงิน'}
-                    </p>
-                    
-                    {inv.status === 'rejected' && inv.rejection_reason && (
-                      <div className="mb-4 bg-red-500/10 p-3 rounded-lg border border-red-500/20 text-xs text-red-300">
-                        <strong>เหตุผล:</strong> {inv.rejection_reason}
-                      </div>
-                    )}
-
-                    <input type="file" accept="image/jpeg,image/png"
-                      onChange={(e) => e.target.files[0] && uploadSlip(inv.id, e.target.files[0])}
-                      className="input-field text-sm" />
-                    
-                    {inv.status === 'rejected' && (
-                      <p className="text-[10px] text-gray-500 mt-2 italic">* เมื่ออัปโหลดใหม่ สถานะจะถูกเปลี่ยนเป็น "รอการอนุมัติ" อีกครั้ง</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Show rejection reason even if NOT a QR order (e.g. COD/Meetup rejected) */}
-                {inv.status === 'rejected' && inv.method !== 'qr' && inv.rejection_reason && (
-                  <div className="mt-4 bg-red-500/5 border border-red-500/30 rounded-xl p-4">
-                     <p className="font-semibold text-red-400 mb-2">❌ ออเดอร์ถูกปฏิเสธ</p>
-                     <div className="bg-red-500/10 p-3 rounded-lg border border-red-500/20 text-xs text-red-300">
-                        <strong>เหตุผล:</strong> {inv.rejection_reason}
-                      </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

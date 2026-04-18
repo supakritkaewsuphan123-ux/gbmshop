@@ -1,19 +1,19 @@
 const STATUS_MAP = {
-  pending_payment: { label: 'รอชำระเงิน', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
-  waiting_approval: { label: 'รอการอนุมัติ', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-  meeting_scheduled: { label: 'นัดรับแล้ว', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
-  paid: { label: 'ชำระเงินสำเร็จ', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
-  rejected: { label: 'ถูกปฏิเสธ', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
-  pending_delivery: { label: 'รอจัดส่ง (COD)', color: 'bg-pink-500/20 text-pink-400 border-pink-500/30' },
-  pending: { label: 'รอดำเนินการ', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
-  processing: { label: '⏳ กำลังเตรียมของ', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
-  completed: { label: '✅ ส่งสำเร็จ', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+  pending_payment: { label: 'รอชำระเงิน', color: 'bg-slate-50 text-slate-400 border-slate-100' },
+  waiting_approval: { label: 'รอการอนุมัติ', color: 'bg-slate-100 text-slate-600 border-slate-200 font-black' },
+  meeting_scheduled: { label: 'นัดรับแล้ว', color: 'bg-slate-900 text-white border-transparent' },
+  paid: { label: 'ชำระเงินสำเร็จ', color: 'bg-slate-900 text-white border-transparent shadow-glow-sm' },
+  rejected: { label: 'ถูกปฏิเสธ', color: 'bg-white text-red-500 border-red-500 shadow-sm' },
+  pending_delivery: { label: 'รอจัดส่ง (COD)', color: 'bg-slate-50 text-slate-900 border-slate-900' },
+  pending: { label: 'รอดำเนินการ', color: 'bg-slate-50 text-slate-400 border-slate-100' },
+  processing: { label: 'เตรียมของ', color: 'bg-slate-900 text-white border-transparent' },
+  completed: { label: 'สำเร็จแล้ว', color: 'bg-slate-900 text-white border-transparent' },
 };
 
 export default function StatusBadge({ status }) {
-  const info = STATUS_MAP[status] || { label: status?.toUpperCase() ?? '-', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' };
+  const info = STATUS_MAP[status] || { label: status?.toUpperCase() ?? '-', color: 'bg-slate-50 text-slate-300 border-slate-100' };
   return (
-    <span className={`badge border text-xs ${info.color}`}>
+    <span className={`px-4 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${info.color}`}>
       {info.label}
     </span>
   );

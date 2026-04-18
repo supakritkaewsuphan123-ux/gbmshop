@@ -12,29 +12,29 @@ export default {
       },
       colors: {
         primary: {
-          DEFAULT: "#ff003c",
-          hover: "#ff3366",
-          glow: "rgba(255,0,60,0.6)",
-          light: "rgba(255,0,60,0.1)",
+          DEFAULT: "#3B82F6",
+          hover: "#2563EB",
+          glow: "rgba(59,130,246,0.3)",
+          light: "rgba(59,130,246,0.05)",
         },
-        surface: {
-          DEFAULT: "#141419",
-          hover: "#1e1e26",
+        secondary: {
+          DEFAULT: "#60A5FA",
+          light: "#DBEAFE",
         },
-        bg: "#0a0a0c",
-        border: "rgba(255,255,255,0.1)",
+        background: "#F9FAFB",
+        surface: "#FFFFFF",
+        border: "#E5E7EB",
       },
       boxShadow: {
-        glow: "0 0 15px rgba(255,0,60,0.6)",
-        "glow-sm": "0 0 8px rgba(255,0,60,0.4)",
-        card: "0 8px 30px rgba(0,0,0,0.5)",
+        soft: "0 4px 20px rgba(0,0,0,0.05)",
+        "soft-card": "0 8px 30px rgba(0,0,0,0.04)",
+        "glow": "0 0 15px rgba(59,130,246,0.3)",
+        card: "0 10px 40px rgba(0,0,0,0.03)",
       },
       animation: {
         shimmer: "shimmer 1.5s infinite",
         "fade-in": "fadeIn 0.4s ease forwards",
         "slide-up": "slideUp 0.4s ease forwards",
-        "slide-right": "slideRight 0.3s ease forwards",
-        "pulse-glow": "pulseGlow 2s ease-in-out infinite",
       },
       keyframes: {
         shimmer: {
@@ -48,14 +48,6 @@ export default {
         slideUp: {
           from: { opacity: 0, transform: "translateY(20px)" },
           to: { opacity: 1, transform: "translateY(0)" },
-        },
-        slideRight: {
-          from: { opacity: 0, transform: "translateX(100%)" },
-          to: { opacity: 1, transform: "translateX(0)" },
-        },
-        pulseGlow: {
-          "0%, 100%": { boxShadow: "0 0 5px rgba(255,0,60,0.3)" },
-          "50%": { boxShadow: "0 0 20px rgba(255,0,60,0.8)" },
         },
       },
     },

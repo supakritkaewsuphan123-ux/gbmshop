@@ -1,6 +1,6 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, LayoutDashboard, LogOut, LogIn, UserPlus, ShieldCheck, Menu, X } from 'lucide-react';
+import { ShoppingCart, LayoutDashboard, LogOut, LogIn, UserPlus, ShieldCheck, Menu, X, User } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -23,7 +23,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     logout();
-    showToast('ออกจากระบบเรียบร้อย', 'success');
+    showToast('ออกจากระบบเรียบร้อย 👋', 'success');
     navigate('/');
     setMenuOpen(false);
   };
@@ -32,36 +32,40 @@ export default function Navbar() {
     { to: '/', label: 'หน้าแรก' },
     { to: '/products', label: 'ตลาดสินค้า' },
     { to: '/help', label: 'ศูนย์ช่วยเหลือ' },
-    { to: '/contact', label: 'ติดต่อเรา' },
   ];
 
   return (
     <motion.nav
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
-      className={`sticky top-0 z-50 transition-all duration-300 ${
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
         scrolled
-          ? 'bg-white/90 backdrop-blur-xl shadow-sm border-b border-slate-100'
-          : 'bg-white border-b border-slate-50'
+          ? 'bg-white/95 backdrop-blur-xl shadow-sm py-4 border-b border-slate-50'
+          : 'bg-white py-6'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-3 items-center h-16">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-1 font-bold text-2xl text-slate-900 hover:opacity-90 transition-opacity">
-            GB<span className="text-primary font-black">shop</span>
+          <Link to="/" className="flex items-center gap-2 group">
+             <div className="w-11 h-11 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-soft group-hover:bg-primary transition-all">
+                <ShieldCheck size={24} fill="white" />
+             </div>
+             <span className="text-3xl font-black text-slate-900 tracking-tighter">GB<span className="text-primary italic">shop</span></span>
           </Link>
 
-          {/* Center nav links — desktop */}
-          <div className="hidden md:flex items-center justify-center gap-8">
+          {/* Nav Links — Desktop */}
+          <div className="hidden md:flex items-center gap-4">
             {navLinks.map((l) => (
               <NavLink
                 key={l.to}
                 to={l.to}
                 end={l.to === '/'}
                 className={({ isActive }) =>
-                  `nav-link text-base ${isActive ? 'text-primary after:w-full' : ''}`
+                  `px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all ${
+                    isActive ? 'bg-slate-900 text-white shadow-soft' : 'text-slate-400 hover:text-slate-900'
+                  }`
                 }
               >
                 {l.label}
@@ -69,110 +73,77 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Right side */}
-          <div className="hidden lg:flex items-center justify-end gap-3 flex-nowrap min-w-fit">
-            {/* Notification Bell */}
-            {user && <NotificationBell />}
-            
-            {/* Cart */}
-            <Link to="/cart" className="relative p-2 text-slate-600 hover:text-primary transition-colors group">
-              <ShoppingCart size={22} className="group-hover:scale-110 transition-transform" />
-              {count > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center"
-                >
-                  {count}
-                </motion.span>
-              )}
-            </Link>
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
+            {user && (
+              <div className="hidden lg:flex items-center gap-3 mr-4">
+                <NotificationBell />
+                <Link to="/cart" className="relative w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-500 hover:text-primary hover:bg-white border border-transparent hover:border-slate-100 transition-all group">
+                   <ShoppingCart size={22} className="group-hover:scale-110 transition-transform" />
+                   {count > 0 && <span className="absolute -top-1 -right-1 bg-primary text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border border-white">
+                    {count}
+                   </span>}
+                </Link>
+              </div>
+            )}
 
             {user ? (
-              <>
-                <span className="text-slate-500 text-sm">
-                  สวัสดี, <span className="text-slate-900 font-semibold">{user.username}</span>
-                </span>
-                {isAdmin ? (
-                  <Link to="/admin" className="btn-outline py-2 px-4 text-sm flex items-center gap-1.5 whitespace-nowrap">
-                    <ShieldCheck size={15} /> แอดมิน
-                  </Link>
-                ) : (
-                  <Link to="/dashboard" className="btn-outline py-2 px-4 text-sm flex items-center gap-1.5 whitespace-nowrap">
-                    <LayoutDashboard size={15} /> เช็คเงินใน wallet
-                  </Link>
-                )}
-                <button onClick={handleLogout} className="btn-primary py-2 px-4 text-sm flex items-center gap-1.5 whitespace-nowrap">
-                  <LogOut size={15} /> ออกจากระบบ
-                </button>
-              </>
+               <div className="flex items-center gap-3">
+                  <div className="hidden sm:flex flex-col items-end mr-2">
+                     <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">บัญชีผู้ใช้</p>
+                     <p className="text-sm font-black text-slate-900 leading-none mt-1">{user.username}</p>
+                  </div>
+                  {isAdmin ? (
+                    <Link to="/admin" className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-soft hover:bg-primary transition-all">
+                       <ShieldCheck size={22} />
+                    </Link>
+                  ) : (
+                    <Link to="/dashboard" className="w-12 h-12 bg-slate-50 text-slate-900 rounded-2xl flex items-center justify-center border border-slate-100 hover:bg-white hover:border-slate-200 transition-all">
+                       <LayoutDashboard size={22} />
+                    </Link>
+                  )}
+                  <button onClick={handleLogout} className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center hover:text-red-500 hover:bg-red-50 hover:border-red-100 border border-transparent transition-all">
+                     <LogOut size={22} />
+                  </button>
+               </div>
             ) : (
-              <>
-                <Link to="/login" className="btn-ghost text-sm flex items-center gap-1.5">
-                  <LogIn size={15} /> เข้าสู่ระบบ
-                </Link>
-                <Link to="/register" className="btn-primary py-2 px-4 text-sm flex items-center gap-1.5">
-                  <UserPlus size={15} /> สมัครสมาชิก
-                </Link>
-              </>
+               <div className="flex items-center gap-3">
+                  <Link to="/login" className="hidden sm:flex px-6 py-3 text-slate-400 font-bold text-sm tracking-widest uppercase hover:text-slate-900 transition-all">เข้าสู่ระบบ</Link>
+                  <Link to="/register" className="bg-slate-900 text-white py-4 px-8 text-xs font-black uppercase tracking-widest rounded-2xl shadow-soft hover:bg-primary transition-all">สมัครสมาชิก</Link>
+               </div>
             )}
-          </div>
 
-          {/* Mobile hamburger */}
-          <div className="flex md:hidden justify-end">
-            <button onClick={() => setMenuOpen(!menuOpen)} className="text-slate-900 p-2">
-              {menuOpen ? <X size={24} /> : <Menu size={24} />}
+            {/* Mobile Toggle */}
+            <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden w-12 h-12 bg-slate-50 text-slate-900 rounded-2xl flex items-center justify-center border border-slate-100 active:scale-95 transition-all">
+               {menuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile Menu */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="md:hidden overflow-hidden bg-white border-t border-slate-100"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="lg:hidden absolute top-full inset-x-0 bg-white border-b border-slate-50 shadow-2xl p-6"
           >
-            <div className="px-4 py-4 flex flex-col gap-3">
+            <div className="flex flex-col gap-4">
               {navLinks.map((l) => (
-                <NavLink
-                  key={l.to}
-                  to={l.to}
-                  end={l.to === '/'}
-                  onClick={() => setMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `py-2 px-3 rounded-lg font-medium transition-colors ${
-                      isActive ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:text-slate-900'
-                    }`
-                  }
-                >
-                  {l.label}
-                </NavLink>
+                <Link key={l.to} to={l.to} onClick={() => setMenuOpen(false)} className="py-5 px-8 bg-slate-50 rounded-3xl font-black text-slate-900 uppercase text-xs tracking-[0.2em]">{l.label}</Link>
               ))}
-              <div className="border-t border-border pt-3 flex flex-col gap-2">
-                <div className="flex items-center justify-between px-3">
-                  <Link to="/cart" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 py-2 text-slate-600 hover:text-slate-900">
-                    <ShoppingCart size={18} /> ตะกร้าสินค้า {count > 0 && <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full">{count}</span>}
-                  </Link>
-                  {user && <NotificationBell />}
-                </div>
-                {user ? (
-                  <>
-                    {isAdmin ? (
-                      <Link to="/admin" onClick={() => setMenuOpen(false)} className="btn-outline py-2 text-center text-sm">แผงแอดมิน</Link>
-                    ) : (
-                      <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="btn-outline py-2 text-center text-sm">เช็คเงินใน wallet</Link>
-                    )}
-                    <button onClick={handleLogout} className="btn-primary py-2 text-sm">ออกจากระบบ</button>
-                  </>
+              <div className="grid grid-cols-2 gap-4 mt-6">
+                 {user ? (
+                   <>
+                    <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="py-5 bg-slate-50 text-slate-900 rounded-3xl text-center font-black uppercase text-[10px] tracking-widest border border-slate-100">โปรไฟล์</Link>
+                    <button onClick={handleLogout} className="py-5 bg-red-50 text-red-500 rounded-3xl text-center font-black uppercase text-[10px] tracking-widest border border-red-100">ออกจากระบบ</button>
+                   </>
                 ) : (
                   <>
-                    <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-ghost py-2 text-center text-sm">เข้าสู่ระบบ</Link>
-                    <Link to="/register" onClick={() => setMenuOpen(false)} className="btn-primary py-2 text-center text-sm">สมัครสมาชิก</Link>
+                    <Link to="/login" onClick={() => setMenuOpen(false)} className="py-5 bg-white text-slate-900 rounded-3xl text-center font-black uppercase text-[10px] tracking-widest border border-slate-200">เข้าสู่ระบบ</Link>
+                    <Link to="/register" onClick={() => setMenuOpen(false)} className="py-5 bg-slate-900 text-white rounded-3xl text-center font-black uppercase text-[10px] tracking-widest shadow-soft">สมัครสมาชิก</Link>
                   </>
                 )}
               </div>
