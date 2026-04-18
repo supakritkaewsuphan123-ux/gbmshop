@@ -29,6 +29,8 @@ export default {
         soft: "0 4px 20px rgba(0,0,0,0.05)",
         "soft-card": "0 8px 30px rgba(0,0,0,0.04)",
         "glow": "0 0 15px rgba(59,130,246,0.3)",
+        "glow-sm": "0 0 10px rgba(59,130,246,0.2)",
+        "glow-lg": "0 0 25px rgba(59,130,246,0.4)",
         card: "0 10px 40px rgba(0,0,0,0.03)",
       },
       animation: {

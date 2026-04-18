@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Phone, Mail, MessageSquare, Globe, ShieldCheck, Zap, Heart } from 'lucide-react';
+import { ArrowRight, Mail, MessageSquare, Globe, ShieldCheck, Zap, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import ProductCard from '../components/ProductCard';
