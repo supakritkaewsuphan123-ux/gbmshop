@@ -10,7 +10,7 @@
   body {
     font-family: 'Prompt', 'Inter', -apple-system, sans-serif;
     background-color: #FFFFFF;
-    color: #0F172A;
+    color: #000000;
     line-height: 1.6;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
@@ -58,16 +58,16 @@
   }
 
   .btn-ghost {
-    @apply text-slate-500 font-bold px-4 py-2 rounded-xl
+    @apply text-slate-600 font-bold px-4 py-2 rounded-xl
            transition-all duration-200 cursor-pointer bg-transparent border-0
            hover:text-primary hover:bg-primary/5
            active:scale-95;
   }
 
   .card {
-    @apply bg-white border border-slate-100 rounded-[32px]
+    @apply bg-white border border-blue-50/50 rounded-[32px]
            transition-all duration-300 shadow-soft
-           hover:shadow-glow-sm hover:border-slate-200;
+           hover:shadow-glow-sm hover:border-blue-100;
   }
 
   .input-field {
@@ -87,16 +87,17 @@
   }
 
   .nav-link {
-    @apply text-slate-400 font-black text-sm uppercase tracking-widest transition-all duration-200
-           hover:text-slate-900 px-4 py-2;
+    @apply text-[#333333] font-black text-sm uppercase tracking-widest transition-all duration-200
+           hover:text-primary px-4 py-2 relative after:absolute after:bottom-0 after:left-4 after:right-4 
+           after:h-0.5 after:bg-primary after:scale-x-0 hover:after:scale-x-100 after:transition-transform;
   }
 
   .section-title {
-    @apply text-4xl font-black mb-4 text-slate-900 tracking-tight;
+    @apply text-4xl font-black mb-4 text-[#000000] tracking-tight;
   }
-
+  
   .section-subtitle {
-    @apply text-slate-400 font-bold mb-10 text-lg;
+    @apply text-slate-500 font-bold mb-10 text-lg;
   }
 
   .shimmer {
