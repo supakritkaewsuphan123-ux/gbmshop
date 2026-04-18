@@ -7,8 +7,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        prompt: ["'Prompt'", "sans-serif"],
-        inter: ["'Inter'", "sans-serif"],
+        kanit: ["Kanit", "sans-serif"],
+        montserrat: ["Montserrat", "sans-serif"],
+        prompt: ["Prompt", "sans-serif"],
+        sans: ["Kanit", "Montserrat", "Prompt", "sans-serif"],
       },
       colors: {
         primary: {
