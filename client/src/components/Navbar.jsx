@@ -95,15 +95,15 @@ export default function Navbar() {
                   </div>
                   {isAdmin ? (
                     <Link to="/admin" className="w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center shadow-glow-sm hover:brightness-110 transition-all">
-                       <ShieldCheck size={22} />
+                       <ShieldCheck size={20} />
                     </Link>
                   ) : (
                     <Link to="/dashboard" className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center border border-primary/20 hover:bg-primary hover:text-white transition-all">
-                       <LayoutDashboard size={22} />
+                       <LayoutDashboard size={20} />
                     </Link>
                   )}
                   <button onClick={handleLogout} className="w-12 h-12 bg-primary/5 text-primary/40 rounded-2xl flex items-center justify-center hover:text-red-500 hover:bg-red-500/10 border border-primary/10 transition-all">
-                     <LogOut size={22} />
+                     <LogOut size={20} />
                   </button>
                </div>
             ) : (

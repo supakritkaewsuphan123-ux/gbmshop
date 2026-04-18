@@ -742,26 +742,26 @@ export default function Admin() {
         </AnimatePresence>
 
         {/* Modals — Clean White Style */}
-        <Modal isOpen={slipModal.open} onClose={() => setSlipModal({ open: false, src: '' })} title="Evidence of Transfer">
+        <Modal isOpen={slipModal.open} onClose={() => setSlipModal({ open: false, src: '' })} title="หลักฐานการโอนเงิน">
            <div className="p-2">
             <img src={slipModal.src} className="w-full rounded-[32px] border border-slate-100 shadow-soft" />
            </div>
         </Modal>
 
-        <Modal isOpen={addProductModal} onClose={() => setAddProductModal(false)} title={editProduct ? `Edit Product` : 'Create New Product'} maxWidth="max-w-xl">
+        <Modal isOpen={addProductModal} onClose={() => setAddProductModal(false)} title={editProduct ? `แก้ไขข้อมูลสินค้า` : 'เพิ่มสินค้าใหม่'} maxWidth="max-w-xl">
           <div className="space-y-8 p-4">
             <div className="grid grid-cols-2 gap-6">
-              <div className="col-span-2 space-y-2">
-                 <label className="label">Product Name</label>
-                 <input className="input-field" placeholder="Item Name..." value={productForm.name} onChange={e => setProductForm(p => ({ ...p, name: e.target.value }))} />
+              <div className="col-span-2 space-y-2 flex flex-col items-center">
+                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">ชื่อสินค้า</label>
+                 <input className="input-field text-center" placeholder="ระบุชื่อสินค้า..." value={productForm.name} onChange={e => setProductForm(p => ({ ...p, name: e.target.value }))} />
               </div>
-              <div className="space-y-2">
-                 <label className="label">Price (THB)</label>
-                 <input type="number" className="input-field" placeholder="0.00" value={productForm.price} onChange={e => setProductForm(p => ({ ...p, price: e.target.value }))} />
+              <div className="space-y-2 flex flex-col items-center">
+                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">ราคา (บาท)</label>
+                 <input type="number" className="input-field text-center" placeholder="0.00" value={productForm.price} onChange={e => setProductForm(p => ({ ...p, price: e.target.value }))} />
               </div>
-              <div className="space-y-2">
-                 <label className="label">Category</label>
-                 <select className="input-field cursor-pointer" value={productForm.category} onChange={e => setProductForm(p => ({ ...p, category: e.target.value }))}>
+              <div className="space-y-2 flex flex-col items-center">
+                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">หมวดหมู่</label>
+                 <select className="input-field cursor-pointer text-center" value={productForm.category} onChange={e => setProductForm(p => ({ ...p, category: e.target.value }))}>
                   {/* Dynamic Categories */}
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -775,33 +775,33 @@ export default function Admin() {
                   <option value="มือสอง">มือ2 (Default)</option>
                 </select>
               </div>
-              <div className="space-y-2">
-                <label className="label">Stock</label>
-                <input type="number" min="0" className="input-field" value={productForm.stock} onChange={e => setProductForm(p => ({ ...p, stock: e.target.value }))} />
+              <div className="space-y-2 flex flex-col items-center">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">จำนวนสต็อก</label>
+                <input type="number" min="0" className="input-field text-center" value={productForm.stock} onChange={e => setProductForm(p => ({ ...p, stock: e.target.value }))} />
               </div>
-              <div className="space-y-2">
-                <label className="label">Condition (%)</label>
-                <input type="number" min="1" max="100" className="input-field" value={productForm.condition_percent} onChange={e => setProductForm(p => ({ ...p, condition_percent: e.target.value }))} />
+              <div className="space-y-2 flex flex-col items-center">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">สภาพสินค้า (%)</label>
+                <input type="number" min="1" max="100" className="input-field text-center" value={productForm.condition_percent} onChange={e => setProductForm(p => ({ ...p, condition_percent: e.target.value }))} />
               </div>
             </div>
             
-            <div className="space-y-2">
-              <label className="label">General Description</label>
-              <textarea rows={5} className="input-field resize-none" placeholder="Provide details about the item..." value={productForm.description} onChange={e => setProductForm(p => ({ ...p, description: e.target.value }))} />
+            <div className="space-y-4">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block text-center mb-1">รายละเอียดสินค้า</label>
+              <textarea rows={5} className="input-field resize-none text-center" placeholder="ระบุรายละเอียดสินค้า..." value={productForm.description} onChange={e => setProductForm(p => ({ ...p, description: e.target.value }))} />
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                 <label className="label">Primary Image</label>
+                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">รูปภาพหลัก</label>
                  <label className="block w-full bg-slate-50 border border-slate-100 px-6 py-4 rounded-2xl text-xs font-black text-slate-400 cursor-pointer text-center truncate italic">
-                    {productForm.image ? productForm.image.name : 'Select Image...'}
+                    {productForm.image ? productForm.image.name : 'เลือกรูปภาพ...'}
                     <input type="file" accept="image/*" className="hidden" onChange={e => setProductForm(p => ({ ...p, image: e.target.files[0] || null }))} />
                  </label>
               </div>
               <div className="space-y-2">
-                 <label className="label">Extra Photos</label>
+                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">รูปภาพเพิ่มเติม</label>
                  <label className="block w-full bg-slate-50 border border-slate-100 px-6 py-4 rounded-2xl text-xs font-black text-slate-400 cursor-pointer text-center truncate italic">
-                    {productForm.additional_images?.length > 0 ? `${productForm.additional_images.length} files selected` : 'Choose Files...'}
+                    {productForm.additional_images?.length > 0 ? `เลือกแล้ว ${productForm.additional_images.length} ไฟล์` : 'เลือกไฟล์...'}
                     <input type="file" accept="image/*" multiple className="hidden" onChange={e => setProductForm(p => ({ ...p, additional_images: e.target.files }))} />
                  </label>
               </div>
@@ -811,28 +811,28 @@ export default function Admin() {
               <button 
                 onClick={submitProduct} 
                 disabled={submitting} 
-                className="bg-slate-900 text-white font-black w-full py-6 text-xl rounded-2xl shadow-soft hover:brightness-110 active:scale-95 transition-all"
+                className="bg-slate-900 text-white font-black w-full py-6 text-xl rounded-2xl shadow-soft hover:brightness-110 active:scale-95 transition-all uppercase tracking-widest"
               >
-                {submitting ? 'PROCESSING...' : 'SAVE PRODUCT CHANGES'}
+                {submitting ? 'กำลังดำเนินการ...' : editProduct ? 'บันทึกการแก้ไข' : 'เพิ่มสินค้าใหม่'}
               </button>
-              {uploadStatus && <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest text-center mt-4">Status: {uploadStatus}</p>}
+              {uploadStatus && <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest text-center mt-4">สถานะ: {uploadStatus}</p>}
             </div>
           </div>
         </Modal>
 
         {/* Reject/Approve Modals updated to same style */}
-        <Modal isOpen={rejectModal.open} onClose={() => setRejectModal({ open: false, id: null, type: 'invoice', reason: '' })} title="State Rejection Reason">
+        <Modal isOpen={rejectModal.open} onClose={() => setRejectModal({ open: false, id: null, type: 'invoice', reason: '' })} title="เหตุผลการปฏิเสธรายการ">
           <div className="space-y-6 p-4">
-            <textarea rows={4} className="input-field resize-none px-6 py-6" placeholder="Reason for rejection (e.g. invalid slip, item out of stock)..." value={rejectModal.reason} onChange={e => setRejectModal(p => ({ ...p, reason: e.target.value }))} />
-            <button onClick={() => updateOrderStatus(rejectModal.id, 'reject', rejectModal.reason)} className="bg-red-500 text-white font-black w-full py-5 text-lg rounded-2xl shadow-soft hover:brightness-110 transition-all uppercase tracking-widest">Confirm Rejection</button>
+            <textarea rows={4} className="input-field resize-none px-6 py-6" placeholder="ระบุเหตุผลในการปฏิเสธ (เช่น สลิปไม่ถูกต้อง, สินค้าหมด)..." value={rejectModal.reason} onChange={e => setRejectModal(p => ({ ...p, reason: e.target.value }))} />
+            <button onClick={() => updateOrderStatus(rejectModal.id, 'reject', rejectModal.reason)} className="bg-red-500 text-white font-black w-full py-5 text-lg rounded-2xl shadow-soft hover:brightness-110 transition-all uppercase tracking-widest">ยืนยันการปฏิเสธ</button>
           </div>
         </Modal>
 
-        <Modal isOpen={approveModal.open} onClose={() => setApproveModal({ open: false, id: null })} title="Confirm Fulfillment">
+        <Modal isOpen={approveModal.open} onClose={() => setApproveModal({ open: false, id: null })} title="ยืนยันการจัดส่งสินค้า">
           <div className="space-y-8 p-4">
             <div className="bg-slate-50 p-8 rounded-[32px] space-y-6 border border-slate-100">
                <div className="space-y-2">
-                  <label className="label">Courier Service</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">บริการขนส่ง</label>
                   <select className="input-field cursor-pointer" value={approveForm.carrier} onChange={e => setApproveForm(p => ({ ...p, carrier: e.target.value }))}>
                     <option value="Flash">Flash Express</option>
                     <option value="Kerry">Kerry Express</option>
@@ -842,11 +842,11 @@ export default function Admin() {
                   </select>
                </div>
                <div className="space-y-2">
-                  <label className="label">Tracking Number</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">หมายเลขพัสดุ (Tracking)</label>
                   <input className="input-field px-6 py-5" placeholder="TH0123456789..." value={approveForm.tracking} onChange={e => setApproveForm(p => ({ ...p, tracking: e.target.value }))} />
                </div>
             </div>
-            <button onClick={() => updateOrderStatus(approveModal.id, 'approve')} className="bg-slate-900 text-white font-black w-full py-6 text-xl rounded-2xl shadow-soft hover:brightness-110 transition-all uppercase tracking-widest">Approve & Ship</button>
+            <button onClick={() => updateOrderStatus(approveModal.id, 'approve')} className="bg-slate-900 text-white font-black w-full py-6 text-xl rounded-2xl shadow-soft hover:brightness-110 transition-all uppercase tracking-widest">อนุมัติและแจ้งจัดส่ง</button>
           </div>
         </Modal>
       </div>
