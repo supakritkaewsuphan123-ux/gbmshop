@@ -28,7 +28,7 @@ export default function App() {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen flex flex-col bg-transparent text-[#000000] font-prompt relative overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-transparent text-[#EE4D2D] font-prompt relative overflow-x-hidden">
       {/* Global Decoration Layer (Optimized for Light Theme) */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {/* Money Icons - Subtle Blue Accents */}
@@ -48,16 +48,16 @@ export default function App() {
           <Coins size={220} className="text-primary" />
         </motion.div>
 
-        {/* Ultra Subtle Glowing orbs for Light Blue Depth */}
+        {/* Ultra Subtle Glowing orbs for Orange Depth */}
         <motion.div 
-          animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.2, 0.1] }}
-          transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
-          className="absolute top-[0%] -left-[10%] w-[700px] h-[700px] bg-primary/10 rounded-full blur-[140px]" 
+          animate={{ scale: [1, 1.4, 1], opacity: [0.1, 0.25, 0.1] }}
+          transition={{ repeat: Infinity, duration: 12, ease: "easeInOut" }}
+          className="absolute top-[0%] -left-[10%] w-[800px] h-[800px] bg-primary/10 rounded-full blur-[160px]" 
         />
         <motion.div 
           animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }}
-          transition={{ repeat: Infinity, duration: 8, ease: "easeInOut", delay: 3 }}
-          className="absolute bottom-[0%] -right-[10%] w-[700px] h-[700px] bg-primary/10 rounded-full blur-[140px]" 
+          transition={{ repeat: Infinity, duration: 10, ease: "easeInOut", delay: 4 }}
+          className="absolute bottom-[0%] -right-[10%] w-[800px] h-[800px] bg-primary/10 rounded-full blur-[160px]" 
         />
       </div>
 
@@ -88,9 +88,9 @@ export default function App() {
 
             {/* 404 */}
             <Route path="*" element={
-              <div className="flex flex-col items-center justify-center min-h-[60vh] text-[#000000]">
-                <p className="text-7xl mb-4">404</p>
-                <p className="text-xl text-[#333333] mb-6">ไม่พบหน้านี้</p>
+              <div className="flex flex-col items-center justify-center min-h-[60vh] text-primary">
+                <p className="text-7xl font-black mb-4">404</p>
+                <p className="text-xl font-bold mb-6">ไม่พบหน้านี้</p>
                 <a href="/" className="btn-primary px-8 py-3">กลับหน้าแรก</a>
               </div>
             } />

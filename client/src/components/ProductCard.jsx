@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
-import { ShoppingCart, Eye, Star } from 'lucide-react';
+import { ShoppingCart, Eye, Star, User, Box } from 'lucide-react';
 import WishlistButton from './WishlistButton';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -36,25 +36,23 @@ export default function ProductCard({ product, index = 0 }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      whileInView={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.6, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
-      className={`group relative bg-white border border-blue-50/50 rounded-[32px] overflow-hidden transition-all duration-500 hover:shadow-soft hover:border-blue-100 flex flex-col ${
-        product.stock <= 0 ? 'opacity-60' : ''
-      }`}
+      className="group relative bg-brand-navy/60 backdrop-blur-md border border-primary/10 rounded-[32px] overflow-hidden transition-all duration-500 hover:shadow-glow-sm hover:border-primary/30 flex flex-col"
     >
       {/* Badges */}
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-         <div className="bg-white/95 backdrop-blur-md text-[#000000] text-[9px] font-black px-3 py-1.5 rounded-xl shadow-sm border border-blue-50 uppercase tracking-widest leading-none">
+         <div className="bg-brand-dark/95 backdrop-blur-md text-primary text-[9px] font-black px-3 py-1.5 rounded-xl shadow-sm border border-primary/10 uppercase tracking-widest leading-none">
            Cond: {product.condition_percent}%
          </div>
       </div>
 
       <div className="absolute top-4 right-4 z-10">
-         <div className={`text-white text-[9px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest shadow-sm leading-none ${
+         <div className={`text-white text-[9px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest shadow-glow-sm leading-none ${
            product.category === 'มือสอง' 
-             ? 'bg-[#666666]' 
+             ? 'bg-primary/60' 
              : 'bg-primary'
          }`}>
            {product.category === 'มือสอง' ? 'Used' : (product.category || 'New')}
@@ -63,27 +61,20 @@ export default function ProductCard({ product, index = 0 }) {
 
       {/* Out of stock overlay */}
       {product.stock <= 0 && (
-        <div className="absolute inset-0 z-30 bg-white/80 backdrop-blur-[2px] flex items-center justify-center">
-            <span className="bg-primary text-white font-black px-6 py-2 rounded-xl text-[10px] shadow-soft tracking-widest uppercase">
+        <div className="absolute inset-0 z-30 bg-brand-dark/80 backdrop-blur-[2px] flex items-center justify-center">
+            <span className="bg-primary text-white font-black px-6 py-2 rounded-xl text-[10px] shadow-glow-sm tracking-widest uppercase">
               Sold Out
             </span>
         </div>
       )}
 
-      {/* Wishlist Button Overlay */}
-      {user && (
-        <div className="absolute bottom-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-          <WishlistButton productId={product.id} size={14} />
-        </div>
-      )}
-
       {/* Image */}
-      <Link to={`/products/${product.id}`} className="block relative overflow-hidden bg-slate-50 aspect-square">
+      <Link to={`/products/${product.id}`} className="block relative overflow-hidden bg-[#0a192f] aspect-square">
         <img
           src={getImageUrl(product.image_url, 'product-images')}
           alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-          onError={(e) => { e.target.src = 'https://ui-avatars.com/api/?name=GB&background=f1f5f9&color=cbd5e1'; }}
+          className="w-full h-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-110 group-hover:opacity-100"
+          onError={(e) => { e.target.src = 'https://ui-avatars.com/api/?name=GB&background=050B18&color=EE4D2D'; }}
         />
         <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-all duration-500" />
       </Link>
@@ -99,21 +90,26 @@ export default function ProductCard({ product, index = 0 }) {
         </div>
         
         <Link to={`/products/${product.id}`} className="block mb-2">
-            <h3 className="font-black text-[#000000] text-lg line-clamp-1 leading-tight tracking-tight group-hover:text-primary transition-colors">{product.name}</h3>
+            <h3 className="font-black text-primary text-lg line-clamp-1 leading-tight tracking-tight hover:text-primary transition-colors uppercase">{product.name}</h3>
         </Link>
         
-        <p className="text-[#666666] text-[10px] font-bold uppercase tracking-widest mb-6">
-          By <span className="text-[#000000]">{product.seller_name}</span>
-        </p>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-primary/60 text-[10px] font-bold uppercase tracking-widest">
+            By <span className="text-primary font-black">{product.seller_name}</span>
+          </p>
+          <div className="flex items-center gap-1 text-primary/60 text-[10px] font-black uppercase tracking-widest">
+            <Box size={10} /> {product.stock}
+          </div>
+        </div>
 
-         <div className="mt-auto flex items-center justify-between pt-4 border-t border-blue-50/50">
-          <span className="text-[#000000] font-black text-2xl tracking-tighter">฿{product.price.toLocaleString()}</span>
+         <div className="mt-auto flex items-center justify-between pt-4 border-t border-primary/10">
+          <span className="text-primary font-black text-2xl tracking-tighter">฿{product.price.toLocaleString()}</span>
           
           <div className="flex gap-2">
             {product.stock > 0 && !inCart && (
               <button
                 onClick={handleAddToCart}
-                className="w-10 h-10 bg-blue-50/50 text-[#555555] hover:text-primary hover:bg-white border border-transparent hover:border-blue-100 rounded-xl transition-all flex items-center justify-center"
+                className="w-10 h-10 bg-primary/10 text-primary hover:text-white hover:bg-primary border border-primary/20 rounded-xl transition-all flex items-center justify-center shadow-sm"
                 title="Add to Cart"
               >
                 <ShoppingCart size={16} />
@@ -121,7 +117,7 @@ export default function ProductCard({ product, index = 0 }) {
             )}
             <Link
               to={`/products/${product.id}`}
-              className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center hover:brightness-110 shadow-soft transition-all"
+              className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center hover:brightness-110 shadow-glow-sm transition-all"
             >
               <Eye size={16} />
             </Link>

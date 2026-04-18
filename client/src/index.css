@@ -9,12 +9,61 @@
 
   body {
     font-family: 'Prompt', 'Inter', -apple-system, sans-serif;
-    background-color: #F0F9FF;
-    color: #000000;
+    background-color: #050B18;
+    color: #EE4D2D;
     line-height: 1.6;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
   }
+
+  /* Force Orange Text Globally */
+  h1, h2, h3, h4, h5, h6, p, span, a, label, input, select, textarea, button {
+    color: #EE4D2D !important;
+  }
+
+  .text-slate-900, .text-slate-800, .text-slate-700, .text-slate-600, .text-slate-500, .text-slate-400, .text-black, .text-gray-900 {
+    color: #EE4D2D !important;
+  }
+
+  /* Global Background Overrides for Deep Navy Theme */
+  .bg-slate-900, .bg-black, .bg-slate-800, .bg-gray-900, .bg-white {
+    background-color: rgba(5, 11, 24, 0.95) !important;
+    border: 1px solid rgba(238, 77, 45, 0.15) !important;
+  }
+
+  .bg-slate-50, .bg-slate-100, .bg-gray-50, .bg-gray-100 {
+    background-color: rgba(10, 25, 47, 0.8) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(238, 77, 45, 0.1) !important;
+  }
+
+  /* Global Border Overrides to Orange-Tinted Navy */
+  .border-slate-50, .border-slate-100, .border-slate-200, .border-gray-100, .border-gray-200, .border-blue-50, .border-blue-100 {
+    border-color: rgba(238, 77, 45, 0.1) !important;
+  }
+
+  /* Global Button Refinement */
+  button.bg-slate-900, button.bg-black {
+    background-color: #EE4D2D !important;
+  }
+  
+  button.bg-slate-900:hover, button.bg-black:hover {
+    filter: brightness(1.1);
+  }
+
+  button.bg-white, button.bg-slate-50 {
+    color: #EE4D2D !important;
+    border-color: #DBEAFE !important;
+  }
+
+  /* Status Badges refinement for Dark Theme */
+  .bg-red-50 { background-color: rgba(239, 68, 68, 0.1) !important; color: #EF4444 !important; border-color: rgba(239, 68, 68, 0.2) !important; }
+  .bg-green-50 { background-color: rgba(34, 197, 94, 0.1) !important; color: #22C55E !important; border-color: rgba(34, 197, 94, 0.2) !important; }
+  .bg-blue-50 { background-color: rgba(59, 130, 246, 0.1) !important; color: #3B82F6 !important; border-color: rgba(59, 130, 246, 0.2) !important; }
+  .bg-orange-50 { background-color: rgba(238, 77, 45, 0.1) !important; color: #EE4D2D !important; border-color: rgba(238, 77, 45, 0.2) !important; }
+  .bg-green-50 { background-color: rgba(34, 197, 94, 0.05) !important; color: #22C55E !important; }
+  .bg-blue-50 { background-color: rgba(59, 130, 246, 0.05) !important; color: #3B82F6 !important; }
+  .bg-orange-50 { background-color: rgba(249, 115, 22, 0.05) !important; color: #F97316 !important; }
 
   * {
     box-sizing: border-box;
@@ -50,36 +99,36 @@
   }
 
   .btn-outline {
-    @apply border border-slate-200 text-slate-900 font-bold px-8 py-4 rounded-2xl
-           transition-all duration-300 cursor-pointer bg-white
-           hover:bg-slate-50 hover:border-slate-300 hover:-translate-y-0.5
+    @apply border border-primary/20 text-primary font-bold px-8 py-4 rounded-2xl
+           transition-all duration-300 cursor-pointer bg-brand-dark/50 backdrop-blur-sm
+           hover:bg-primary/5 hover:border-primary hover:-translate-y-0.5
            active:scale-[0.98]
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-ghost {
-    @apply text-slate-600 font-bold px-4 py-2 rounded-xl
+    @apply text-primary/70 font-bold px-4 py-2 rounded-xl
            transition-all duration-200 cursor-pointer bg-transparent border-0
            hover:text-primary hover:bg-primary/5
            active:scale-95;
   }
 
   .card {
-    @apply bg-white border border-blue-50/50 rounded-[32px]
+    @apply bg-brand-navy/60 backdrop-blur-md border border-primary/10 rounded-[32px]
            transition-all duration-300 shadow-soft
-           hover:shadow-glow-sm hover:border-blue-100;
+           hover:shadow-glow-sm hover:border-primary/30;
   }
 
   .input-field {
-    @apply w-full bg-white border border-slate-100 rounded-2xl px-5 py-4
-           text-slate-900 placeholder-slate-400 font-medium
+    @apply w-full bg-brand-darker border border-primary/10 rounded-2xl px-5 py-4
+           text-primary placeholder-primary/30 font-medium
            focus:outline-none focus:border-primary focus:ring-0
            shadow-soft transition-all duration-200
            font-prompt;
   }
 
   .label {
-    @apply block text-sm font-bold text-slate-900 mb-2 uppercase tracking-tighter;
+    @apply block text-sm font-bold text-primary/80 mb-2 uppercase tracking-tighter;
   }
 
   .badge {
@@ -87,17 +136,17 @@
   }
 
   .nav-link {
-    @apply text-[#333333] font-black text-sm uppercase tracking-widest transition-all duration-200
+    @apply text-primary/70 font-black text-sm uppercase tracking-widest transition-all duration-200
            hover:text-primary px-4 py-2 relative after:absolute after:bottom-0 after:left-4 after:right-4 
            after:h-0.5 after:bg-primary after:scale-x-0 hover:after:scale-x-100 after:transition-transform;
   }
 
   .section-title {
-    @apply text-4xl font-black mb-4 text-[#000000] tracking-tight;
+    @apply text-4xl font-black mb-4 text-primary tracking-tight;
   }
   
   .section-subtitle {
-    @apply text-slate-500 font-bold mb-10 text-lg;
+    @apply text-primary/60 font-bold mb-10 text-lg;
   }
 
   .shimmer {

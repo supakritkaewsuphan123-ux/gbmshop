@@ -35,33 +35,33 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-20 bg-white">
+    <div className="min-h-screen flex items-center justify-center px-4 py-20 bg-transparent">
       <motion.div
         initial={{ opacity: 0, y: 30, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-lg"
       >
-        <div className="bg-white border border-slate-100 rounded-[56px] p-16 shadow-soft relative overflow-hidden">
+        <div className="bg-brand-navy/60 backdrop-blur-md border border-primary/10 rounded-[56px] p-16 shadow-glow-sm relative overflow-hidden">
           <div className="text-center mb-12 relative z-10">
-            <div className="w-16 h-16 bg-slate-50 border border-slate-50 flex items-center justify-center text-slate-900 mx-auto mb-8 rounded-2xl shadow-sm">
+            <div className="w-16 h-16 bg-primary/5 border border-primary/10 flex items-center justify-center text-primary mx-auto mb-8 rounded-2xl shadow-sm">
               <ShieldPlus size={32} />
             </div>
-            <h2 className="text-5xl font-black text-slate-900 mb-2 tracking-tighter">Register</h2>
-            <p className="text-slate-400 font-bold tracking-tight">เข้าร่วมครอบครัว GBshop </p>
+            <h2 className="text-5xl font-black text-primary mb-2 tracking-tighter uppercase">Register</h2>
+            <p className="text-primary/60 font-bold tracking-tight">เข้าร่วมครอบครัว GBshop </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
-                <label className="label">Username</label>
+                <label className="label text-primary">Username</label>
                 <input type="text" required value={form.username}
                   onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
                   className="input-field py-5" placeholder="เช่น gbmoney_shop" />
               </div>
 
               <div className="space-y-2">
-                <label className="label">Email Address</label>
+                <label className="label text-primary">Email Address</label>
                 <input type="email" required value={form.email}
                   onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                   className="input-field py-5" placeholder="example@email.com" />
@@ -69,7 +69,7 @@ export default function Register() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="label">Password</label>
+                  <label className="label text-primary">Password</label>
                   <div className="relative">
                     <input 
                       type={showPwd ? "text" : "password"} 
@@ -82,7 +82,7 @@ export default function Register() {
                     <button 
                       type="button" 
                       onClick={() => setShowPwd(!showPwd)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-900 transition-all"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-all"
                     >
                       {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -90,7 +90,7 @@ export default function Register() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="label">Confirm</label>
+                  <label className="label text-primary">Confirm</label>
                   <div className="relative">
                     <input 
                       type={showConfirmPwd ? "text" : "password"} 
@@ -103,7 +103,7 @@ export default function Register() {
                     <button 
                       type="button" 
                       onClick={() => setShowConfirmPwd(!showConfirmPwd)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-900 transition-all"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-all"
                     >
                       {showConfirmPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -115,15 +115,15 @@ export default function Register() {
             <motion.button
               type="submit" disabled={loading}
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              className="bg-slate-900 text-white font-black w-full py-6 text-xl rounded-2xl shadow-soft hover:brightness-110 active:scale-95 transition-all mt-8"
+              className="bg-primary text-white font-black w-full py-6 text-xl rounded-2xl shadow-glow-sm hover:brightness-110 active:scale-95 transition-all mt-8"
             >
               {loading ? 'CREATING ACCOUNT...' : <><UserPlus size={22} className="inline mr-2" /> สมัครสมาชิก</>}
             </motion.button>
           </form>
 
-          <p className="text-center mt-12 text-sm text-slate-400 font-bold">
+          <p className="text-center mt-12 text-sm text-primary/40 font-bold">
             หากมีบัญชีอยู่แล้ว?{' '}
-            <Link to="/login" className="text-slate-900 hover:text-primary font-black ml-1 transition-all underline underline-offset-8">เข้าสู่ระบบได้ที่นี่</Link>
+            <Link to="/login" className="text-primary hover:text-primary/80 font-black ml-1 transition-all underline underline-offset-8">เข้าสู่ระบบได้ที่นี่</Link>
           </p>
         </div>
       </motion.div>
