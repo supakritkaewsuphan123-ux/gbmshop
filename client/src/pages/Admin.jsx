@@ -751,17 +751,17 @@ export default function Admin() {
         <Modal isOpen={addProductModal} onClose={() => setAddProductModal(false)} title={editProduct ? `แก้ไขข้อมูลสินค้า` : 'เพิ่มสินค้าใหม่'} maxWidth="max-w-xl">
           <div className="space-y-8 p-4">
             <div className="grid grid-cols-2 gap-6">
-              <div className="col-span-2 space-y-2 flex flex-col items-center">
-                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">ชื่อสินค้า</label>
-                 <input className="input-field text-center" placeholder="ระบุชื่อสินค้า..." value={productForm.name} onChange={e => setProductForm(p => ({ ...p, name: e.target.value }))} />
+              <div className="col-span-2 space-y-2">
+                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">ชื่อสินค้า</label>
+                 <input className="input-field" placeholder="ระบุชื่อสินค้า..." value={productForm.name} onChange={e => setProductForm(p => ({ ...p, name: e.target.value }))} />
               </div>
-              <div className="space-y-2 flex flex-col items-center">
-                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">ราคา (บาท)</label>
-                 <input type="number" className="input-field text-center" placeholder="0.00" value={productForm.price} onChange={e => setProductForm(p => ({ ...p, price: e.target.value }))} />
+              <div className="space-y-2">
+                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">ราคา (บาท)</label>
+                 <input type="number" className="input-field" placeholder="0.00" value={productForm.price} onChange={e => setProductForm(p => ({ ...p, price: e.target.value }))} />
               </div>
-              <div className="space-y-2 flex flex-col items-center">
-                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">หมวดหมู่</label>
-                 <select className="input-field cursor-pointer text-center" value={productForm.category} onChange={e => setProductForm(p => ({ ...p, category: e.target.value }))}>
+              <div className="space-y-2">
+                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">หมวดหมู่</label>
+                 <select className="input-field cursor-pointer" value={productForm.category} onChange={e => setProductForm(p => ({ ...p, category: e.target.value }))}>
                   {/* Dynamic Categories */}
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -775,19 +775,19 @@ export default function Admin() {
                   <option value="มือสอง">มือ2 (Default)</option>
                 </select>
               </div>
-              <div className="space-y-2 flex flex-col items-center">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">จำนวนสต็อก</label>
-                <input type="number" min="0" className="input-field text-center" value={productForm.stock} onChange={e => setProductForm(p => ({ ...p, stock: e.target.value }))} />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">จำนวนสต็อก</label>
+                <input type="number" min="0" className="input-field" value={productForm.stock} onChange={e => setProductForm(p => ({ ...p, stock: e.target.value }))} />
               </div>
-              <div className="space-y-2 flex flex-col items-center">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">สภาพสินค้า (%)</label>
-                <input type="number" min="1" max="100" className="input-field text-center" value={productForm.condition_percent} onChange={e => setProductForm(p => ({ ...p, condition_percent: e.target.value }))} />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">สภาพสินค้า (%)</label>
+                <input type="number" min="1" max="100" className="input-field" value={productForm.condition_percent} onChange={e => setProductForm(p => ({ ...p, condition_percent: e.target.value }))} />
               </div>
             </div>
             
-            <div className="space-y-4">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block text-center mb-1">รายละเอียดสินค้า</label>
-              <textarea rows={5} className="input-field resize-none text-center" placeholder="ระบุรายละเอียดสินค้า..." value={productForm.description} onChange={e => setProductForm(p => ({ ...p, description: e.target.value }))} />
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">รายละเอียดสินค้า</label>
+              <textarea rows={5} className="input-field resize-none" placeholder="ระบุรายละเอียดสินค้า..." value={productForm.description} onChange={e => setProductForm(p => ({ ...p, description: e.target.value }))} />
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -109,7 +109,7 @@ export default function Navbar() {
             ) : (
                <div className="flex items-center gap-4">
                   <Link to="/login" className="hidden sm:flex px-6 py-4 text-[#EE4D2D] font-black text-lg tracking-widest uppercase hover:text-primary transition-all">เข้าสู่ระบบ</Link>
-                  <Link to="/register" className="bg-primary text-white py-4 px-10 text-base font-black uppercase tracking-widest rounded-2xl shadow-glow-sm hover:brightness-110 transition-all">สมัครสมาชิก</Link>
+                  <Link to="/register" className="bg-primary text-white sm:py-4 py-2.5 sm:px-10 px-6 sm:text-base text-sm font-black uppercase tracking-widest rounded-2xl shadow-glow-sm hover:brightness-110 transition-all whitespace-nowrap">สมัครสมาชิก</Link>
                </div>
             )}
 
