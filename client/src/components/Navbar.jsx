@@ -74,7 +74,7 @@ export default function Navbar() {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center sm:gap-3 gap-1">
             {user && (
               <div className="hidden lg:flex items-center gap-3 mr-4">
                 <NotificationBell />
