@@ -46,13 +46,13 @@ export default function Navbar() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6">
-        <div className="flex items-center justify-between h-14">
+        <div className="flex items-center justify-between gap-4 h-14">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
              <div className="w-13 h-13 bg-primary rounded-[20px] flex items-center justify-center text-white shadow-glow-sm transition-all group-hover:scale-110">
                 <ShieldCheck size={28} fill="white" />
              </div>
-             <span className="text-4xl font-black text-[#EE4D2D] tracking-tighter">GB<span className="text-primary italic">shop</span></span>
+             <span className="text-2xl sm:text-4xl font-black text-[#EE4D2D] tracking-tighter">GB<span className="text-primary italic">shop</span></span>
           </Link>
 
           {/* Nav Links — Desktop */}
